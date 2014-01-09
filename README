@@ -1,0 +1,19 @@
+qpoint
+
+A lightweight pointing library for SPIDER.
+
+Installation:
+
+for C library:
+
+    make
+    sudo make install
+
+for python bindings:
+
+    make python
+    sudo make install-python
+
+Usage:
+
+see example c and python code
