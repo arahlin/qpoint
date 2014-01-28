@@ -17,3 +17,9 @@ for python bindings:
 Usage:
 
 see example c and python code
+
+
+TODO:
+
+1. use CBLAS for speedup?
+2. expose all the other C functions in the python API?

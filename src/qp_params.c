@@ -1,184 +1,239 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "qpoint.h"
 
-qp_params_t qp_params;
+void qp_init_state(qp_state_t *state, double rate) {
+  state->update_rate = rate;
+  state->ctime_last = -1;
+}
 
-#define PARAMFUNCD(param)	 \
-  void qp_set_##param(int val) { \
-    qp_params.param = val;	 \
-  }				 \
-  int qp_get_##param(void) {	 \
-    return qp_params.param;	 \
-  }
-PARAMFUNCD(accuracy)
-PARAMFUNCD(mean_aber)
-PARAMFUNCD(fast_math)
-PARAMFUNCD(polconv)
+qp_memory_t * qp_init_memory(void) {
+  qp_memory_t *mem = malloc(sizeof(*mem));
+  qp_init_state(&mem->state_daber , QP_DO_ALWAYS);
+  qp_init_state(&mem->state_lonlat, QP_DO_ALWAYS);
+  qp_init_state(&mem->state_wobble, QP_DO_NEVER);
+  qp_init_state(&mem->state_dut1  , QP_DO_NEVER);
+  qp_init_state(&mem->state_erot  , QP_DO_ALWAYS);
+  qp_init_state(&mem->state_npb   , 10);
+  qp_init_state(&mem->state_aaber , 100);
+  qp_init_state(&mem->state_ref , QP_DO_NEVER);
+  mem->accuracy = 0;
+  mem->mean_aber = 0;
+  mem->fast_math = 0;
+  mem->polconv = 0;
+  mem->weather.height = 30000.;
+  mem->weather.temperature = 0.;
+  mem->weather.pressure = 10.;
+  mem->weather.humidity = 0.;
+  mem->weather.frequency = 150.;
+  mem->weather.lapse_rate = 0.0065;
+  mem->ref_tol = 1.0e-8;
+  mem->ref_delta = 0.;
+  mem->dut1 = 0.;
+  memset(mem->q_lonlat,   0, 4);
+  memset(mem->q_wobble,   0, 4);
+  memset(mem->q_npb,      0, 4);
+  memset(mem->q_erot,     0, 4);
+  memset(mem->beta_earth, 0, 3);
+  mem->initialized = 1;
+  return mem;
+}
 
-#define STEPFUNCD(step)				  \
-  void qp_set_rate_##step(double rate) {	  \
-    if (rate != qp_params.s_##step.update_rate) { \
-      qp_params.s_##step.update_rate = rate;	  \
-      qp_params.s_##step.ctime_last = -1;	  \
-    }						  \
-  }						  \
-  void qp_reset_rate_ ##step(void) {		  \
-    qp_params.s_##step.ctime_last = -1;		  \
-  }						  \
-  double qp_get_rate_##step(void) {		  \
-    return qp_params.s_##step.update_rate;	  \
+void qp_free_memory(qp_memory_t *mem) {
+  free(mem);
+}
+
+#define RATEFUNCD(state)				    \
+  void qp_set_rate_##state(qp_memory_t *mem, double rate) { \
+    if (rate != mem->state_##state.update_rate) {	    \
+      mem->state_##state.update_rate = rate;		    \
+      mem->state_##state.ctime_last = -1;		    \
+    }							    \
+  }							    \
+  void qp_reset_rate_##state(qp_memory_t *mem) {	    \
+    mem->state_##state.ctime_last = -1;			    \
+  }							    \
+  double qp_get_rate_##state(qp_memory_t *mem) {	    \
+    return mem->state_##state.update_rate;		    \
   }
-STEPFUNCD(daber)
-STEPFUNCD(lonlat)
-STEPFUNCD(wobble)
-STEPFUNCD(dut1)
-STEPFUNCD(erot)
-STEPFUNCD(npb)
-STEPFUNCD(aaber)
-STEPFUNCD(refro)
+RATEFUNCD(daber)
+RATEFUNCD(lonlat)
+RATEFUNCD(wobble)
+RATEFUNCD(dut1)
+RATEFUNCD(erot)
+RATEFUNCD(npb)
+RATEFUNCD(aaber)
+RATEFUNCD(ref)
 
 void qp_print_debug(const char *tag, quat_t q) {
   printf("%s quat: [%.6g, %.6g, %.6g, %.6g]\n",
 	 tag, q[0], q[1], q[2], q[3]);
 }
 
-void qp_init_params(void) {
-  if (qp_params.initialized) return;
-  qp_set_rate_daber (QP_DO_ALWAYS);
-  qp_set_rate_lonlat(QP_DO_ALWAYS);
-  qp_set_rate_wobble(QP_DO_NEVER);
-  qp_set_rate_dut1  (QP_DO_NEVER);
-  qp_set_rate_erot  (QP_DO_ALWAYS);
-  qp_set_rate_npb   (10);
-  qp_set_rate_aaber (100);
-  qp_set_rate_refro (QP_DO_NEVER);
-  qp_params.accuracy = 0;
-  qp_params.mean_aber = 0;
-  qp_params.fast_math = 0;
-  qp_params.polconv = 0;
-  qp_params.refro_data.height = 30000.;
-  qp_params.refro_data.temperature = 0.;
-  qp_params.refro_data.pressure = 10.;
-  qp_params.refro_data.humidity = 0.;
-  qp_params.refro_data.frequency = 150.;
-  qp_params.refro_data.lapse_rate = 0.0065;
-  qp_params.refro_data.tolerance = 1.0e-8;
-  qp_params.refro_data.corr = 0.;
-  qp_params.initialized = 1;
+void qp_set_rates(qp_memory_t *mem,
+		  double daber_rate,
+		  double lonlat_rate,
+		  double wobble_rate,
+		  double dut1_rate,
+		  double erot_rate,
+		  double npb_rate,
+		  double aaber_rate,
+		  double ref_rate) {
+  qp_set_rate_daber (mem, daber_rate);
+  qp_set_rate_lonlat(mem, lonlat_rate);
+  qp_set_rate_wobble(mem, wobble_rate);
+  qp_set_rate_dut1  (mem, dut1_rate);
+  qp_set_rate_erot  (mem, erot_rate);
+  qp_set_rate_npb   (mem, npb_rate);
+  qp_set_rate_aaber (mem, aaber_rate);
+  qp_set_rate_ref   (mem, ref_rate);
 }
 
-void qp_set_params(double daber_rate,
-		   double lonlat_rate,
-		   double wobble_rate,
-		   double dut1_rate,
-		   double erot_rate,
-		   double npb_rate,
-		   double aaber_rate,
-		   double refro_rate,
-		   int accuracy,
-		   int mean_aber,
-		   int fast_math,
-		   int polconv) {
-  qp_init_params();
-  qp_set_rate_daber (daber_rate);
-  qp_set_rate_lonlat(lonlat_rate);
-  qp_set_rate_wobble(wobble_rate);
-  qp_set_rate_dut1  (dut1_rate);
-  qp_set_rate_erot  (erot_rate);
-  qp_set_rate_npb   (npb_rate);
-  qp_set_rate_aaber (aaber_rate);
-  qp_set_rate_refro (refro_rate);
-  if (accuracy != qp_params.accuracy) {
-    qp_params.accuracy = accuracy;
-    qp_reset_rate_npb();
-  }
-  if (mean_aber != qp_params.mean_aber) {
-    qp_params.mean_aber = mean_aber;
-    qp_reset_rate_aaber();
-  }
-  qp_params.fast_math = fast_math;
-  qp_params.polconv = polconv;
-}
-
-void qp_reset_rate_all(void) {
-  qp_reset_rate_daber();
-  qp_reset_rate_lonlat();
-  qp_reset_rate_wobble();
-  qp_reset_rate_dut1();
-  qp_reset_rate_erot();
-  qp_reset_rate_npb();
-  qp_reset_rate_aaber();
-  qp_reset_rate_refro();
+void qp_reset_rates(qp_memory_t *mem) {
+  qp_reset_rate_daber (mem);
+  qp_reset_rate_lonlat(mem);
+  qp_reset_rate_wobble(mem);
+  qp_reset_rate_dut1  (mem);
+  qp_reset_rate_erot  (mem);
+  qp_reset_rate_npb   (mem);
+  qp_reset_rate_aaber (mem);
+  qp_reset_rate_ref   (mem);
 }
 
 // return 0 to skip, 1 to apply
-int qp_check_update(qp_step_t *step, double ctime) {
+int qp_check_update(qp_state_t *state, double ctime) {
   // don't update if set to never
-  if (step->update_rate == QP_DO_NEVER) return 0;
+  if (state->update_rate == QP_DO_NEVER) return 0;
   // don't update if set to once and already done
-  if ( (step->update_rate == QP_DO_ONCE) &&
-       (step->ctime_last > 0) ) return 0;
+  if ( (state->update_rate == QP_DO_ONCE) &&
+       (state->ctime_last > 0) ) return 0;
   // update if hasn't been checked yet (likely first time)
-  if (step->ctime_last <= 0) {
-    step->ctime_last = ctime;
+  if (state->ctime_last <= 0) {
+    state->ctime_last = ctime;
     return 1;
   }
   // update if time is discontinuous
-  if (ctime < step->ctime_last) {
-    step->ctime_last = ctime;
+  if (ctime < state->ctime_last) {
+    state->ctime_last = ctime;
     return 1;
   }
   // update if enough ticks have passed
-  if ( (ctime - step->ctime_last) >= step->update_rate ) {
-    step->ctime_last = ctime;
+  if ( (ctime - state->ctime_last) >= state->update_rate ) {
+    state->ctime_last = ctime;
     return 1;
   }
   // otherwise don't update
   return 0;
 }
 
-int qp_check_apply(qp_step_t *step) {
-  if (step->update_rate == QP_DO_NEVER) return 0;
+int qp_check_apply(qp_state_t *state) {
+  if (state->update_rate == QP_DO_NEVER) return 0;
   return 1;
 }
 
-// set/get refraction parameters
-#define REFROFUNCD(param)		     \
-  void qp_set_refro_##param(double val) {    \
-    if (val != qp_params.refro_data.param) { \
-      qp_params.refro_data.param = val;	     \
-      qp_reset_rate_refro();		     \
-    }					     \
-  }					     \
-  double qp_get_refro_##param() {	     \
-    return qp_params.refro_data.param;	     \
+#define OPTIONFUNCS(opt)			     \
+  void qp_set_opt_##opt(qp_memory_t *mem, int val) { \
+    mem->opt = val;				     \
   }
-REFROFUNCD(height)
-REFROFUNCD(temperature)
-REFROFUNCD(pressure)
-REFROFUNCD(humidity)
-REFROFUNCD(frequency)
-REFROFUNCD(lapse_rate)
-REFROFUNCD(tolerance)
+#define OPTIONFUNCSR(opt, rate)			     \
+  void qp_set_opt_##opt(qp_memory_t *mem, int val) { \
+    if (val != mem->opt) {			     \
+      mem->opt = val;				     \
+      qp_reset_rate_##rate(mem);		     \
+    }						     \
+  }
+#define OPTIONFUNCG(opt)		   \
+  int qp_get_opt_##opt(qp_memory_t *mem) { \
+    return mem->opt;			   \
+  }
+#define OPTIONFUNCD(opt) \
+  OPTIONFUNCS(opt)	 \
+  OPTIONFUNCG(opt)
+#define OPTIONFUNCDR(opt, rate) \
+  OPTIONFUNCSR(opt, rate)	\
+  OPTIONFUNCG(opt)
 
-// use with caution
-void qp_set_refro_corr(double val) {
-  qp_params.refro_data.corr = val;
-}
-double qp_get_refro_corr() {
-  return qp_params.refro_data.corr;
+OPTIONFUNCDR(accuracy, npb)
+OPTIONFUNCDR(mean_aber, aaber)
+OPTIONFUNCD(fast_math)
+OPTIONFUNCD(polconv)
+
+void qp_set_options(qp_memory_t *mem,
+		    int accuracy,
+		    int mean_aber,
+		    int fast_math,
+		    int polconv) {
+  qp_set_opt_accuracy (mem, accuracy);
+  qp_set_opt_mean_aber(mem, mean_aber);
+  qp_set_opt_fast_math(mem, fast_math);
+  qp_set_opt_polconv  (mem, polconv);
 }
 
-// update all refro_data parameters
-void qp_set_refro_data(double height, double temperature, double pressure,
-		       double humidity, double frequency, double lapse_rate,
-		       double tolerance) {
-  qp_set_refro_height(height);
-  qp_set_refro_temperature(temperature);
-  qp_set_refro_pressure(pressure);
-  qp_set_refro_humidity(humidity);
-  qp_set_refro_frequency(frequency);
-  qp_set_refro_lapse_rate(lapse_rate);
-  qp_set_refro_tolerance(tolerance);
+// update all ref_data parameters
+void qp_set_weather(qp_memory_t *mem,
+		    double height, double temperature, double pressure,
+		    double humidity, double frequency, double lapse_rate) {
+  qp_set_weather_height     (mem, height);
+  qp_set_weather_temperature(mem, temperature);
+  qp_set_weather_pressure   (mem, pressure);
+  qp_set_weather_humidity   (mem, humidity);
+  qp_set_weather_frequency  (mem, frequency);
+  qp_set_weather_lapse_rate (mem, lapse_rate);
 }
+
+// set/get refraction parameters
+#define WEATHFUNCD(param)				      \
+  void qp_set_weather_##param(qp_memory_t *mem, double val) { \
+    if (val != mem->weather.param) {			      \
+      mem->weather.param = val;				      \
+      qp_reset_rate_ref(mem);				      \
+    }							      \
+  }							      \
+  double qp_get_weather_##param(qp_memory_t *mem) {	      \
+    return mem->weather.param;				      \
+  }
+WEATHFUNCD(height)
+WEATHFUNCD(temperature)
+WEATHFUNCD(pressure)
+WEATHFUNCD(humidity)
+WEATHFUNCD(frequency)
+WEATHFUNCD(lapse_rate)
+
+#define DOUBLEFUNCS(param)			      \
+  void qp_set_##param(qp_memory_t *mem, double val) { \
+    mem->param = val;				      \
+  }
+#define DOUBLEFUNCSR(param, rate)		      \
+  void qp_set_##param(qp_memory_t *mem, double val) { \
+    if (val != mem->param) {			      \
+      mem->param = val;				      \
+      qp_reset_rate_##rate(mem);		      \
+    }						      \
+  }
+#define DOUBLEFUNCSRR(param, rate1, rate2)	      \
+  void qp_set_##param(qp_memory_t *mem, double val) { \
+    if (val != mem->param) {			      \
+      mem->param = val;				      \
+      qp_reset_rate_##rate1(mem);		      \
+      qp_reset_rate_##rate2(mem);		      \
+    }						      \
+  }
+#define DOUBLEFUNCG(param)		    \
+  double qp_get_##param(qp_memory_t *mem) { \
+    return mem->param;			    \
+  }
+#define DOUBLEFUNCD(param) \
+  DOUBLEFUNCS(param)	   \
+  DOUBLEFUNCG(param)
+#define DOUBLEFUNCDR(param, rate) \
+  DOUBLEFUNCSR(param, rate)	  \
+  DOUBLEFUNCG(param)
+#define DOUBLEFUNCDRR(param, rate1, rate2) \
+  DOUBLEFUNCSRR(param, rate1, rate2)	   \
+  DOUBLEFUNCG(param)
+
+DOUBLEFUNCDR(ref_tol, ref)
+DOUBLEFUNCD(ref_delta)
+DOUBLEFUNCDRR(dut1, erot, wobble)

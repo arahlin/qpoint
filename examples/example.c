@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
   double rate_erot = QP_DO_ALWAYS;   // update ERA angle
   double rate_npb = 10;              // update nutation/precession/bias correction
   double rate_aaber = 100;           // update annual aberration correction
-  double rate_refro = QP_DO_NEVER;   // update refraction correction
+  double rate_ref = QP_DO_NEVER;     // update refraction correction
   
   // detector offsets in degrees
   double delta_az = 1.0;
@@ -41,31 +41,31 @@ int main(int argc, char *argv[]) {
   double *sin2psi = malloc(sizeof(double)*n);
   double *cos2psi = malloc(sizeof(double)*n);
   
-  /* initialize parameters */
+  /* initialize memory */
   
-  qp_init_params(); // make sure structure is initialized
+  qp_memory_t *mem = qp_init_memory();
   
   // set all parameters at once
   /*
-  qp_set_params(rate_daber, rate_lonlat, rate_wobble, rate_dut1,
-  		rate_erot, rate_npb, rate_aaber,
-  		accuracy, mean_aber, fast_math, polconv);
+  qp_set_rates(mem, rate_daber, rate_lonlat, rate_wobble, rate_dut1,
+	       rate_erot, rate_npb, rate_aaber, rate_ref);
+  qp_set_options(mem, accuracy, mean_aber, fast_math, polconv);
   */
   
   // or only a few
-  qp_set_accuracy(accuracy);
-  qp_set_fast_math(fast_math);
+  qp_set_accuracy(mem, accuracy);
+  qp_set_fast_math(mem, fast_math);
   
   /* Calculate boresight pointing */
   
   // TODO
   // read in az/el/etc data
   
-  qp_azel2bore(az, el, pitch, roll, lon, lat, ctime, q_bore, n);
+  qp_azel2bore(mem, az, el, pitch, roll, lon, lat, ctime, q_bore, n);
   
   /* Calculate detector pointing */
   
-  qp_bore2radec(delta_az, delta_el, delta_psi, ctime, q_bore,
+  qp_bore2radec(mem, delta_az, delta_el, delta_psi, ctime, q_bore,
 		ra, dec, sin2psi, cos2psi, n);
   
   /* free all the things */
@@ -82,6 +82,8 @@ int main(int argc, char *argv[]) {
   free(dec);
   free(sin2psi);
   free(cos2psi);
+  
+  qp_free_memory(mem)
   
   return 0;
 }

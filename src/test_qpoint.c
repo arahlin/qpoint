@@ -93,13 +93,13 @@ int main(int argc, char *argv[]) {
 		ra,dec,psi,NSAMP,0,0,0);
   */
   
-  qp_init_params();
-  qp_set_accuracy(1);
-  qp_set_fast_math(1);
+  qp_params_t *P = qp_init_params();
+  qp_set_accuracy(P, 1);
+  qp_set_fast_math(P, 1);
   
   if (mode == 0) {
     printf("azel2bore\n");
-    qp_azel2bore(az,el,pitch,roll,lon,lat,ctime,q_bore,NSAMP);
+    qp_azel2bore(P, az,el,pitch,roll,lon,lat,ctime,q_bore,NSAMP);
     
     FILE *f = fopen("qbore.dat","w");
     for (i = 0; i < NSAMP; i++) {
@@ -116,8 +116,14 @@ int main(int argc, char *argv[]) {
     fclose(f);
     
     printf("bore2rasindec\n");
-    qp_bore2rasindec(delta_az,delta_el,delta_psi,
+    qp_bore2rasindec(P, delta_az,delta_el,delta_psi,
 		     ctime,q_bore,ra,dec,sin2psi,cos2psi,NSAMP);
+
+    FILE *of = fopen("test.dat","w");
+    for (i = 0; i < NSAMP; i++) {
+      fprintf(of, "%f\t%f\t%f\t%f\n", ra[i], dec[i], sin2psi[i], cos2psi[i]);
+    }
+    fclose(of);
   }
   /*
   printf("quat: %.6f %.6f %.6f %.6f\n",q[0],q[1],q[2],q[3]);
@@ -129,14 +135,6 @@ int main(int argc, char *argv[]) {
 	 (psi[0]-cpsi)*3600);
   */
   // printf("%f\t%f\t%f\t%f\t%f\n",az[0],el[0],lon[0],lat[0],ctime[0]);
-  
-  /*
-  FILE *f = fopen("test.dat","w");
-  for (i = 0; i < NSAMP; i++) {
-    fprintf(f, "%f\t%f\t%f\t%f\n", ra[i], dec[i], sin2psi[i], cos2psi[i]);
-  }
-  fclose(f);
-  */
   
   if (mode == 0) {
     free(az);
@@ -153,6 +151,8 @@ int main(int argc, char *argv[]) {
     free(cos2psi);
   }
   free(q_bore);
+  
+  qp_free_params(P);
   
   return 0;
 };

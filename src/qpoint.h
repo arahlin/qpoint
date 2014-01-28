@@ -9,161 +9,143 @@ extern "C" {
   
   /* 3-vector */
   typedef double vec3_t[3];
-  
-  /* ************************************************************************* 
-     Intermediate rotations and corrections
-     ********************************************************************** */
-  
-  /* Calculate aberration correction quaternion
-     v = (R(q)*z) x beta, angle = |v|, qa = quat(-angle,v) */
-  void qp_aberration(quat_t q, vec3_t beta, quat_t qa);
-  
-  /* Calculate earth orbital velocity vector as fraction of speed of light */
-  void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta);
-  
-  /* Apply annual aberration correction to given quaternion */
-  void qp_apply_annual_aberration(double ctime, quat_t q);
-  
-  /* Calculate nutation/precession/bias correction quaternion
-     use (faster) truncated series if accuracy > 0*/
-  void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy);
-  
-  /* Calculate ERA quaternion */
-  void qp_erot_quat(double jd_ut1[2], quat_t q);
-  
-  /* Calcuate wobble correction quaternion */
-  void qp_wobble_quat(double mjd_utc, double *dut1, quat_t q);
-  
-  /* Calculate gondola orientation quaternion */
-  void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q);
-  
-  /* Calculate longitude/latitude quaternion */
-  void qp_lonlat_quat(double lon, double lat, quat_t q);
-  
-  /* Calculate atmospheric refraction */
-  double qp_refraction(double el, double lat, double height, double temp,
-		       double press, double hum, double freq, double lapse,
-		       double tol);
-  
-  /* Update atmospheric refraction using stored parameters */
-  double qp_update_refro(double el, double lat);
-  
+    
   /* ************************************************************************* 
      Internal parameter settings
      ********************************************************************** */
   
-  /* step structure for keeping track of transformation updates */
-  typedef struct qp_step_t {
+  /* state structure for keeping track of transformation updates */
+  typedef struct qp_state_t {
     double update_rate; // period in seconds
     double ctime_last; // time of last update
-  } qp_step_t;
+  } qp_state_t;
   
   /* structure for storing refraction data */
-  typedef struct qp_refro_t {
+  typedef struct qp_weather_t {
     double height;      // height, m
     double temperature; // temperature, C
     double pressure;    // pressure, mbar
     double humidity;    // humidity, fraction
     double frequency;   // frequency, ghz
     double lapse_rate;  // tropospheric lapse rate, K/m
-    double tolerance;   // tolerance, rad
-    double corr;        // refraction correction, deg
-  } qp_refro_t;
+  } qp_weather_t;
   
   /* parameter structure for storing corrections computed at variable rates */
-  typedef struct qp_params_t {
+  typedef struct qp_memory_t {
     int initialized;
-    qp_step_t s_daber;     // diurnal aberration
-    qp_step_t s_lonlat;    // lat/lon
-    qp_step_t s_wobble;    // polar motion
-    qp_step_t s_dut1;      // ut1 correction
-    qp_step_t s_erot;      // earth's rotation
-    qp_step_t s_npb;       // nutation, precession, frame bias    
-    qp_step_t s_aaber;     // annual aberration
-    qp_step_t s_refro;     // refraction
-    qp_refro_t refro_data; // refraction data
+    
+    // update state
+    qp_state_t state_daber;     // diurnal aberration
+    qp_state_t state_lonlat;    // lat/lon
+    qp_state_t state_wobble;    // polar motion
+    qp_state_t state_dut1;      // ut1 correction
+    qp_state_t state_erot;      // earth's rotation
+    qp_state_t state_npb;       // nutation, precession, frame bias    
+    qp_state_t state_aaber;     // annual aberration
+    qp_state_t state_ref;       // refraction
+    
+    // state data
+    qp_weather_t weather;  // weather
+    double ref_tol;        // refraction tolerance, rad
+    double ref_delta;      // refraction correction, deg
+    double dut1;           // UT1 correction
+    quat_t q_lonlat;       // lonlat quaternion
+    quat_t q_wobble;       // wobble quaternion
+    quat_t q_npb;          // nutation etc quaternion
+    quat_t q_erot;         // earth's rotation quaternion
+    vec3_t beta_earth;     // earth velocity
+    
+    // options
     int accuracy;          // 0=full accuracy, 1=low accuracy
     int mean_aber;         // 0=per-detector aberration, 1=mean
     int fast_math;         // 0=regular trig, 1=polynomial trig approximations
     int polconv;           // polarization convention (0=healpix,1=IAU)
-  } qp_params_t;
-  extern qp_params_t qp_params;
-  
+  } qp_memory_t;
+
   /* parameter initialization */
-  void qp_init_params(void);
+  qp_memory_t * qp_init_memory(void);
+  void qp_free_memory(qp_memory_t *mem);
   
   /* common update rates */
 #define QP_DO_ALWAYS 0
 #define QP_DO_ONCE   -1
 #define QP_DO_NEVER  -999
   
-  /* Set correction rates for each step, in seconds; control accuracy and speed
-     Use above macros to allow steps to be applied always, once or never. */
-  void qp_set_params(double daber_rate,
-		     double lonlat_rate,
-		     double wobble_rate,
-		     double dut1_rate,
-		     double erot_rate,
-		     double npb_rate,
-		     double aaber_rate,
-		     double refro_rate,
-		     int accuracy,
-		     int mean_aber,
-		     int fast_math,
-		     int polconv);
+  /* Set correction rates for each state, in seconds; control accuracy and speed
+     Use above macros to allow states to be applied always, once or never. */
+  void qp_set_rates(qp_memory_t *mem,
+		    double daber_rate,
+		    double lonlat_rate,
+		    double wobble_rate,
+		    double dut1_rate,
+		    double erot_rate,
+		    double npb_rate,
+		    double aaber_rate,
+		    double ref_rate);
   
-  /* reset counters so that all steps are recalculated at next sample */
-  void qp_reset_rate_all(void);
+  /* reset counters so that all corrections are recalculated at next sample */
+  void qp_reset_rates(qp_memory_t *mem);
   
-  /* Check whether a step needs to be updated */
-  int qp_check_update(qp_step_t *step, double ctime);
+  /* Check whether a correction needs to be updated */
+  int qp_check_update(qp_state_t *state, double ctime);
   
-  /* check whether a step needs to be applied */
-  int qp_check_apply(qp_step_t *step);
+  /* check whether a correction needs to be applied */
+  int qp_check_apply(qp_state_t *state);
   
   /* print quaternion to screen */
   void qp_print_debug(const char *tag, quat_t q);
   
-  /* per-parameter functions */
-#define PARAMFUNC(param)	\
-  void qp_set_##param(int val);	\
-  int qp_get_##param(void);
-  PARAMFUNC(accuracy);
-  PARAMFUNC(mean_aber);
-  PARAMFUNC(fast_math);
-  PARAMFUNC(polconv);
+  /* per-correction functions */
+#define RATEFUNC(state)					  \
+  void qp_set_rate_##state(qp_memory_t *mem, double rate); \
+  void qp_reset_rate_##state(qp_memory_t *mem);		  \
+  double qp_get_rate_##state(qp_memory_t *mem);
+  RATEFUNC(daber)
+  RATEFUNC(lonlat)
+  RATEFUNC(wobble)
+  RATEFUNC(dut1)
+  RATEFUNC(erot)
+  RATEFUNC(npb)
+  RATEFUNC(aaber)
+  RATEFUNC(ref)
   
-  /* per-step functions */
-#define STEPFUNC(step)			\
-  void qp_set_rate_##step(double rate); \
-  void qp_reset_rate_##step(void);	\
-  double qp_get_rate_##step(void);
-  STEPFUNC(daber)
-  STEPFUNC(lonlat)
-  STEPFUNC(wobble)
-  STEPFUNC(dut1)
-  STEPFUNC(erot)
-  STEPFUNC(npb)
-  STEPFUNC(aaber)
-  STEPFUNC(refro)
+  /* per-option functions */
+  void qp_set_options(qp_memory_t *mem,
+		      int accuracy,
+		      int mean_aber,
+		      int fast_math,
+		      int polconv);
+
+#define OPTIONFUNC(opt)				    \
+  void qp_set_opt_##opt(qp_memory_t *mem, int val); \
+  int qp_get_opt_##opt(qp_memory_t *mem);
+  OPTIONFUNC(accuracy);
+  OPTIONFUNC(mean_aber);
+  OPTIONFUNC(fast_math);
+  OPTIONFUNC(polconv);
   
-  /* Set refraction data */
-  void qp_set_refro_data(double height, double temperature, double pressure,
-			 double humidity, double frequency, double lapse_rate,
-			 double tolerance);
+  /* Set weather data */
+  void qp_set_weather(qp_memory_t *mem,
+		      double height, double temperature, double pressure,
+		      double humidity, double frequency, double lapse_rate);
   
-#define REFROFUNC(param)		 \
-  void qp_set_refro_##param(double val); \
-  double qp_get_refro_##param();
-  REFROFUNC(height)
-  REFROFUNC(temperature)
-  REFROFUNC(pressure)
-  REFROFUNC(humidity)
-  REFROFUNC(frequency)
-  REFROFUNC(lapse_rate)
-  REFROFUNC(tol)
-  REFROFUNC(corr)
-  
+#define WEATHFUNC(param)				     \
+  void qp_set_weather_##param(qp_memory_t *mem, double val); \
+  double qp_get_weather_##param(qp_memory_t *mem);
+  WEATHFUNC(height)
+  WEATHFUNC(temperature)
+  WEATHFUNC(pressure)
+  WEATHFUNC(humidity)
+  WEATHFUNC(frequency)
+  WEATHFUNC(lapse_rate)
+
+#define DOUBLEFUNC(param)				 \
+  void qp_set_##param(qp_memory_t *mem, double val); \
+  double qp_get_##param(qp_memory_t *mem);
+  DOUBLEFUNC(ref_tol)
+  DOUBLEFUNC(ref_delta)
+  DOUBLEFUNC(dut1)
+
   /* ************************************************************************* 
      Utility functions
      ********************************************************************** */
@@ -207,51 +189,92 @@ extern "C" {
   static inline double rad2arcsec( double rad ) { return rad*r2as; }
   
   /* ************************************************************************* 
+     Intermediate rotations and corrections
+     ********************************************************************** */
+  
+  /* Calculate aberration correction quaternion
+     v = (R(q)*z) x beta, angle = |v|, qa = quat(-angle,v) */
+  void qp_aberration(quat_t q, vec3_t beta, quat_t qa);
+  
+  /* Calculate earth orbital velocity vector as fraction of speed of light */
+  void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta);
+  
+  /* Apply annual aberration correction to given quaternion */
+  void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q);
+  
+  /* Calculate nutation/precession/bias correction quaternion
+     use (faster) truncated series if accuracy > 0*/
+  void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy);
+  
+  /* Calculate ERA quaternion */
+  void qp_erot_quat(double jd_ut1[2], quat_t q);
+  
+  /* Calcuate wobble correction quaternion */
+  void qp_wobble_quat(double mjd_utc, double *dut1, quat_t q);
+  
+  /* Calculate gondola orientation quaternion */
+  void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q);
+  
+  /* Calculate longitude/latitude quaternion */
+  void qp_lonlat_quat(double lon, double lat, quat_t q);
+  
+  /* Calculate atmospheric refraction */
+  double qp_refraction(double el, double lat, double height, double temp,
+		       double press, double hum, double freq, double lapse,
+		       double tol);
+  
+  /* Update atmospheric refraction using stored parameters */
+  double qp_update_ref(qp_memory_t *mem, double el, double lat);
+  
+  /* ************************************************************************* 
      Output functions
      ********************************************************************** */
   
-  /* Compute boresight quaternion for a single gondola orientation.
-     Use low-accuracy NPB correction if accuracy > 0.
-     Apply a mean annual aberration correction to the boresight quaternion
-     if mean_aber > 0 (otherwise apply to each detector later) */
-  void qp_azel2quat(double az, double el, double pitch, double roll,
-		    double lon, double lat, double ctime, quat_t q);
+  /* Compute boresight quaternion for a single gondola orientation. */
+  void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
+		    double roll, double lon, double lat, double ctime,
+		    quat_t q);
   
   /* Compute boresight quaternions for n gondola orientations. */
-  void qp_azel2bore(double *az, double *el, double *pitch, double *roll,
-		    double *lon, double *lat, double *ctime, quat_t *q, int n);
+  void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
+		    double *roll, double *lon, double *lat, double *ctime,
+		    quat_t *q, int n);
   
   /* Compute detector offset quaternion. */
   void qp_det_offset(double delta_az, double delta_el, double delta_psi,
 		     quat_t q);
   
   /* Compute ra/dec and sin(2*psi)/cos(2*psi) for a given quaternion */
-  void qp_quat2radec(quat_t q, double *ra, double *dec, double *sin2psi,
-		     double *cos2psi);
+  void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
+		     double *sin2psi, double *cos2psi);
   
   /* Compute ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given quaternion */
-  void qp_quat2rasindec(quat_t q, double *ra, double *sindec, double *sin2psi,
-			double *cos2psi);
+  void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
+			double *sin2psi, double *cos2psi);
   
   /* Calculate the detector quaternion from the boresight and offset. */
-  void qp_bore2det(quat_t q_off, double ctime, quat_t q_bore, quat_t q_det);
+  void qp_bore2det(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
+		   quat_t q_det);
   
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from an array of boresight quaternions. */
-  void qp_bore2radec(double delta_az, double delta_el, double delta_psi,
+  void qp_bore2radec(qp_memory_t *mem,
+		     double delta_az, double delta_el, double delta_psi,
 		     double *ctime, quat_t *q_bore,
 		     double *ra, double *dec, double *sin2psi, double *cos2psi,
 		     int n);
   
   /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset. */
-  void qp_bore2rasindec(double delta_az, double delta_el, double delta_psi,
+  void qp_bore2rasindec(qp_memory_t *mem,
+			double delta_az, double delta_el, double delta_psi,
 			double *ctime, quat_t *q_bore,
 			double *ra, double *sindec, double *sin2psi, double *cos2psi,
 			int n);
   
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations. */
-  void qp_azel2radec(double delta_az, double delta_el, double delta_psi,
+  void qp_azel2radec(qp_memory_t *mem,
+		     double delta_az, double delta_el, double delta_psi,
 		     double *az, double *el, double *pitch, double *roll,
 		     double *lon, double *lat, double *ctime, 
 		     double *ra, double *dec, double *sin2psi, double *cos2psi,
@@ -259,7 +282,8 @@ extern "C" {
   
   /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations.  */
-  void qp_azel2rasindec(double delta_az, double delta_el, double delta_psi,
+  void qp_azel2rasindec(qp_memory_t *mem,
+			double delta_az, double delta_el, double delta_psi,
 			double *az, double *el, double *pitch, double *roll,
 			double *lon, double *lat, double *ctime, 
 			double *ra, double *sindec, double *sin2psi, double *cos2psi,

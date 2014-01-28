@@ -110,26 +110,25 @@ double qp_refraction(double el, double lat, double height, double temp,
   return rad2deg(ref);
 }
 
-double qp_update_refro(double el, double lat) {
-  qp_refro_t *R = &qp_params.refro_data;
-  double ref = qp_refraction(el, R->height, R->temperature,
-			     R->pressure, R->humidity, R->frequency,
-			     lat, R->lapse_rate, R->tolerance);
-  R->corr = ref;
+double qp_update_ref(qp_memory_t *mem, double el, double lat) {
+  qp_weather_t *W = &mem->weather;
+  double ref = qp_refraction(el, W->height, W->temperature,
+			     W->pressure, W->humidity, W->frequency,
+			     lat, W->lapse_rate, mem->ref_tol);
+  mem->ref_delta = ref;
   return ref;
 }
 
-void qp_apply_annual_aberration(double ctime, quat_t q) {
+void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q) {
   quat_t q_aber;
   double jd_tt[2];
-  static vec3_t beta_earth;
   
-  if (qp_check_update(&qp_params.s_aaber, ctime)) {
+  if (qp_check_update(&mem->state_aaber, ctime)) {
     ctime2jdtt(ctime, jd_tt);
-    qp_earth_orbital_beta(jd_tt, beta_earth);
+    qp_earth_orbital_beta(jd_tt, mem->beta_earth);
   }
-  if (qp_check_apply(&qp_params.s_aaber)) {
-    qp_aberration(q, beta_earth, q_aber);
+  if (qp_check_apply(&mem->state_aaber)) {
+    qp_aberration(q, mem->beta_earth, q_aber);
     Quaternion_mul_left(q_aber, q);
 #ifdef DEBUG
     qp_print_debug("aaber", q_aber);
@@ -138,15 +137,14 @@ void qp_apply_annual_aberration(double ctime, quat_t q) {
   }
 }
 
-void qp_azel2quat(double az, double el, double pitch, double roll,
-		  double lon, double lat, double ctime, quat_t q) {
+void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
+		  double roll, double lon, double lat, double ctime,
+		  quat_t q) {
   
   double jd_utc[2], jd_tt[2], jd_ut1[2], mjd_utc;
   double x,y;
-  static double dut1;
-  double refro_corr;
+  double delta;
   quat_t q_step;
-  static quat_t q_lonlat, q_wobble, q_npb, q_erot;
   static const vec3_t beta_diurnal = {0, -D_ABER_RAD, 0};
   
   // deal with times
@@ -162,24 +160,24 @@ void qp_azel2quat(double az, double el, double pitch, double roll,
   
   // apply refraction correction
   // NB: if rate is never, correction can still be calculated externally
-  // by the user with qp_update_refro()
-  if (qp_check_apply(&qp_params.s_refro))
-    refro_corr = qp_update_refro(el, lat);
+  // by the user with qp_update_ref()
+  if (qp_check_apply(&mem->state_ref))
+    delta = qp_update_ref(mem, el, lat);
   else
-    refro_corr = qp_get_refro_corr();
+    delta = mem->ref_delta;
 #ifdef DEBUG
-  printf("Refraction: %.6g\n", refro_corr);
+  printf("Refraction: %.6g\n", delta);
 #endif
   
   // apply boresight rotation
-  qp_azel_quat(az, el-refro_corr, pitch, roll, q);
+  qp_azel_quat(az, el-delta, pitch, roll, q);
 #ifdef DEBUG
   qp_print_debug("azel", q);
 #endif
   
   // apply diurnal aberration
   // TODO propagate this to aberration step?
-  if (qp_check_apply(&qp_params.s_daber)) {
+  if (qp_check_apply(&mem->state_daber)) {
     qp_aberration(q, (double *)beta_diurnal, q_step);
     Quaternion_mul_left(q_step, q);
 #ifdef DEBUG
@@ -189,14 +187,14 @@ void qp_azel2quat(double az, double el, double pitch, double roll,
   }
   
   // rotate to ITRS (by lon/lat)
-  if (qp_check_update(&qp_params.s_lonlat, ctime)) {
-    qp_lonlat_quat(lon, lat, q_lonlat);
+  if (qp_check_update(&mem->state_lonlat, ctime)) {
+    qp_lonlat_quat(lon, lat, mem->q_lonlat);
 #ifdef DEBUG
-    qp_print_debug("lonlat", q_lonlat);
+    qp_print_debug("lonlat", mem->q_lonlat);
 #endif
   }
-  if (qp_check_apply(&qp_params.s_lonlat)) {
-    Quaternion_mul_left(q_lonlat, q);
+  if (qp_check_apply(&mem->state_lonlat)) {
+    Quaternion_mul_left(mem->q_lonlat, q);
 #ifdef DEBUG
     qp_print_debug("state lonlat", q);
 #endif
@@ -205,46 +203,46 @@ void qp_azel2quat(double az, double el, double pitch, double roll,
   // apply wobble correction (polar motion)
   // or get dut1 from IERS bulletin
   mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
-  if (qp_check_update(&qp_params.s_wobble, ctime)) {
-    qp_wobble_quat(mjd_utc, &dut1, q_wobble);
+  if (qp_check_update(&mem->state_wobble, ctime)) {
+    qp_wobble_quat(mjd_utc, &mem->dut1, mem->q_wobble);
 #ifdef DEBUG
-    qp_print_debug("wobble", q_wobble);
+    qp_print_debug("wobble", mem->q_wobble);
 #endif
-  } else if (qp_check_update(&qp_params.s_dut1, ctime))
-    get_iers_bulletin_a(mjd_utc, &dut1, &x, &y);
-  if (qp_check_apply(&qp_params.s_wobble)) {
-    Quaternion_mul_left(q_wobble, q);
+  } else if (qp_check_update(&mem->state_dut1, ctime))
+    get_iers_bulletin_a(mjd_utc, &mem->dut1, &x, &y);
+  if (qp_check_apply(&mem->state_wobble)) {
+    Quaternion_mul_left(mem->q_wobble, q);
 #ifdef DEBUG
     qp_print_debug("state wobble", q);
 #endif
   }
   
   // apply earth rotation
-  if (qp_check_update(&qp_params.s_erot, ctime)) {
+  if (qp_check_update(&mem->state_erot, ctime)) {
     // get ut1
-    jdutc2jdut1(jd_utc, dut1, jd_ut1);
-    qp_erot_quat(jd_ut1, q_erot);
+    jdutc2jdut1(jd_utc, mem->dut1, jd_ut1);
+    qp_erot_quat(jd_ut1, mem->q_erot);
 #ifdef DEBUG
-    qp_print_debug("erot", q_erot);
+    qp_print_debug("erot", mem->q_erot);
 #endif
   }
-  if (qp_check_apply(&qp_params.s_erot)) {
-    Quaternion_mul_left(q_erot, q);
+  if (qp_check_apply(&mem->state_erot)) {
+    Quaternion_mul_left(mem->q_erot, q);
 #ifdef DEBUG
     qp_print_debug("state erot", q);
 #endif
   }
   
   // apply nutation/precession/frame bias correction
-  if (qp_check_update(&qp_params.s_npb, ctime)) {
+  if (qp_check_update(&mem->state_npb, ctime)) {
     ctime2jdtt(ctime, jd_tt);
-    qp_npb_quat(jd_tt, q_npb, qp_params.accuracy);
+    qp_npb_quat(jd_tt, mem->q_npb, mem->accuracy);
 #ifdef DEBUG
-    qp_print_debug("npb", q_npb);
+    qp_print_debug("npb", mem->q_npb);
 #endif
   }
-  if (qp_check_apply(&qp_params.s_npb)) {
-    Quaternion_mul_left(q_npb, q);
+  if (qp_check_apply(&mem->state_npb)) {
+    Quaternion_mul_left(mem->q_npb, q);
 #ifdef DEBUG
     qp_print_debug("state npb", q);
 #endif
@@ -252,23 +250,23 @@ void qp_azel2quat(double az, double el, double pitch, double roll,
   
   // apply annual aberration
   // ~20 arcsec max
-  if (qp_params.mean_aber)
-    qp_apply_annual_aberration(ctime, q);
+  if (mem->mean_aber)
+    qp_apply_annual_aberration(mem, ctime, q);
   
 #ifdef DEBUG
   qp_print_debug("state final", q);
 #endif
 }
 
-void qp_azel2bore(double *az, double *el, double *pitch, double *roll,
-		  double *lon, double *lat, double *ctime, quat_t *q, int n) {
-  qp_init_params();
+void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
+		  double *roll, double *lon, double *lat, double *ctime, 
+		  quat_t *q, int n) {
   for (int i=0; i<n; i++)
-    qp_azel2quat(az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i], q[i]);
+    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i],
+		 ctime[i], q[i]);
 }
 
 void qp_det_offset(double delta_az, double delta_el, double delta_psi, quat_t q) {
-  qp_init_params();
   Quaternion_r3(q, -deg2rad(delta_psi));
   Quaternion_r2_mul(deg2rad(delta_el), q);
   Quaternion_r1_mul(-deg2rad(delta_az), q);
@@ -277,16 +275,17 @@ void qp_det_offset(double delta_az, double delta_el, double delta_psi, quat_t q)
 #endif
 }
 
-void qp_bore2det(quat_t q_off, double ctime, quat_t q_bore, quat_t q_det) {
+void qp_bore2det(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
+		 quat_t q_det) {
   Quaternion_copy(q_det,q_off);
   Quaternion_mul_left(q_bore, q_det);
   
-  if (!qp_params.mean_aber)
-    qp_apply_annual_aberration(ctime, q_det);
+  if (!mem->mean_aber)
+    qp_apply_annual_aberration(mem, ctime, q_det);
 }
 
-void qp_quat2rasindec(quat_t q, double *ra, double *sindec, double *sin2psi,
-		      double *cos2psi) {
+void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
+		      double *sin2psi, double *cos2psi) {
   
   // ZYZ euler angles
   
@@ -305,9 +304,9 @@ void qp_quat2rasindec(quat_t q, double *ra, double *sindec, double *sin2psi,
   double cosg_cb = q02 - q13;
   
   // cosmo (healpix) or IAU polarization convention?
-  if (!qp_params.polconv) sing_cb = -sing_cb;
+  if (!mem->polconv) sing_cb = -sing_cb;
   
-  if (qp_params.fast_math)
+  if (mem->fast_math)
     *ra = rad2deg(poly_atan2(sina_2, cosa_2));
   else
     *ra = rad2deg(atan2(sina_2, cosa_2));
@@ -317,7 +316,7 @@ void qp_quat2rasindec(quat_t q, double *ra, double *sindec, double *sin2psi,
   *cos2psi = 2.*cosg_cb*cosg_cb*icosb2 - 1.;
 }
 
-void qp_quat2radec(quat_t q, double *ra, double *dec, 
+void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec, 
 		   double *sin2psi, double *cos2psi) {
   
   // ZYZ euler angles
@@ -339,9 +338,9 @@ void qp_quat2radec(quat_t q, double *ra, double *dec,
   double cosg_cb = q02 - q13;
   
   // cosmo (healpix) or IAU polarization convention?
-  if (!qp_params.polconv) sing_cb = -sing_cb;
+  if (!mem->polconv) sing_cb = -sing_cb;
   
-  if (qp_params.fast_math) {
+  if (mem->fast_math) {
     *ra = rad2deg(poly_atan2(sina_2, cosa_2));
     *dec = rad2deg(poly_atan2(sinb_2, cosb_2));
   } else {
@@ -353,7 +352,7 @@ void qp_quat2radec(quat_t q, double *ra, double *dec,
 }
 
 void qp_interp_radec(double *ra, double *dec, double *sin2psi, double *cos2psi,
-		   double *t, int n) {
+		     double *t, int n) {
   int i;
   double ra1, ra2, dec1, dec2, dr, dd, ds, dc, icp12, isp12;
   double sp1 = sin2psi[0];
@@ -397,8 +396,8 @@ void qp_interp_radec(double *ra, double *dec, double *sin2psi, double *cos2psi,
   }
 }
 
-void qp_bore2radec(double delta_az, double delta_el, double delta_psi,
-		   double *ctime, quat_t *q_bore,
+void qp_bore2radec(qp_memory_t *mem, double delta_az, double delta_el,
+		   double delta_psi, double *ctime, quat_t *q_bore,
 		   double *ra, double *dec, double *sin2psi, 
 		   double *cos2psi, int n) {
   int i;
@@ -414,12 +413,11 @@ void qp_bore2radec(double delta_az, double delta_el, double delta_psi,
       t[i] = i/(double)(interp);
   }
   
-  qp_init_params();
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (i=0; i<n; i+=interp) {
-    qp_bore2det(q_off, ctime[i], q_bore[i], q);
-    qp_quat2radec(q, ra+i, dec+i, sin2psi+i, cos2psi+i);
+    qp_bore2det(mem, q_off, ctime[i], q_bore[i], q);
+    qp_quat2radec(mem, q, ra+i, dec+i, sin2psi+i, cos2psi+i);
     if (interp>1 && i>0)
       qp_interp_radec(&ra[i-interp], &dec[i-interp], &sin2psi[i-interp],
 		      &cos2psi[i-interp], t,interp+1);
@@ -429,8 +427,8 @@ void qp_bore2radec(double delta_az, double delta_el, double delta_psi,
   if (interp>1) free(t);
 }
 
-void qp_bore2rasindec(double delta_az, double delta_el, double delta_psi,
-		      double *ctime, quat_t *q_bore,
+void qp_bore2rasindec(qp_memory_t *mem, double delta_az, double delta_el,
+		      double delta_psi, double *ctime, quat_t *q_bore,
 		      double *ra, double *sindec, double *sin2psi, 
 		      double *cos2psi, int n) {
   int i;
@@ -446,12 +444,11 @@ void qp_bore2rasindec(double delta_az, double delta_el, double delta_psi,
       t[i] = i/(double)(interp);
   }
   
-  qp_init_params();
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (i=0; i<n; i+=interp) {
-    qp_bore2det(q_off, ctime[i], q_bore[i], q);
-    qp_quat2rasindec(q, ra+i, sindec+i, sin2psi+i, cos2psi+i);
+    qp_bore2det(mem, q_off, ctime[i], q_bore[i], q);
+    qp_quat2rasindec(mem, q, ra+i, sindec+i, sin2psi+i, cos2psi+i);
     if (interp>1 && i>0)
       qp_interp_radec(&ra[i-interp], &sindec[i-interp], &sin2psi[i-interp],
 		      &cos2psi[i-interp], t,interp+1);
@@ -462,39 +459,39 @@ void qp_bore2rasindec(double delta_az, double delta_el, double delta_psi,
 }
 
 // all input and output angles are in degrees!
-void qp_azel2radec(double delta_az, double delta_el, double delta_psi,
+void qp_azel2radec(qp_memory_t *mem,
+		   double delta_az, double delta_el, double delta_psi,
 		   double *az, double *el, double *pitch, double *roll,
 		   double *lon, double *lat, double *ctime,
 		   double *ra, double *dec, double *sin2psi, 
 		   double *cos2psi, int n) {
   quat_t q_det, q_off, q_bore;
   
-  qp_init_params();
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
-    qp_azel2quat(az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
+    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
 		 q_bore);
-    qp_bore2det(q_off, ctime[i], q_bore, q_det);
-    qp_quat2radec(q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
+    qp_bore2det(mem, q_off, ctime[i], q_bore, q_det);
+    qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
   }
 }
 
 // all input and output angles are in degrees!
-void qp_azel2rasindec(double delta_az, double delta_el, double delta_psi,
+void qp_azel2rasindec(qp_memory_t *mem,
+		      double delta_az, double delta_el, double delta_psi,
 		      double *az, double *el, double *pitch, double *roll,
 		      double *lon, double *lat, double *ctime,
 		      double *ra, double *sindec, double *sin2psi, 
 		      double *cos2psi, int n) {
   quat_t q_det, q_off, q_bore;
   
-  qp_init_params();
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
-    qp_azel2quat(az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
+    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
 		 q_bore);
-    qp_bore2det(q_off, ctime[i], q_bore, q_det);
-    qp_quat2rasindec(q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
+    qp_bore2det(mem, q_off, ctime[i], q_bore, q_det);
+    qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
   }
 }

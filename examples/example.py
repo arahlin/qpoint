@@ -1,22 +1,22 @@
 import qpoint as qp
 import numpy as np
 
-# update all parameters
-# qp.set_params(daber='always',
-#               lonlat='always',
-#               wobble='never',
-#               dut1='never',
-#               erot='always',
-#               npb=10,
-#               aaber=100,
-#               refro='never',
-#               accuracy='low',
-#               mean_aber=False,
-#               fast_math=True,
-#               polconv='healpix')
+# initialize, maybe set a few options
+Q = qp.QPoint(accuracy='low', fast_math=True)
 
-# or only change a few
-qp.set_params(accuracy='low',fast_math=True)
+# update a bunch of parameters
+# Q.set_params(daber='always',
+#              lonlat='always',
+#              wobble='never',
+#              dut1='never',
+#              erot='always',
+#              npb=10,
+#              aaber=100,
+#              refro='never',
+#              accuracy='low',
+#              mean_aber=False,
+#              fast_math=True,
+#              polconv='healpix')
 
 # dumb simulation
 n = 10000
@@ -30,7 +30,7 @@ lat = -77.6*np.ones_like(ctime)
 lon = 165.7 - np.arange(n)*3/850000.
 
 # calculate boresight quaternions
-q = qp.azel2bore(az, el, pitch, roll, lon, lat, ctime)
+q = Q.azel2bore(az, el, pitch, roll, lon, lat, ctime)
 
 # detector offset in degrees
 delta_az = 1.0
@@ -38,4 +38,4 @@ delta_el = -1.0
 delta_psi = 22.5
 
 # calculate detector pointing
-ra,dec,sin2psi,cos2psi = qp.bore2radec(delta_az, delta_el, delta_psi, ctime, q)
+ra,dec,sin2psi,cos2psi = Q.bore2radec(delta_az, delta_el, delta_psi, ctime, q)

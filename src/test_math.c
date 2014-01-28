@@ -31,6 +31,7 @@ int main (int argc, char *argv[]) {
     for (x=-5e2; x<5e2; x++)
       v = poly_atan2(y, x);
   elapsed = timer_end(tstart)/1.e3;
+  printf("x=%f, y=%f, v=%f", x, y, v);
   printf("Elapsed time: %.3g ms\n",elapsed);
 
   tstart = timer_start();
@@ -38,6 +39,7 @@ int main (int argc, char *argv[]) {
     for (x=-5e2; x<5e2; x++)
       v = atan2(y, x);
   elapsed = timer_end(tstart)/1.e3;
+  printf("x=%f, y=%f, v=%f", x, y, v);
   printf("Elapsed time: %.3g ms\n",elapsed);
 
   return 0;
