@@ -69,6 +69,12 @@ _qp.qp_bore2rasindec.argtypes = (_ct.c_double, _ct.c_double, _ct.c_double, # off
                                  _ndp(dtype=_np.double), # cos2psi
                                  _ct.c_int) # n
 
+_qp.set_iers_bulletin_a.argtypes = (_ct.c_int, _ct.c_int, # mjd_min, mjd_max
+                                    _ndp(dtype=_np.double), # x
+                                    _ndp(dtype=_np.double), # y
+                                    _ndp(dtype=_np.double)) # dut1
+_qp.set_iers_bulletin_a.restype = _ct.c_int
+
 def _set_sfunc(step):
     f = _qp['qp_set_%s'%step]
     f.argtypes = (_ct.c_double,)
@@ -248,6 +254,41 @@ def init_params():
     If it has already been initialized, then nothing is done.
     """
     _qp.qp_init_params()
+
+def load_bulletin_a(filename, columns=['mjd','x','y','dut1'], **kwargs):
+    """
+    Load IERS Bulletin A from file and store in memory.  The file must
+    be readable using numpy.loadtxt with unpack=True, and is assumed to
+    be sorted by mjd.
+    
+    Keyword arguments:
+    
+    columns    list of columns as they appear in the file.
+               A KeyError is raise if the list does not contain
+               each of ['mjd', 'x', 'y', 'dut1']
+    
+    Any other keyword arguments are passed to the numpy.loadtxt function
+    
+    Output:
+    
+    mjd, dut1, x, y
+    """
+    
+    req_columns = ['mjd','x','y','dut1']
+    if not set(req_columns) <= set(columns):
+        raise KeyError,\
+            'Missing columns %s' % str(list(set(req_columns)-set(columns)))
+    kwargs['unpack'] = True
+    data = _np.loadtxt(filename, **kwargs)
+    mjd, x, y, dut1 = (data[columns.index(x)] for x in req_columns)
+    mjd_min, mjd_max = int(mjd[0]), int(mjd[-1])
+    
+    try:
+        _qp.set_iers_bulletin_a(mjd_min, mjd_max, dut1, x, y)
+    except:
+        raise RuntimeError,'Error loading Bulletin A data from file %s' % filename
+    
+    return mjd, dut1, x, y
 
 def azel2bore(az, el, pitch, roll, lon, lat, ctime, **kwargs):
     """

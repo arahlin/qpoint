@@ -6,10 +6,11 @@
 
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
 
 typedef struct { float x; float y; float dut1; } xyz;
 
-static const xyz bulletinA[] = {
+static xyz bulletinA_factory[] = {
   {-0.080449f, 0.258399f, -0.2733505f},  // 8 1 1
   {-0.081863f, 0.260039f, -0.2743264f},  // 8 1 2
   {-0.083275f, 0.261896f, -0.2751941f},  // 8 1 3
@@ -2558,11 +2559,20 @@ static const xyz bulletinA[] = {
   {-0.012527f, 0.232139f, -0.4618129f},  // 141220
 };
 
-static const int mjd_min = 54466;
-static const int mjd_max = 57011;
+static const int mjd_min_factory = 54466;
+static const int mjd_max_factory = 57011;
+
+static int mjd_min;
+static int mjd_max;
+static xyz *bulletinA;
 
 int get_iers_bulletin_a( double mjd, double *dut1, double *x, double *y )
 {
+    if (bulletinA == NULL) {
+        bulletinA = bulletinA_factory;
+        mjd_min = mjd_min_factory;
+        mjd_max = mjd_max_factory;
+    }
     if ( (mjd_min < mjd) && (mjd < mjd_max) )
     {
         double mjd_floor;
@@ -2570,18 +2580,54 @@ int get_iers_bulletin_a( double mjd, double *dut1, double *x, double *y )
         int k = (int) mjd_floor - mjd_min;
         xyz a = bulletinA[k];
         xyz b = bulletinA[k+1];
-        *dut1 = (1-r)*a.dut1 + r*b.dut1;
+        // Detect leap seconds
+        double leap = b.dut1 - a.dut1;
+        if (leap > 0.5)
+            leap = 1.;
+        else if (leap < -0.5)
+            leap = -1.;
+        else
+            leap = 0;
+
+        *dut1 = (1-r)*a.dut1 + r*(b.dut1-leap);
         *x = (1-r)*a.x + r*b.x;
         *y = (1-r)*a.y + r*b.y;
     }
     else
     {
+        // silent failure!
         *dut1 = 0;
         *x = 0;
         *y = 0;
-        return 0;
+        return 1;
     }
 
     return 0;
 }
 
+int set_iers_bulletin_a( int mjd_min_, int mjd_max_, double *dut1, double *x,
+			 double *y)
+{
+  if (dut1 == NULL) {
+      // Destroy
+      if (bulletinA != bulletinA_factory) {
+          free(bulletinA);
+          bulletinA = NULL;
+      }
+      return 0;
+  }
+  // Create
+  mjd_min = mjd_min_;
+  mjd_max = mjd_max_;
+
+  int n_mjd = mjd_max - mjd_min + 1;
+  bulletinA = malloc(n_mjd*sizeof(*bulletinA));
+  assert(bulletinA != NULL);
+
+  for (int k=0; k<n_mjd; k++) {
+      bulletinA[k].x = x[k];
+      bulletinA[k].y = y[k];
+      bulletinA[k].dut1 = dut1[k];
+  }
+  return 0;
+}
