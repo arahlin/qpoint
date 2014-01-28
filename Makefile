@@ -2,17 +2,23 @@ default: all
 
 all: qpoint python
 
-.PHONY: qpoint sofa python
-qpoint: sofa
+.PHONY: qpoint sofa slarefro python
+qpoint: sofa slarefro
 	make -C src
 
 sofa:
 	make -C sofa
 
+slarefro:
+	make -C slarefro
+
 install-sofa: sofa
 	make -C sofa install
 
-python: sofa
+install-slarefro: slarefro
+	make -C slarefro install
+
+python: sofa slarefro
 	python setup.py build
 
 install-python: python
@@ -26,13 +32,19 @@ install-all: install-sofa install install-python
 uninstall-sofa:
 	make -C sofa uninstall
 
+uninstall-slarefro:
+	make -C slarefro uninstall
+
 uninstall:
 	make -C src uninstall
 
-uninstall-all: uninstall-sofa uninstall
+uninstall-all: uninstall-sofa uninstall-slarefro uninstall
 
 clean-sofa:
 	make -C sofa clean
+
+clean-slarefro:
+	make -C slarefro clean
 
 clean-python:
 	python setup.py clean --all
@@ -40,4 +52,4 @@ clean-python:
 clean:
 	make -C src clean
 
-clean-all: clean clean-python clean-sofa
+clean-all: clean clean-python clean-sofa clean-slarefro

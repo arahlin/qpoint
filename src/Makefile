@@ -1,9 +1,9 @@
-VPATH=../sofa:.
+VPATH=../sofa:../slarefro:.
 DEBUG = -g -O3
 # DEBUG = -O3
 CC = gcc
-CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa -I/usr/local/include -fPIC
-LDFLAGS = -L../sofa -lsofa_c
+CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa -I../slarefro -I/usr/local/include -fPIC
+LDFLAGS = -L../sofa -lsofa_c -L../slarefro -lslarefro
 SRCS = $(filter-out test_qpoint.c test_math.c,$(wildcard *.c))
 OBJS = $(SRCS:.c=.o)
 HEADERS = $(wildcard *.h)

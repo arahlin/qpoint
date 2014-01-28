@@ -75,25 +75,58 @@ _qp.set_iers_bulletin_a.argtypes = (_ct.c_int, _ct.c_int, # mjd_min, mjd_max
                                     _ndp(dtype=_np.double)) # dut1
 _qp.set_iers_bulletin_a.restype = _ct.c_int
 
+_qp.qp_refraction.argtypes = (_ct.c_double, # elevation angle
+                              _ct.c_double, # height
+                              _ct.c_double, # temperature
+                              _ct.c_double, # pressure
+                              _ct.c_double, # humidity
+                              _ct.c_double, # frequency
+                              _ct.c_double, # latitude
+                              _ct.c_double, # lapse_rate
+                              _ct.c_double) # tolerance
+_qp.qp_refraction.restype = _ct.c_double
+
+_qp.qp_update_refro.argtypes = (_ct.c_double, # el
+                                _ct.c_double) # lat
+_qp.qp_update_refro.restype = _ct.c_double
+
 def _set_sfunc(step):
-    f = _qp['qp_set_%s'%step]
+    f = _qp['qp_set_rate_%s'%step]
     f.argtypes = (_ct.c_double,)
     return f
 def _reset_sfunc(step):
-    f = _qp['qp_reset_%s'%step]
+    f = _qp['qp_reset_rate_%s'%step]
     return f
 def _get_sfunc(step):
-    f = _qp['qp_get_%s'%step]
+    f = _qp['qp_get_rate_%s'%step]
     f.restype = _ct.c_double
     return f
 
-_steps = ['lonlat','npb','erot','daber','aaber','wobble','dut1']
+_steps = ['lonlat','npb','erot','daber','aaber','wobble','dut1','refro']
 _step_funcs = dict()
 for _s in _steps:
     _step_funcs[_s] = dict()
     _step_funcs[_s]['set'] = _set_sfunc(_s)
     _step_funcs[_s]['reset'] = _reset_sfunc(_s)
     _step_funcs[_s]['get'] = _get_sfunc(_s)
+
+def _set_rfunc(refd):
+    f = _qp['qp_set_refro_%s'%refd]
+    f.argtypes = (_ct.c_double,)
+    return f
+
+def _get_rfunc(refd):
+    f = _qp['qp_get_refro_%s'%refd]
+    f.restype = _ct.c_double
+    return f
+
+_refro_params = ['height','temperature','pressure','humidity',
+                 'frequency','lapse_rate','tolerance','corr']
+_refro_funcs = dict()
+for _r in _refro_params:
+    _refro_funcs[_r] = dict()
+    _refro_funcs[_r]['set'] = _set_rfunc(_r)
+    _refro_funcs[_r]['get'] = _get_rfunc(_r)
 
 def _set_pfunc(param):
     f = _qp['qp_set_%s'%param]
@@ -198,6 +231,9 @@ def set_params(**kwargs):
               are updated
     aaber     Rate at which the annual aberration correction
               (due to the earth's orbital velocity) is updated
+    refro     Rate at which the refaction correction is updated
+              (NB: this correction can also be updated manually -- see
+              update_refraction)
 
     accuracy   If 'low', use a truncated form (2000b) for the NPB correction,
                which is much faster but less accurate.
@@ -207,6 +243,8 @@ def set_params(**kwargs):
                at the edges of the SPIDER field of view.
     fast_math  If True, use polynomial approximations for trig functions
     polconv    Specify the 'cosmo' or 'iau' polarization convention
+    
+    Remaining keywords are passed to update_refraction.
     """
 
     init_params()
@@ -225,6 +263,7 @@ def set_params(**kwargs):
         if not _np.isscalar(v):
             raise TypeError,'parameter %s must be a scalar value' % param
         _param_funcs[param]['set'](v)
+    update_refraction(**kwargs)
 
 def get_params():
     """
@@ -246,7 +285,7 @@ def reset_params():
     Reset update counters for each step.
     Useful to force an updated correction term at the beginning of each chunk.
     """
-    _qp.qp_reset_params()
+    _qp.qp_reset_rate_all()
 
 def init_params():
     """
@@ -254,6 +293,97 @@ def init_params():
     If it has already been initialized, then nothing is done.
     """
     _qp.qp_init_params()
+
+def refraction(el, lat, height, temp, press, hum,
+               freq=150., lapse=0.0065, tol=1e-8):
+    """
+    Calculate the refraction correction without storing any parameters.
+    Useful for testing.  Note that this is not a vectorized function.
+    
+    Arguments:
+    
+    el           elevation angle, degrees
+    lat          latitude, degrees
+    height       height above sea level, meters
+    temperature  temperature, Celcius
+    pressure     pressure, mbar
+    humidity     humidity, fraction
+    frequency    array frequency, GHz
+    lapse_rate   tropospheric lapse rate, K/m
+    tolerance    tolerance on convergence, radians
+    
+    Output:
+    
+    corr         refraction correction, in degrees
+    """
+    
+    return _qp.qp_refraction(el, lat, height, temp, press, hum, freq, lapse, tol)
+
+def update_refraction(*args, **kwargs):
+    """
+    Update refraction parameters
+    
+    Arguments (positional or keyword):
+    
+    el           elevation angle, degrees
+    lat          latitude, degrees
+    height       height above sea level, meters
+    temperature  temperature, Celcius
+    pressure     pressure, mbar
+    humidity     humidity, fraction
+    frequency    array frequency, GHz
+    lapse_rate   tropospheric lapse rate, K/m
+    tolerance    tolerance on convergence, radians
+    corr         the refraction correction itself, in degrees
+    
+    If both el and lat are given, then the refraction correction in degrees
+    is calculated, stored and returned after updating any other given parameters.
+    
+    Alternatively, if a single numerical argument, or the 'refro_corr'
+    keyword argument is given, then the correction is stored with this value
+    instead of being recalculated.
+    
+    Note that this is not a vectorized function.
+    """
+    
+    if len(args) == 1 and len(kwargs) == 0:
+        v = args[0]
+        _refro_funcs['corr']['set'](v)
+        return v
+    
+    if 'corr' in kwargs:
+        v = kwargs.get('corr')
+        _refro_funcs['corr']['set'](v)
+        return v
+    
+    if 'refro_corr' in kwargs:
+        v = kwargs.get('refro_corr')
+        _refro_funcs['corr']['set'](v)
+        return v
+    
+    arg_names = ['el','lat'] + _refro_params
+    for idx,a in enumerate(args):
+        kwargs[arg_names[idx]] = a
+    
+    for r in _refro_params:
+        if r in kwargs:
+            _refro_funcs[r]['set'](kwargs.get(r))
+    
+    el = kwargs.get('el',None)
+    lat = kwargs.get('lat',None)
+    if el is not None and lat is not None:
+        corr = _qp.qp_update_refro(el, lat)
+        return corr
+
+def get_refraction_params():
+    """
+    Get a dictionary of the current refraction parameters
+    See update_refraction for a list of parameter names.
+    """
+    out = dict()
+    for a in _refro_params:
+        out[a] = _refro_funcs[a]['get']()
+    return out
 
 def load_bulletin_a(filename, columns=['mjd','x','y','dut1'], **kwargs):
     """
@@ -569,3 +699,7 @@ def _plot_diff(ang1,ang2,asec=True,n=None):
     pylab.plot(ds2p[:n]);
     pylab.subplot(414,sharex=ax);
     pylab.plot(dc2p[:n]);
+
+
+# make sure that initialization happens
+init_params()

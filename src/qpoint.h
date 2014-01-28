@@ -39,7 +39,15 @@ extern "C" {
   
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
-
+  
+  /* Calculate atmospheric refraction */
+  double qp_refraction(double el, double lat, double height, double temp,
+		       double press, double hum, double freq, double lapse,
+		       double tol);
+  
+  /* Update atmospheric refraction using stored parameters */
+  double qp_update_refro(double el, double lat);
+  
   /* ************************************************************************* 
      Internal parameter settings
      ********************************************************************** */
@@ -50,20 +58,34 @@ extern "C" {
     double ctime_last; // time of last update
   } qp_step_t;
   
+  /* structure for storing refraction data */
+  typedef struct qp_refro_t {
+    double height;      // height, m
+    double temperature; // temperature, C
+    double pressure;    // pressure, mbar
+    double humidity;    // humidity, fraction
+    double frequency;   // frequency, ghz
+    double lapse_rate;  // tropospheric lapse rate, K/m
+    double tolerance;   // tolerance, rad
+    double corr;        // refraction correction, deg
+  } qp_refro_t;
+  
   /* parameter structure for storing corrections computed at variable rates */
   typedef struct qp_params_t {
     int initialized;
-    qp_step_t s_daber;  // diurnal aberration
-    qp_step_t s_lonlat; // lat/lon
-    qp_step_t s_wobble; // polar motion
-    qp_step_t s_dut1;   // ut1 correction
-    qp_step_t s_erot;   // earth's rotation
-    qp_step_t s_npb;    // nutation, precession, frame bias    
-    qp_step_t s_aaber;  // annual aberration
-    int accuracy;       // 0=full accuracy, 1=low accuracy
-    int mean_aber;      // 0=per-detector aberration, 1=mean
-    int fast_math;      // 0=regular trig, 1=polynomial trig approximations
-    int polconv;        // polarization convention (0=healpix,1=IAU)
+    qp_step_t s_daber;     // diurnal aberration
+    qp_step_t s_lonlat;    // lat/lon
+    qp_step_t s_wobble;    // polar motion
+    qp_step_t s_dut1;      // ut1 correction
+    qp_step_t s_erot;      // earth's rotation
+    qp_step_t s_npb;       // nutation, precession, frame bias    
+    qp_step_t s_aaber;     // annual aberration
+    qp_step_t s_refro;     // refraction
+    qp_refro_t refro_data; // refraction data
+    int accuracy;          // 0=full accuracy, 1=low accuracy
+    int mean_aber;         // 0=per-detector aberration, 1=mean
+    int fast_math;         // 0=regular trig, 1=polynomial trig approximations
+    int polconv;           // polarization convention (0=healpix,1=IAU)
   } qp_params_t;
   extern qp_params_t qp_params;
   
@@ -84,13 +106,14 @@ extern "C" {
 		     double erot_rate,
 		     double npb_rate,
 		     double aaber_rate,
+		     double refro_rate,
 		     int accuracy,
 		     int mean_aber,
 		     int fast_math,
 		     int polconv);
   
   /* reset counters so that all steps are recalculated at next sample */
-  void qp_reset_all(void);
+  void qp_reset_rate_all(void);
   
   /* Check whether a step needs to be updated */
   int qp_check_update(qp_step_t *step, double ctime);
@@ -111,10 +134,10 @@ extern "C" {
   PARAMFUNC(polconv);
   
   /* per-step functions */
-#define STEPFUNC(step)		    \
-  void qp_set_##step(double rate);  \
-  void qp_reset_##step(void);	    \
-  double qp_get_##step(void);
+#define STEPFUNC(step)			\
+  void qp_set_rate_##step(double rate); \
+  void qp_reset_rate_##step(void);	\
+  double qp_get_rate_##step(void);
   STEPFUNC(daber)
   STEPFUNC(lonlat)
   STEPFUNC(wobble)
@@ -122,6 +145,24 @@ extern "C" {
   STEPFUNC(erot)
   STEPFUNC(npb)
   STEPFUNC(aaber)
+  STEPFUNC(refro)
+  
+  /* Set refraction data */
+  void qp_set_refro_data(double height, double temperature, double pressure,
+			 double humidity, double frequency, double lapse_rate,
+			 double tolerance);
+  
+#define REFROFUNC(param)		 \
+  void qp_set_refro_##param(double val); \
+  double qp_get_refro_##param();
+  REFROFUNC(height)
+  REFROFUNC(temperature)
+  REFROFUNC(pressure)
+  REFROFUNC(humidity)
+  REFROFUNC(frequency)
+  REFROFUNC(lapse_rate)
+  REFROFUNC(tol)
+  REFROFUNC(corr)
   
   /* ************************************************************************* 
      Utility functions
@@ -131,6 +172,8 @@ extern "C" {
 #define D_ABER_RAD 1.430408829156e-06 // -0.295043 arcsec
   /* speed of light, AU/day */
 #define C_AUD 173.14463269999999 
+  /* speed of light, m/s */
+#define C_MS 299792458.0
 
   /* Return interpolated values from IERS Bulletin A */
   int get_iers_bulletin_a( double mjd, double *dut1, double *x, double *y );

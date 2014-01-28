@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "sofa.h"
+#include "slarefro.h"
 #include "qpoint.h"
 #include "fast_math.h"
 #include "vec3.h"
@@ -96,6 +97,28 @@ void qp_wobble_quat(double mjd_utc, double *dut1, quat_t q) {
   Quaternion_r3_mul(sprime, q);
 }
 
+/* Calculate atmospheric refraction */
+double qp_refraction(double el, double lat, double height, double temp,
+		     double press, double hum, double freq, double lapse,
+		     double tol) {
+  double ref;
+  slaf_refro(M_PI_2 - deg2rad(el),
+	     height, temp + 273.15, // temperature, K
+	     press, hum, C_MS * 1e-3 / freq, // wavelength, um
+	     deg2rad(lat), lapse, tol, // precision, radians
+	     &ref);
+  return rad2deg(ref);
+}
+
+double qp_update_refro(double el, double lat) {
+  qp_refro_t *R = &qp_params.refro_data;
+  double ref = qp_refraction(el, R->height, R->temperature,
+			     R->pressure, R->humidity, R->frequency,
+			     lat, R->lapse_rate, R->tolerance);
+  R->corr = ref;
+  return ref;
+}
+
 void qp_apply_annual_aberration(double ctime, quat_t q) {
   quat_t q_aber;
   double jd_tt[2];
@@ -121,6 +144,7 @@ void qp_azel2quat(double az, double el, double pitch, double roll,
   double jd_utc[2], jd_tt[2], jd_ut1[2], mjd_utc;
   double x,y;
   static double dut1;
+  double refro_corr;
   quat_t q_step;
   static quat_t q_lonlat, q_wobble, q_npb, q_erot;
   static const vec3_t beta_diurnal = {0, -D_ABER_RAD, 0};
@@ -136,8 +160,19 @@ void qp_azel2quat(double az, double el, double pitch, double roll,
   qp_print_debug("state init", q);
 #endif
   
+  // apply refraction correction
+  // NB: if rate is never, correction can still be calculated externally
+  // by the user with qp_update_refro()
+  if (qp_check_apply(&qp_params.s_refro))
+    refro_corr = qp_update_refro(el, lat);
+  else
+    refro_corr = qp_get_refro_corr();
+#ifdef DEBUG
+  printf("Refraction: %.6g\n", refro_corr);
+#endif
+  
   // apply boresight rotation
-  qp_azel_quat(az, el, pitch, roll, q);
+  qp_azel_quat(az, el-refro_corr, pitch, roll, q);
 #ifdef DEBUG
   qp_print_debug("azel", q);
 #endif

@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
   double rate_erot = QP_DO_ALWAYS;   // update ERA angle
   double rate_npb = 10;              // update nutation/precession/bias correction
   double rate_aaber = 100;           // update annual aberration correction
+  double rate_refro = QP_DO_NEVER;   // update refraction correction
   
   // detector offsets in degrees
   double delta_az = 1.0;
