@@ -19,5 +19,6 @@ setup(name='qpoint',
       description='Pointing for SPIDER',
       author='ASR',
       packages=['qpoint'],
+      package_dir = {'qpoint': 'python'},
       ext_modules=[ext_qp]
       )
