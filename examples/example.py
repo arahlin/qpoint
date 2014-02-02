@@ -1,22 +1,22 @@
 import qpoint as qp
 import numpy as np
 
-# initialize, maybe set a few options
+# initialize, maybe change a few options from their defaults
 Q = qp.QPoint(accuracy='low', fast_math=True)
 
 # update a bunch of parameters
-# Q.set_params(daber='always',
-#              lonlat='always',
-#              wobble='never',
-#              dut1='never',
-#              erot='always',
-#              npb=10,
-#              aaber=100,
-#              refro='never',
-#              accuracy='low',
-#              mean_aber=False,
-#              fast_math=True,
-#              polconv='healpix')
+# Q.set(rate_daber='always',
+#       rate_lonlat='always',
+#       rate_wobble='never',
+#       rate_dut1='never',
+#       rate_erot='always',
+#       rate_npb=10,
+#       rate_aaber=100,
+#       rate_ref='never',
+#       accuracy='low',
+#       mean_aber=False,
+#       fast_math=True,
+#       polconv='healpix')
 
 # dumb simulation
 n = 10000
@@ -38,4 +38,5 @@ delta_el = -1.0
 delta_psi = 22.5
 
 # calculate detector pointing
-ra,dec,sin2psi,cos2psi = Q.bore2radec(delta_az, delta_el, delta_psi, ctime, q)
+ra, dec, sin2psi, cos2psi = Q.bore2radec(delta_az, delta_el, delta_psi,
+                                         ctime, q)

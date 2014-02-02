@@ -145,7 +145,7 @@ class QPoint(object):
         Reset update counters for each state.  Useful to force an updated
         correction term at the beginning of each chunk.
         """
-        _libqp.qp_reset_rates(self._params)
+        _libqp.qp_reset_rates(self._memory)
     
     def refraction(self, *args, **kwargs):
         """
