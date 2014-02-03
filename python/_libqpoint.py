@@ -22,6 +22,20 @@ class qp_weather_t(ct.Structure):
         ('lapse_rate', ct.c_double),
         ]
 
+class qp_bulletina_entry_t(ct.Structure):
+    _fields_ = [
+        ('x', ct.c_float),
+        ('y', ct.c_float),
+        ('dut1', ct.c_float),
+        ]
+
+class qp_bulletina_t(ct.Structure):
+    _fields_ = [
+        ('entries', ct.POINTER(qp_bulletina_entry_t)),
+        ('mjd_min', ct.c_int),
+        ('mjd_max', ct.c_int),
+        ]
+
 class qp_memory_t(ct.Structure):
     _fields_ = [
         ('initialized', ct.c_int),
@@ -42,10 +56,11 @@ class qp_memory_t(ct.Structure):
         ('q_npb', ct.c_double * 4),
         ('q_erot', ct.c_double * 4),
         ('beta_earth', ct.c_double * 3),
+        ('bulletinA', qp_bulletina_t),
         ('accuracy', ct.c_int),
         ('mean_aber', ct.c_int),
         ('fast_math', ct.c_int),
-        ('polconv', ct.c_int)
+        ('polconv', ct.c_int),
         ]
 
 # library functions
@@ -118,11 +133,28 @@ libqp.qp_bore2rasindec.argtypes = (qp_memory_t_p, # params
                                    NDP(dtype=np.double), # cos2psi
                                    ct.c_int) # n
 
-libqp.set_iers_bulletin_a.argtypes = (ct.c_int, ct.c_int, # mjd_min, mjd_max
+libqp.set_iers_bulletin_a.argtypes = (qp_memory_t_p,
+                                      ct.c_int, ct.c_int, # mjd_min, mjd_max
+                                      NDP(dtype=np.double), # dut1
                                       NDP(dtype=np.double), # x
-                                      NDP(dtype=np.double), # y
-                                      NDP(dtype=np.double)) # dut1
+                                      NDP(dtype=np.double)) # y
 libqp.set_iers_bulletin_a.restype = ct.c_int
+
+libqp.get_iers_bulletin_a.argtypes = (qp_memory_t_p,
+                                      ct.c_double, # mjd
+                                      ct.POINTER(ct.c_double), # dut1
+                                      ct.POINTER(ct.c_double), # x
+                                      ct.POINTER(ct.c_double)) # y
+libqp.get_iers_bulletin_a.restype = ct.c_int
+
+def get_bulletin_a(mem, mjd):
+    dut1 = ct.c_double()
+    x = ct.c_double()
+    y = ct.c_double()
+    
+    libqp.get_iers_bulletin_a(mem, mjd, ct.byref(dut1),
+                              ct.byref(x), ct.byref(y))
+    return dut1.value, x.value, y.value
 
 libqp.qp_refraction.argtypes = (ct.c_double, # elevation angle
                                 ct.c_double, # height

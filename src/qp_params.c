@@ -37,11 +37,13 @@ qp_memory_t * qp_init_memory(void) {
   memset(mem->q_npb,      0, 4);
   memset(mem->q_erot,     0, 4);
   memset(mem->beta_earth, 0, 3);
+  mem->bulletinA.entries = NULL;
   mem->initialized = 1;
   return mem;
 }
 
 void qp_free_memory(qp_memory_t *mem) {
+  set_iers_bulletin_a(mem, 0, 0, NULL, NULL, NULL);
   free(mem);
 }
 

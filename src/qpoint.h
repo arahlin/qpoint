@@ -15,13 +15,13 @@ extern "C" {
      ********************************************************************** */
   
   /* state structure for keeping track of transformation updates */
-  typedef struct qp_state_t {
+  typedef struct {
     double update_rate; // period in seconds
     double ctime_last; // time of last update
   } qp_state_t;
   
   /* structure for storing refraction data */
-  typedef struct qp_weather_t {
+  typedef struct {
     double height;      // height, m
     double temperature; // temperature, C
     double pressure;    // pressure, mbar
@@ -29,6 +29,19 @@ extern "C" {
     double frequency;   // frequency, ghz
     double lapse_rate;  // tropospheric lapse rate, K/m
   } qp_weather_t;
+  
+  /* structures for storing Bulletin A data (for wobble correction) */
+  typedef struct {
+    float x;
+    float y;
+    float dut1;
+  } qp_bulletina_entry_t;
+  
+  typedef struct {
+    qp_bulletina_entry_t *entries;
+    int mjd_min;
+    int mjd_max;
+  } qp_bulletina_t;
   
   /* parameter structure for storing corrections computed at variable rates */
   typedef struct qp_memory_t {
@@ -45,15 +58,16 @@ extern "C" {
     qp_state_t state_ref;       // refraction
     
     // state data
-    qp_weather_t weather;  // weather
-    double ref_tol;        // refraction tolerance, rad
-    double ref_delta;      // refraction correction, deg
-    double dut1;           // UT1 correction
-    quat_t q_lonlat;       // lonlat quaternion
-    quat_t q_wobble;       // wobble quaternion
-    quat_t q_npb;          // nutation etc quaternion
-    quat_t q_erot;         // earth's rotation quaternion
-    vec3_t beta_earth;     // earth velocity
+    qp_weather_t weather;     // weather
+    double ref_tol;           // refraction tolerance, rad
+    double ref_delta;         // refraction correction, deg
+    double dut1;              // UT1 correction
+    quat_t q_lonlat;          // lonlat quaternion
+    quat_t q_wobble;          // wobble quaternion
+    quat_t q_npb;             // nutation etc quaternion
+    quat_t q_erot;            // earth's rotation quaternion
+    vec3_t beta_earth;        // earth velocity
+    qp_bulletina_t bulletinA; // bulletin A data
     
     // options
     int accuracy;          // 0=full accuracy, 1=low accuracy
@@ -158,10 +172,11 @@ extern "C" {
 #define C_MS 299792458.0
 
   /* Return interpolated values from IERS Bulletin A */
-  int get_iers_bulletin_a( double mjd, double *dut1, double *x, double *y );
+  int get_iers_bulletin_a( qp_memory_t *mem, double mjd,
+			   double *dut1, double *x, double *y );
   /* Set IERS Bulletin A */
-  int set_iers_bulletin_a( int mjd_min_, int mjd_max_, double *dut1, double *x,
-			   double *y );
+  int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
+			   double *dut1, double *x, double *y );
   
   /* Time conversion */
 #define CTIME_JD_EPOCH 2440587.5 /* JD for ctime = 0 */
@@ -210,7 +225,7 @@ extern "C" {
   void qp_erot_quat(double jd_ut1[2], quat_t q);
   
   /* Calcuate wobble correction quaternion */
-  void qp_wobble_quat(double mjd_utc, double *dut1, quat_t q);
+  void qp_wobble_quat(double xy, double yp, quat_t q);
   
   /* Calculate gondola orientation quaternion */
   void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q);

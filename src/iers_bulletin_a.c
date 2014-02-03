@@ -7,10 +7,9 @@
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
+#include "qpoint.h"
 
-typedef struct { float x; float y; float dut1; } xyz;
-
-static xyz bulletinA_factory[] = {
+static qp_bulletina_entry_t bulletinA_factory[] = {
   {-0.080449f, 0.258399f, -0.2733505f},  // 8 1 1
   {-0.081863f, 0.260039f, -0.2743264f},  // 8 1 2
   {-0.083275f, 0.261896f, -0.2751941f},  // 8 1 3
@@ -2562,72 +2561,73 @@ static xyz bulletinA_factory[] = {
 static const int mjd_min_factory = 54466;
 static const int mjd_max_factory = 57011;
 
-static int mjd_min;
-static int mjd_max;
-static xyz *bulletinA;
-
-int get_iers_bulletin_a( double mjd, double *dut1, double *x, double *y )
+int get_iers_bulletin_a( qp_memory_t *mem, double mjd,
+                         double *dut1, double *x, double *y )
 {
-    if (bulletinA == NULL) {
-        bulletinA = bulletinA_factory;
-        mjd_min = mjd_min_factory;
-        mjd_max = mjd_max_factory;
-    }
-    if ( (mjd_min < mjd) && (mjd < mjd_max) )
-    {
-        double mjd_floor;
-        double r = modf( mjd, &mjd_floor );
-        int k = (int) mjd_floor - mjd_min;
-        xyz a = bulletinA[k];
-        xyz b = bulletinA[k+1];
-        // Detect leap seconds
-        double leap = b.dut1 - a.dut1;
-        if (leap > 0.5)
-            leap = 1.;
-        else if (leap < -0.5)
-            leap = -1.;
-        else
-            leap = 0;
+  qp_bulletina_t *B = &mem->bulletinA;
 
-        *dut1 = (1-r)*a.dut1 + r*(b.dut1-leap);
-        *x = (1-r)*a.x + r*b.x;
-        *y = (1-r)*a.y + r*b.y;
-    }
+  if (B->entries == NULL) {
+    B->entries = bulletinA_factory;
+    B->mjd_min = mjd_min_factory;
+    B->mjd_max = mjd_max_factory;
+  }
+  if ( (B->mjd_min <= mjd) && (mjd < B->mjd_max) )
+  {
+    double mjd_floor;
+    double r = modf( mjd, &mjd_floor );
+    int k = (int) mjd_floor - B->mjd_min;
+    qp_bulletina_entry_t a = B->entries[k];
+    qp_bulletina_entry_t b = B->entries[k+1];
+    // Detect leap seconds
+    double leap = b.dut1 - a.dut1;
+    if (leap > 0.5)
+      leap = 1.;
+    else if (leap < -0.5)
+      leap = -1.;
     else
-    {
-        // silent failure!
-        *dut1 = 0;
-        *x = 0;
-        *y = 0;
-        return 1;
-    }
+      leap = 0;
 
-    return 0;
+    *dut1 = (1-r)*a.dut1 + r*(b.dut1-leap);
+    *x = (1-r)*a.x + r*b.x;
+    *y = (1-r)*a.y + r*b.y;
+  }
+  else
+  {
+    // silent failure!
+    *dut1 = 0;
+    *x = 0;
+    *y = 0;
+    return 1;
+  }
+
+  return 0;
 }
 
-int set_iers_bulletin_a( int mjd_min_, int mjd_max_, double *dut1, double *x,
-			 double *y)
+int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
+                         double *dut1, double *x, double *y)
 {
+  qp_bulletina_t *B = &mem->bulletinA;
+
   if (dut1 == NULL) {
-      // Destroy
-      if (bulletinA != bulletinA_factory) {
-          free(bulletinA);
-          bulletinA = NULL;
-      }
-      return 0;
+    // Destroy
+    if (B->entries != bulletinA_factory) {
+      free(B->entries);
+      B->entries = NULL;
+    }
+    return 0;
   }
   // Create
-  mjd_min = mjd_min_;
-  mjd_max = mjd_max_;
+  B->mjd_min = mjd_min_;
+  B->mjd_max = mjd_max_;
 
-  int n_mjd = mjd_max - mjd_min + 1;
-  bulletinA = malloc(n_mjd*sizeof(*bulletinA));
-  assert(bulletinA != NULL);
+  int n_mjd = B->mjd_max - B->mjd_min + 1;
+  B->entries = malloc(n_mjd*sizeof(*(B->entries)));
+  assert(B->entries != NULL);
 
   for (int k=0; k<n_mjd; k++) {
-      bulletinA[k].x = x[k];
-      bulletinA[k].y = y[k];
-      bulletinA[k].dut1 = dut1[k];
+    B->entries[k].x = x[k];
+    B->entries[k].y = y[k];
+    B->entries[k].dut1 = dut1[k];
   }
   return 0;
 }

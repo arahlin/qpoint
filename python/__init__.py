@@ -468,41 +468,52 @@ class QPoint(object):
         
         return ra, sindec, sin2psi, cos2psi
 
-def load_bulletin_a(filename, columns=['mjd','x','y','dut1'], **kwargs):
-    """
-    Load IERS Bulletin A from file and store in memory.  The file must be
-    readable using numpy.loadtxt with unpack=True, and is assumed to be sorted
-    by mjd.
+    def load_bulletin_a(filename, columns=['mjd','dut1','x','y'], **kwargs):
+        """
+        Load IERS Bulletin A from file and store in memory.  The file must be
+        readable using numpy.loadtxt with unpack=True, and is assumed to be sorted
+        by mjd.
+        
+        Keyword arguments:
+        
+        columns    list of columns as they appear in the file.
+                   A KeyError is raise if the list does not contain
+                   each of ['mjd', 'dut1', 'x', 'y']
+        
+        Any other keyword arguments are passed to the numpy.loadtxt function
+        
+        Output:
+        
+        mjd, dut1, x, y
+        """
+        
+        req_columns = ['mjd','dut1','x','y']
+        if not set(req_columns) <= set(columns):
+            raise KeyError,\
+                'Missing columns %s' % str(list(set(req_columns)-set(columns)))
+        kwargs['unpack'] = True
+        data = _np.loadtxt(filename, **kwargs)
+        mjd, x, y, dut1 = (data[columns.index(x)] for x in req_columns)
+        mjd_min, mjd_max = int(mjd[0]), int(mjd[-1])
+        
+        try:
+            _libqp.set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
+        except:
+            raise RuntimeError, \
+                'Error loading Bulletin A data from file %s' % filename
+        
+        return mjd, dut1, x, y
     
-    Keyword arguments:
-    
-    columns    list of columns as they appear in the file.
-               A KeyError is raise if the list does not contain
-               each of ['mjd', 'x', 'y', 'dut1']
-    
-    Any other keyword arguments are passed to the numpy.loadtxt function
-    
-    Output:
-    
-    mjd, dut1, x, y
-    """
-    
-    req_columns = ['mjd','x','y','dut1']
-    if not set(req_columns) <= set(columns):
-        raise KeyError,\
-            'Missing columns %s' % str(list(set(req_columns)-set(columns)))
-    kwargs['unpack'] = True
-    data = _np.loadtxt(filename, **kwargs)
-    mjd, x, y, dut1 = (data[columns.index(x)] for x in req_columns)
-    mjd_min, mjd_max = int(mjd[0]), int(mjd[-1])
-    
-    try:
-        _libqp.set_iers_bulletin_a(mjd_min, mjd_max, dut1, x, y)
-    except:
-        raise RuntimeError, \
-            'Error loading Bulletin A data from file %s' % filename
-    
-    return mjd, dut1, x, y
+    def get_bulletin_a(self, mjd):
+        """
+        Return dut1/x/y for given mjd. Vectorized.
+        """
+        
+        from _libqpoint import get_bulletin_a
+        def func(x): return get_bulletin_a(self._memory, x)
+        fvec = _np.vectorize(func, [_np.double, _np.double, _np.double])
+        
+        return fvec(mjd)
 
 def refraction(el, lat, height, temp, press, hum,
                freq=150., lapse=0.0065, tol=1e-8):

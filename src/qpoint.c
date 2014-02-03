@@ -87,10 +87,8 @@ void qp_erot_quat(double jd_ut1[2], quat_t q) {
   Quaternion_r3(q, theta);
 }
 
-void qp_wobble_quat(double mjd_utc, double *dut1, quat_t q) {
-  double xp, yp, sprime = 0;
-  
-  get_iers_bulletin_a(mjd_utc, dut1, &xp, &yp);
+void qp_wobble_quat(double xp, double yp, quat_t q) {
+  double sprime = 0;
   
   Quaternion_r1(q, -arcsec2rad(yp));
   Quaternion_r2_mul(-arcsec2rad(xp), q);
@@ -204,12 +202,13 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   // or get dut1 from IERS bulletin
   mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
   if (qp_check_update(&mem->state_wobble, ctime)) {
-    qp_wobble_quat(mjd_utc, &mem->dut1, mem->q_wobble);
+    get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+    qp_wobble_quat(x, y, mem->q_wobble);
 #ifdef DEBUG
     qp_print_debug("wobble", mem->q_wobble);
 #endif
   } else if (qp_check_update(&mem->state_dut1, ctime))
-    get_iers_bulletin_a(mjd_utc, &mem->dut1, &x, &y);
+    get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
   if (qp_check_apply(&mem->state_wobble)) {
     Quaternion_mul_left(mem->q_wobble, q);
 #ifdef DEBUG
