@@ -175,12 +175,12 @@ libqp.qp_update_ref.restype = ct.c_double
 # parameters and options
 
 def check_set_float(val):
-    if not _np.isscalar(val):
+    if not np.isscalar(val):
         raise TypeError,'val must be a scalar value'
     return float(val)
 
 def check_set_int(val):
-    if not _np.isscalar(val):
+    if not np.isscalar(val):
         raise TypeError,'val must be a scalar value'
     return int(val)
 

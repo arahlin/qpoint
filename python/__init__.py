@@ -199,10 +199,12 @@ class QPoint(object):
         lat = kwargs.get('lat',None)
         if el is not None and lat is not None:
             def func(x, y): return _libqp.qp_update_ref(self._memory, x, y)
-            fvec = _np.vectorize(func,[_np.double]*2)
-            return fvec(el, lat)
-        else:
-            return self._get('ref_delta')
+            fvec = _np.vectorize(func,[_np.double])
+            delta = fvec(el, lat)
+            if delta.shape == ():
+                return delta[()]
+            return delta
+        return self._get('ref_delta')
     
     def azel2bore(self, az, el, pitch, roll, lon, lat, ctime, **kwargs):
         """
@@ -516,7 +518,10 @@ class QPoint(object):
         def func(x): return get_bulletin_a(self._memory, x)
         fvec = _np.vectorize(func, [_np.double]*3)
         
-        return fvec(mjd)
+        out = fvec(mjd)
+        if out[0].shape == ():
+            return tuple(x[()] for x in out)
+        return out
 
 def refraction(el, lat, height, temp, press, hum,
                freq=150., lapse=0.0065, tol=1e-8):
@@ -541,8 +546,11 @@ def refraction(el, lat, height, temp, press, hum,
     delta        refraction correction, in degrees
     """
     
-    fvec = _np.vectorize(_libqp.qp_refraction,[_np.double]*9)
-    return fvec(el, lat, height, temp, press, hum, freq, lapse, tol)
+    fvec = _np.vectorize(_libqp.qp_refraction,[_np.double])
+    delta = fvec(el, lat, height, temp, press, hum, freq, lapse, tol)
+    if delta.shape == ():
+        return delta[()]
+    return delta
 
 # for debugging
 def _plot_diff(ang1,ang2,asec=True,n=None):
