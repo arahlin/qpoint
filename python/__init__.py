@@ -172,7 +172,9 @@ class QPoint(object):
         argument is given, then the correction is stored with this value
         instead of being recalculated.
         
-        Note that this is not a vectorized function.
+        Numpy-vectorized for el and lat arguments.  Note that this is not
+        an efficient vectorization, and only the last calculated value is
+        stored for use in the coordinate conversion functions.
         """
         
         if len(args) == 1 and len(kwargs) == 0:
@@ -196,10 +198,11 @@ class QPoint(object):
         el = kwargs.get('el',None)
         lat = kwargs.get('lat',None)
         if el is not None and lat is not None:
-            delta = _libqp.qp_update_ref(self._memory, el, lat)
+            def func(x, y): return _libqp.qp_update_ref(self._memory, x, y)
+            fvec = _np.vectorize(func,[_np.double]*2)
+            return fvec(el, lat)
         else:
-            delta = self._get('ref_delta')
-        return delta
+            return self._get('ref_delta')
     
     def azel2bore(self, az, el, pitch, roll, lon, lat, ctime, **kwargs):
         """
@@ -506,12 +509,12 @@ class QPoint(object):
     
     def get_bulletin_a(self, mjd):
         """
-        Return dut1/x/y for given mjd. Vectorized.
+        Return dut1/x/y for given mjd. Numpy-vectorized.
         """
         
         from _libqpoint import get_bulletin_a
         def func(x): return get_bulletin_a(self._memory, x)
-        fvec = _np.vectorize(func, [_np.double, _np.double, _np.double])
+        fvec = _np.vectorize(func, [_np.double]*3)
         
         return fvec(mjd)
 
@@ -519,8 +522,7 @@ def refraction(el, lat, height, temp, press, hum,
                freq=150., lapse=0.0065, tol=1e-8):
     """
     Standalone function for calculating the refraction correction without
-    storing any parameters.  Useful for testing.  Note that this is not a
-    vectorized function.
+    storing any parameters.  Useful for testing, numpy-vectorized.
     
     Arguments:
     
@@ -539,8 +541,8 @@ def refraction(el, lat, height, temp, press, hum,
     delta        refraction correction, in degrees
     """
     
-    return _libqp.qp_refraction(el, lat, height, temp, press, hum,
-                                freq, lapse, tol)
+    fvec = _np.vectorize(_libqp.qp_refraction,[_np.double]*9)
+    return fvec(el, lat, height, temp, press, hum, freq, lapse, tol)
 
 # for debugging
 def _plot_diff(ang1,ang2,asec=True,n=None):
