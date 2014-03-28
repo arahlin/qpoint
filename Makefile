@@ -1,3 +1,5 @@
+CC=gcc
+
 default: all
 
 all: qpoint python
@@ -19,7 +21,7 @@ install-slarefro: slarefro
 	make -C slarefro install
 
 python: sofa slarefro
-	python setup.py build
+	CC=$(CC) python setup.py build
 
 install-python: python
 	python setup.py install

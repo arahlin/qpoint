@@ -40,3 +40,25 @@ delta_psi = 22.5
 # calculate detector pointing
 ra, dec, sin2psi, cos2psi = Q.bore2radec(delta_az, delta_el, delta_psi,
                                          ctime, q)
+
+# several detector offsets in degrees
+delta_az_list = [-1.0,0,0,1.0];
+delta_el_list = [1.0,0,0,-1.0];
+delta_psi_list = [22.5,22.5,-22.5,-22.5];
+
+# calculate hits map
+nside = 256
+pmap = Q.bore2map(delta_az_list, delta_el_list, delta_psi_list,
+                  ctime, q, nside)
+
+# several other detector offsets in degrees
+delta_az_list = [-3.0,-2.0,2.0,3.0];
+delta_el_list = [3.0,2.0,-2.0,-3.0];
+delta_psi_list = [22.5,22.5,-22.5,-22.5];
+
+# update pmap
+Q.bore2map(delta_az_list, delta_el_list, delta_psi_list,
+           ctime, q, nside, pmap=pmap)
+
+# extract columns
+hits, p01, p02, p11, p12, p22 = pmap.T

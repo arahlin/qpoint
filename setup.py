@@ -15,7 +15,8 @@ if not os.path.exists(libslarefro_file):
 ext_qp = Extension('qpoint.libqpoint',[x for x in glob.glob('src/*.c')
                                        if 'test_' not in x],
                    include_dirs=['src', 'sofa', 'slarefro'],
-                   extra_compile_args=['-O3', '-Wall', '-std=c99', '-fPIC'],
+                   extra_compile_args=['-O3', '-Wall', '-std=c99', '-fPIC','-fopenmp'],
+                   libraries=['gomp','chealpix'],
                    extra_objects=[libsofa_file, libslarefro_file])
 
 setup(name='qpoint',

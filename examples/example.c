@@ -5,11 +5,14 @@ int main(int argc, char *argv[]) {
   
   /* parameters */
   
-  int n = 10000;     // number of samples
-  int accuracy = 1;  // "low" accuracy
-  int mean_aber = 0; // apply aberration correction per detector
-  int fast = 1;      // fast math
-  int polconv = 0;   // healpix polarization convention
+  int n = 10000;       // number of samples
+  int accuracy = 1;    // "low" accuracy
+  int mean_aber = 0;   // apply aberration correction per detector
+  int fast = 1;        // fast math
+  int polconv = 0;     // healpix polarization convention
+  int pair_dets = 1;   // pair detectors for bore2map
+  int pix_order = 0;   // ring ordering
+  int num_threads = 0; // default to nprocs
   
   double rate_daber = QP_DO_ALWAYS;  // update diurnal aberration rotation
   double rate_lonlat = QP_DO_ALWAYS; // update lon/lat rotation
@@ -24,6 +27,11 @@ int main(int argc, char *argv[]) {
   double delta_az = 1.0;
   double delta_el = -1.0;
   double delta_psi = 22.5;
+  
+  double ndets = 3;
+  double delta_az_list[3] = {-1.0,0,1.0};
+  double delta_el_list[3] = {1.0,0,-1.0};
+  double delta_psi_list[3] = {22.5,22.5,22.5};
   
   /* allocate all the things */
   
@@ -41,6 +49,10 @@ int main(int argc, char *argv[]) {
   double *sin2psi = malloc(sizeof(double)*n);
   double *cos2psi = malloc(sizeof(double)*n);
   
+  int nside = 256;
+  int npix = 12 * nside * nside;
+  pixel_t *pmap = calloc(npix,sizeof(pixel_t));
+  
   /* initialize memory */
   
   qp_memory_t *mem = qp_init_memory();
@@ -49,12 +61,14 @@ int main(int argc, char *argv[]) {
   /*
   qp_set_rates(mem, rate_daber, rate_lonlat, rate_wobble, rate_dut1,
 	       rate_erot, rate_npb, rate_aaber, rate_ref);
-  qp_set_options(mem, accuracy, mean_aber, fast_math, polconv);
+  qp_set_options(mem, accuracy, mean_aber, fast_math, polconv,
+                 pair_dets, pix_order, num_threads);
   */
   
   // or only a few
-  qp_set_accuracy(mem, accuracy);
-  qp_set_fast_math(mem, fast_math);
+  qp_set_opt_accuracy(mem, accuracy);
+  qp_set_opt_fast_math(mem, fast_math);
+  qp_set_opt_pair_dets(mem, pair_dets);
   
   /* Calculate boresight pointing */
   
@@ -67,6 +81,11 @@ int main(int argc, char *argv[]) {
   
   qp_bore2radec(mem, delta_az, delta_el, delta_psi, ctime, q_bore,
 		ra, dec, sin2psi, cos2psi, n);
+  
+  /* Calculate hits map */
+  
+  qp_bore2map(mem, delta_az_list, delta_el_list, delta_psi_list, ndets,
+	      ctime, q_bore, n, pmap, nside);
   
   /* free all the things */
   
@@ -82,6 +101,8 @@ int main(int argc, char *argv[]) {
   free(dec);
   free(sin2psi);
   free(cos2psi);
+  
+  free(pmap);
   
   qp_free_memory(mem)
   

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "qpoint.h"
+#include <omp.h>
 
 void qp_init_state(qp_state_t *state, double rate) {
   state->update_rate = rate;
@@ -23,6 +24,9 @@ qp_memory_t * qp_init_memory(void) {
   mem->mean_aber = 0;
   mem->fast_math = 0;
   mem->polconv = 0;
+  mem->pair_dets = 0;
+  mem->pix_order = 0;
+  qp_set_opt_num_threads(mem, 0);
   mem->weather.height = 30000.;
   mem->weather.temperature = 0.;
   mem->weather.pressure = 10.;
@@ -161,16 +165,24 @@ OPTIONFUNCDR(accuracy, npb)
 OPTIONFUNCDR(mean_aber, aaber)
 OPTIONFUNCD(fast_math)
 OPTIONFUNCD(polconv)
+OPTIONFUNCD(pair_dets)
+OPTIONFUNCD(pix_order)
 
 void qp_set_options(qp_memory_t *mem,
 		    int accuracy,
 		    int mean_aber,
 		    int fast_math,
-		    int polconv) {
-  qp_set_opt_accuracy (mem, accuracy);
-  qp_set_opt_mean_aber(mem, mean_aber);
-  qp_set_opt_fast_math(mem, fast_math);
-  qp_set_opt_polconv  (mem, polconv);
+		    int polconv,
+		    int pair_dets,
+		    int pix_order,
+		    int num_threads) {
+  qp_set_opt_accuracy   (mem, accuracy);
+  qp_set_opt_mean_aber  (mem, mean_aber);
+  qp_set_opt_fast_math  (mem, fast_math);
+  qp_set_opt_polconv    (mem, polconv);
+  qp_set_opt_pair_dets  (mem, pair_dets);
+  qp_set_opt_pix_order  (mem, pix_order);
+  qp_set_opt_num_threads(mem, num_threads);
 }
 
 // update all ref_data parameters

@@ -9,7 +9,7 @@ extern "C" {
   
   /* 3-vector */
   typedef double vec3_t[3];
-    
+  
   /* ************************************************************************* 
      Internal parameter settings
      ********************************************************************** */
@@ -74,8 +74,11 @@ extern "C" {
     int mean_aber;         // 0=per-detector aberration, 1=mean
     int fast_math;         // 0=regular trig, 1=polynomial trig approximations
     int polconv;           // polarization convention (0=healpix,1=IAU)
+    int pair_dets;         // pair A/B detectors for bore2map (1=True, 0=False)
+    int pix_order;         // pixel ordering (1=nest, 0=ring)
+    int num_threads;       // number of parallel threads
   } qp_memory_t;
-
+  
   /* parameter initialization */
   qp_memory_t * qp_init_memory(void);
   void qp_free_memory(qp_memory_t *mem);
@@ -128,7 +131,10 @@ extern "C" {
 		      int accuracy,
 		      int mean_aber,
 		      int fast_math,
-		      int polconv);
+		      int polconv,
+		      int pair_dets,
+		      int pix_order,
+		      int num_threads);
 
 #define OPTIONFUNC(opt)				    \
   void qp_set_opt_##opt(qp_memory_t *mem, int val); \
@@ -137,6 +143,9 @@ extern "C" {
   OPTIONFUNC(mean_aber);
   OPTIONFUNC(fast_math);
   OPTIONFUNC(polconv);
+  OPTIONFUNC(pair_dets);
+  OPTIONFUNC(pix_order);
+  OPTIONFUNC(num_threads);
   
   /* Set weather data */
   void qp_set_weather(qp_memory_t *mem,
@@ -303,6 +312,34 @@ extern "C" {
 			double *lon, double *lat, double *ctime, 
 			double *ra, double *sindec, double *sin2psi, double *cos2psi,
 			int n);
+  
+  /* ************************************************************************* 
+     Pixelization
+     ********************************************************************** */
+  
+  /* Pixel, contains (hits, p01, p02, p11, p12, p22) */
+  typedef double pixel_t[6];
+  
+  /* Ordering */
+  #define QP_ORDER_NEST 1
+  #define QP_ORDER_RING 0
+  
+  /* Compute healpix pixel number for given nside and ra/dec */
+  long qp_radec2pix(qp_memory_t *mem, double nside, double ra, double dec);
+  
+  /* Compute pointing matrix map for given boresight timestream and detector
+     offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2map_single(qp_memory_t *mem,
+			  double delta_az, double delta_el, double delta_psi,
+			  double *ctime, quat_t *q_bore, int n,
+			  pixel_t *pmap, int nside);
+  
+  /* Compute pointing matrix map for given boresight timestream and many detector
+     offsets. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2map(qp_memory_t *mem,
+		   double *delta_az, double *delta_el, double *delta_psi, int ndet,
+		   double *ctime, quat_t *q_bore, int n,
+		   pixel_t *pmap, int nside);
   
 #ifdef __cplusplus
 }

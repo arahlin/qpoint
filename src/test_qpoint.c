@@ -25,9 +25,15 @@ int main(int argc, char *argv[]) {
   double *cos2psi;
   // double cra, cdec, cpsi;
   quat_t *q_bore;
+  double **pmap;
   double delta_az = -3.314806;
   double delta_el = -8.010956;
   double delta_psi = 22.5;
+  double deltas_az[9] = {-8,-6,-4,-2,0,2,4,6,8};
+  double deltas_el[9] = {-8,-6,-4,-2,0,2,4,6,8};
+  double deltas_psi[9] = {22.5,-22.5,22.5,-22.5,22.5,-22.5,22.5,-22.5,22.5};
+  int nside = 256;
+  long npix = 12*nside*nside;
   // double framerate;
   // qp_set_offset(-3.314806,-8.010956,22.5);
   
@@ -42,26 +48,29 @@ int main(int argc, char *argv[]) {
     lon = malloc(sizeof(double)*NSAMP);
     lat = malloc(sizeof(double)*NSAMP);
   } else if (mode == 1) {
-    ctime= malloc(sizeof(double)*NSAMP);
     ra = malloc(sizeof(double)*NSAMP);
     dec = malloc(sizeof(double)*NSAMP);
     sin2psi = malloc(sizeof(double)*NSAMP);
     cos2psi = malloc(sizeof(double)*NSAMP);
+  } else if (mode == 2) {
+    pmap = malloc(6*sizeof(double*));
+    for (i=0; i<6; i++)
+      pmap[i] = calloc(npix, sizeof(double));
   }
   ctime= malloc(sizeof(double)*NSAMP);
   q_bore = malloc(sizeof(quat_t)*NSAMP);
   
   printf("read data\n");
-  DIRFILE *D = gd_open("/Users/sasha/code/scan_sim/scan_sim_data",GD_RDONLY);
+  DIRFILE *D = gd_open("/Users/sasha/code/scan_sim/scan_sim_data_uldc",GD_RDONLY);
   if (mode == 0) {
-    gd_getdata(D, "AZ_T00_BORE", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)az);
-    gd_getdata(D, "EL_T00_BORE", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)el);
-    gd_getdata(D, "PI_T00_BORE", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)pitch);
+    gd_getdata(D, "AZ", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)az);
+    gd_getdata(D, "EL", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)el);
+    gd_getdata(D, "PITCH", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)pitch);
     // for (i = 0; i < NSAMP; i++) pitch[i] += 0.1;
-    gd_getdata(D, "RO_T00_BORE", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)roll);
+    gd_getdata(D, "ROLL", 0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)roll);
     // for (i = 0; i < NSAMP; i++) roll[i] += 0.2;
-    gd_getdata(D, "LON_T00",     0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)lon);
-    gd_getdata(D, "LAT_T00",     0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)lat);
+    gd_getdata(D, "LON",     0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)lon);
+    gd_getdata(D, "LAT",     0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)lat);
   }
   gd_getdata(D, "t",           0, SSAMP, 0, NSAMP, GD_DOUBLE, (void *)ctime);
   // gd_get_constant(D, "FRAMERATE", GD_DOUBLE, &framerate);
@@ -93,14 +102,15 @@ int main(int argc, char *argv[]) {
 		ra,dec,psi,NSAMP,0,0,0);
   */
   
-  qp_params_t *P = qp_init_params();
-  qp_set_accuracy(P, 1);
-  qp_set_fast_math(P, 1);
+  qp_memory_t *mem = qp_init_memory();
+  qp_set_opt_accuracy(mem, 1);
+  qp_set_opt_fast_math(mem, 1);
   
   if (mode == 0) {
     printf("azel2bore\n");
-    qp_azel2bore(P, az,el,pitch,roll,lon,lat,ctime,q_bore,NSAMP);
+    qp_azel2bore(mem, az,el,pitch,roll,lon,lat,ctime,q_bore,NSAMP);
     
+    printf("save\n");
     FILE *f = fopen("qbore.dat","w");
     for (i = 0; i < NSAMP; i++) {
       fprintf(f, "%.12f\t%.12f\t%.12f\t%.12f\n", q_bore[i][0], q_bore[i][1],
@@ -108,6 +118,7 @@ int main(int argc, char *argv[]) {
     }
     fclose(f);
   } else if (mode == 1) {
+    printf("load\n");
     FILE *f = fopen("qbore.dat","r");
     for (i = 0; i < NSAMP; i++) {
       fscanf(f, "%lf\t%lf\t%lf\t%lf\n", &q_bore[i][0], &q_bore[i][1],
@@ -116,12 +127,33 @@ int main(int argc, char *argv[]) {
     fclose(f);
     
     printf("bore2rasindec\n");
-    qp_bore2rasindec(P, delta_az,delta_el,delta_psi,
+    qp_bore2rasindec(mem, delta_az,delta_el,delta_psi,
 		     ctime,q_bore,ra,dec,sin2psi,cos2psi,NSAMP);
 
+    printf("save\n");
     FILE *of = fopen("test.dat","w");
     for (i = 0; i < NSAMP; i++) {
       fprintf(of, "%f\t%f\t%f\t%f\n", ra[i], dec[i], sin2psi[i], cos2psi[i]);
+    }
+    fclose(of);
+  } else if (mode == 2) {
+    printf("load\n");
+    FILE *f = fopen("qbore.dat","r");
+    for (i = 0; i < NSAMP; i++) {
+      fscanf(f, "%lf\t%lf\t%lf\t%lf\n", &q_bore[i][0], &q_bore[i][1],
+	     &q_bore[i][2], &q_bore[i][3]);
+    }
+    fclose(f);
+    
+    printf("bore2map\n");
+    qp_bore2map_omp(mem, deltas_az, deltas_el, deltas_psi, 9,
+		    ctime, q_bore, NSAMP, pmap, nside);
+    
+    printf("save\n");
+    FILE *of = fopen("map_omp.dat","w");
+    for (i = 0; i < npix; i++) {
+      fprintf(of, "%d\t%e\t%e\t%e\t%e\t%e\n", (int)pmap[0][i], pmap[1][i], pmap[2][i],
+	      pmap[3][i], pmap[4][i], pmap[5][i]);
     }
     fclose(of);
   }
@@ -143,16 +175,20 @@ int main(int argc, char *argv[]) {
     free(roll);
     free(lon);
     free(lat);
-    free(ctime);
   } else if (mode == 1) {
     free(ra);
     free(dec);
     free(sin2psi);
     free(cos2psi);
+  } else if (mode == 2) {
+    for (i=0; i<6; i++)
+      free(pmap[i]);
+    free(pmap);
   }
+  free(ctime);
   free(q_bore);
   
-  qp_free_params(P);
+  qp_free_memory(mem);
   
   return 0;
 };

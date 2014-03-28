@@ -472,8 +472,50 @@ class QPoint(object):
                                 ra, sindec, sin2psi, cos2psi, n)
         
         return ra, sindec, sin2psi, cos2psi
-
-    def load_bulletin_a(filename, columns=['mjd','dut1','x','y'], **kwargs):
+        
+    def bore2map(self, delta_az, delta_el, delta_psi, ctime, q_bore, nside,
+                 pmap=None, **kwargs):
+        """
+        Calculate hits map for given detectors and boresight orientations.
+        Returns a npix-x-6 array containing (hits, p01, p02, p11, p12, p22).
+        Optionally accumulate hits in place by supplying an existing pmap array.
+        """
+        
+        self.set(**kwargs)
+        
+        delta_az, delta_el, delta_psi \
+            = [_np.array(_np.atleast_1d(x), dtype=_np.double) for x in
+               _np.broadcast_arrays(delta_az, delta_el, delta_psi)]
+        # delta_az  = _np.asarray(delta_az,  dtype=_np.double)
+        # delta_el  = _np.asarray(delta_el,  dtype=_np.double)
+        # delta_psi = _np.asarray(delta_psi, dtype=_np.double)
+        ndet = delta_az.size
+        
+        for x in (delta_el, delta_psi):
+            if x.shape != delta_az.shape:
+                raise ValueError, "input offset vectors must have the same shape"
+        
+        ctime  = _np.asarray(ctime,  dtype=_np.double)
+        q_bore = _np.asarray(q_bore, dtype=_np.double)
+        n = ctime.size
+        
+        if ctime.shape[0] != q_bore.shape[0]:
+            raise ValueError,"input ctime and q_bore must have compatible shape"
+        
+        mshape = (12*nside*nside, 6)
+        if pmap is None:
+            pmap = _np.zeros(mshape, dtype=_np.double)
+        if pmap.shape != mshape:
+            raise ValueError,"input pmap must have shape %s" % mshape
+        if pmap.dtype != _np.double:
+            raise TypeError,"input pmap must be of type numpy.double"
+            
+        _libqp.qp_bore2map(self._memory, delta_az, delta_el, delta_psi, ndet,
+                           ctime, q_bore, n, pmap, nside)
+        
+        return pmap
+        
+    def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
         """
         Load IERS Bulletin A from file and store in memory.  The file must be
         readable using numpy.loadtxt with unpack=True, and is assumed to be sorted

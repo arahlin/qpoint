@@ -61,6 +61,9 @@ class qp_memory_t(ct.Structure):
         ('mean_aber', ct.c_int),
         ('fast_math', ct.c_int),
         ('polconv', ct.c_int),
+        ('pair_dets', ct.c_int),
+        ('pix_order', ct.c_int),
+        ('num_threads', ct.c_int),
         ]
 
 # library functions
@@ -132,6 +135,25 @@ libqp.qp_bore2rasindec.argtypes = (qp_memory_t_p, # params
                                    NDP(dtype=np.double), # sin2psi
                                    NDP(dtype=np.double), # cos2psi
                                    ct.c_int) # n
+
+libqp.qp_bore2map_single.argtypes = (qp_memory_t_p, # params
+                                     ct.c_double, ct.c_double, ct.c_double, # offset
+                                     NDP(dtype=np.double), # ctime
+                                     NDP(dtype=np.double), # q_bore
+                                     ct.c_int, # n
+                                     NDP(dtype=np.double), # pmap
+                                     ct.c_int) # nside
+
+libqp.qp_bore2map.argtypes = (qp_memory_t_p, # params
+                              NDP(dtype=np.double), # delta_az
+                              NDP(dtype=np.double), # delta_el
+                              NDP(dtype=np.double), # delta_psi
+                              ct.c_int, # ndet
+                              NDP(dtype=np.double), # ctime
+                              NDP(dtype=np.double), # q_bore
+                              ct.c_int, # n
+                              NDP(dtype=np.double), # pmap
+                              ct.c_int) # nside
 
 libqp.set_iers_bulletin_a.argtypes = (qp_memory_t_p,
                                       ct.c_int, ct.c_int, # mjd_min, mjd_max
@@ -316,7 +338,47 @@ def check_get_polconv(pol):
         return 'iau'
     return 'healpix'
 
-options = ['accuracy','mean_aber','fast_math','polconv']
+def check_set_pair_dets(pair):
+    if pair is None:
+        return 0
+    if pair in [1,True]:
+        return 1
+    if pair in [0,False]:
+        return 0
+    return 0
+
+def check_get_pair_dets(pair):
+    if pair == 1:
+        return True
+    return False
+
+def check_set_pix_order(order):
+    if order is None:
+        return 0
+    if isinstance(order,basestring):
+        if order.lower() in ['ring']:
+            return 0
+        if order.lower() in ['nest','nested']:
+            return 1
+    if order in [0,1]:
+        return order
+    return 0
+
+def check_get_pix_order(order):
+    if order == 1:
+        return 'nest'
+    return 'ring'
+
+def check_set_num_threads(nt):
+    if nt is None:
+        return 0
+    return int(nt)
+
+def check_get_num_threads(nt):
+    return nt
+
+options = ['accuracy','mean_aber','fast_math','polconv','pair_dets',
+           'pix_order','num_threads']
 option_funcs = dict()
 for p in options:
     option_funcs[p] = dict()
