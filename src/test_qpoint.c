@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   double *cos2psi;
   // double cra, cdec, cpsi;
   quat_t *q_bore;
-  double **pmap;
+  pixel_t *pmap;
   double delta_az = -3.314806;
   double delta_el = -8.010956;
   double delta_psi = 22.5;
@@ -53,9 +53,7 @@ int main(int argc, char *argv[]) {
     sin2psi = malloc(sizeof(double)*NSAMP);
     cos2psi = malloc(sizeof(double)*NSAMP);
   } else if (mode == 2) {
-    pmap = malloc(6*sizeof(double*));
-    for (i=0; i<6; i++)
-      pmap[i] = calloc(npix, sizeof(double));
+    pmap = calloc(npix, sizeof(pixel_t));
   }
   ctime= malloc(sizeof(double)*NSAMP);
   q_bore = malloc(sizeof(quat_t)*NSAMP);
@@ -152,8 +150,8 @@ int main(int argc, char *argv[]) {
     printf("save\n");
     FILE *of = fopen("map_omp.dat","w");
     for (i = 0; i < npix; i++) {
-      fprintf(of, "%d\t%e\t%e\t%e\t%e\t%e\n", (int)pmap[0][i], pmap[1][i], pmap[2][i],
-	      pmap[3][i], pmap[4][i], pmap[5][i]);
+      fprintf(of, "%d\t%e\t%e\t%e\t%e\t%e\n", (int)pmap[i][0], pmap[i][1], pmap[i][2],
+	      pmap[i][3], pmap[i][4], pmap[i][5]);
     }
     fclose(of);
   }
@@ -181,8 +179,6 @@ int main(int argc, char *argv[]) {
     free(sin2psi);
     free(cos2psi);
   } else if (mode == 2) {
-    for (i=0; i<6; i++)
-      free(pmap[i]);
     free(pmap);
   }
   free(ctime);
