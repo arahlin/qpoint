@@ -375,161 +375,48 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
   *cos2psi = 2.*cosg_cb*cosg_cb*icosb2 - 1.;
 }
 
-void qp_interp_radec(double *ra, double *dec, double *sin2psi, double *cos2psi,
-		     double *t, int n) {
-  int i;
-  double ra1, ra2, dec1, dec2, dr, dd, ds, dc, icp12, isp12;
-  double sp1 = sin2psi[0];
-  double sp2 = sin2psi[n-1];
-  double cp1 = cos2psi[0];
-  double cp2 = cos2psi[n-1];
-  int interps = (-0.5 < sp1 && sp1 < 0.5);
-  if (interps)
-    icp12 = 1.0/(cp1*cp1);
-  else
-    isp12 = 1.0/(sp1*sp1);
-  
-  dr = ra[n-1]-ra[0];
-  ra1 = ra[0];
-  ra2 = ra[n-1];
-  if (dr > 180.) ra2 -= 360.;
-  else if (dr < -180.) ra2 += 360.;
-  
-  dd = dec[n-1] - dec[0];
-  dec1 = dec[0];
-  dec2 = dec[n-1];
-  if (dd > 180.) dec2 -= 360.;
-  else if (dd < -180.) dec2 += 360.;
-
-  for (i=1; i<n-1; i++) {
-    ra[i] = (1-t[i])*ra1 + t[i]*ra2;
-    if (ra[i] > 180.) ra[i] -= 360.;
-    if (ra[i] < -180.) ra[i] += 360.;
-    dec[i] = (1-t[i])*dec1 + t[i]*dec2;
-    if (dec[i] > 180.) dec[i] -= 360.;
-    if (dec[i] < -180.) dec[i] += 360.;
-    if (interps) {
-      sin2psi[i] = (1-t[i])*sp1 + t[i]*sp2;
-      ds = sin2psi[i] - sp1;
-      cos2psi[i] = cp1*sqrt(1. - ds*(2*sp1 + ds)*icp12);
-    } else {
-      cos2psi[i] = (1-t[i])*cp1 + t[i]*cp2;
-      dc = cos2psi[i] - cp1;
-      sin2psi[i] = sp1*sqrt(1. - dc*(2*cp1 + dc)*isp12);
-    }
-  }
-}
-
 void qp_bore2radec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 		   double *ra, double *dec, double *sin2psi, 
 		   double *cos2psi, int n) {
-  int i;
   quat_t q;
-  double *t;
-  int interp = 1; // disable for now
   
-  if (interp<1) 
-    interp=1;
-  else if (interp>1) {
-    t = malloc(sizeof(double)*(interp+1));
-    for (i=0; i<=interp; i++)
-      t[i] = i/(double)(interp);
-  }
-  
-  for (i=0; i<n; i+=interp) {
+  for (int i=0; i<n; i++) {
     qp_bore2det(mem, q_off, ctime[i], q_bore[i], q);
     qp_quat2radec(mem, q, ra+i, dec+i, sin2psi+i, cos2psi+i);
-    if (interp>1 && i>0)
-      qp_interp_radec(&ra[i-interp], &dec[i-interp], &sin2psi[i-interp],
-		      &cos2psi[i-interp], t,interp+1);
-    // TODO handle chunk ends!
   }
-  
-  if (interp>1) free(t);
 }
 
 void qp_bore2radec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 		       quat_t *q_hwp, double *ra, double *dec, double *sin2psi, 
 		       double *cos2psi, int n) {
-  int i;
   quat_t q;
-  double *t;
-  int interp = 1; // disable for now
   
-  if (interp<1) 
-    interp=1;
-  else if (interp>1) {
-    t = malloc(sizeof(double)*(interp+1));
-    for (i=0; i<=interp; i++)
-      t[i] = i/(double)(interp);
-  }
-  
-  for (i=0; i<n; i+=interp) {
+  for (int i=0; i<n; i++) {
     qp_bore2det_hwp(mem, q_off, ctime[i], q_bore[i], q_hwp[i], q);
     qp_quat2radec(mem, q, ra+i, dec+i, sin2psi+i, cos2psi+i);
-    if (interp>1 && i>0)
-      qp_interp_radec(&ra[i-interp], &dec[i-interp], &sin2psi[i-interp],
-		      &cos2psi[i-interp], t,interp+1);
-    // TODO handle chunk ends!
   }
-  
-  if (interp>1) free(t);
 }
 
 void qp_bore2rasindec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 		      double *ra, double *sindec, double *sin2psi, 
 		      double *cos2psi, int n) {
-  int i;
   quat_t q;
-  double *t;
-  int interp = 1; //disable for now
-  
-  if (interp<1) 
-    interp=1;
-  else if (interp>1) {
-    t = malloc(sizeof(double)*(interp+1));
-    for (i=0; i<=interp; i++)
-      t[i] = i/(double)(interp);
-  }
-  
-  for (i=0; i<n; i+=interp) {
+
+  for (int i=0; i<n; i++) {
     qp_bore2det(mem, q_off, ctime[i], q_bore[i], q);
     qp_quat2rasindec(mem, q, ra+i, sindec+i, sin2psi+i, cos2psi+i);
-    if (interp>1 && i>0)
-      qp_interp_radec(&ra[i-interp], &sindec[i-interp], &sin2psi[i-interp],
-		      &cos2psi[i-interp], t,interp+1);
-    // TODO handle chunk ends!
   }
-  
-  if (interp>1) free(t);
 }
 
 void qp_bore2rasindec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 			  quat_t *q_hwp, double *ra, double *sindec, double *sin2psi, 
 			  double *cos2psi, int n) {
-  int i;
   quat_t q;
-  double *t;
-  int interp = 1; //disable for now
   
-  if (interp<1) 
-    interp=1;
-  else if (interp>1) {
-    t = malloc(sizeof(double)*(interp+1));
-    for (i=0; i<=interp; i++)
-      t[i] = i/(double)(interp);
-  }
-  
-  for (i=0; i<n; i+=interp) {
+  for (int i=0; i<n; i++) {
     qp_bore2det_hwp(mem, q_off, ctime[i], q_bore[i], q_hwp[i], q);
     qp_quat2rasindec(mem, q, ra+i, sindec+i, sin2psi+i, cos2psi+i);
-    if (interp>1 && i>0)
-      qp_interp_radec(&ra[i-interp], &sindec[i-interp], &sin2psi[i-interp],
-		      &cos2psi[i-interp], t,interp+1);
-    // TODO handle chunk ends!
   }
-  
-  if (interp>1) free(t);
 }
 
 // all input and output angles are in degrees!
