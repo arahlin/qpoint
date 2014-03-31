@@ -265,6 +265,18 @@ void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
 		 ctime[i], q[i]);
 }
 
+void qp_hwp_quat(double ang, quat_t q) {
+  Quaternion_r3(q, -deg2rad(ang));
+#ifdef DEBUG
+  qp_print_debug("hwp", q);
+#endif
+}
+
+void qp_hwp_quatn(double *ang, quat_t *q, int n) {
+  for (int ii=0; ii<n; ii++)
+    qp_hwp_quat(ang[ii], q[ii]);
+}
+
 void qp_det_offset(double delta_az, double delta_el, double delta_psi, quat_t q) {
   Quaternion_r3(q, -deg2rad(delta_psi));
   Quaternion_r2_mul(deg2rad(delta_el), q);
@@ -274,6 +286,12 @@ void qp_det_offset(double delta_az, double delta_el, double delta_psi, quat_t q)
 #endif
 }
 
+void qp_det_offsetn(double *delta_az, double *delta_el, double *delta_psi, quat_t *q,
+		    int n) {
+  for (int ii=0; ii<n; ii++)
+    qp_det_offset(delta_az[ii], delta_el[ii], delta_psi[ii], q[ii]);
+}
+
 void qp_bore2det(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
 		 quat_t q_det) {
   Quaternion_copy(q_det,q_off);
@@ -281,6 +299,13 @@ void qp_bore2det(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
   
   if (!mem->mean_aber)
     qp_apply_annual_aberration(mem, ctime, q_det);
+}
+
+void qp_bore2det_hwp(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
+		     quat_t q_hwp, quat_t q_det) {
+
+  qp_bore2det(mem, q_off, ctime, q_bore, q_det);
+  Quaternion_mul_right(q_det, q_hwp);
 }
 
 void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
@@ -395,12 +420,11 @@ void qp_interp_radec(double *ra, double *dec, double *sin2psi, double *cos2psi,
   }
 }
 
-void qp_bore2radec(qp_memory_t *mem, double delta_az, double delta_el,
-		   double delta_psi, double *ctime, quat_t *q_bore,
+void qp_bore2radec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 		   double *ra, double *dec, double *sin2psi, 
 		   double *cos2psi, int n) {
   int i;
-  quat_t q_off, q;
+  quat_t q;
   double *t;
   int interp = 1; // disable for now
   
@@ -411,8 +435,6 @@ void qp_bore2radec(qp_memory_t *mem, double delta_az, double delta_el,
     for (i=0; i<=interp; i++)
       t[i] = i/(double)(interp);
   }
-  
-  qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (i=0; i<n; i+=interp) {
     qp_bore2det(mem, q_off, ctime[i], q_bore[i], q);
@@ -426,12 +448,39 @@ void qp_bore2radec(qp_memory_t *mem, double delta_az, double delta_el,
   if (interp>1) free(t);
 }
 
-void qp_bore2rasindec(qp_memory_t *mem, double delta_az, double delta_el,
-		      double delta_psi, double *ctime, quat_t *q_bore,
+void qp_bore2radec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+		       quat_t *q_hwp, double *ra, double *dec, double *sin2psi, 
+		       double *cos2psi, int n) {
+  int i;
+  quat_t q;
+  double *t;
+  int interp = 1; // disable for now
+  
+  if (interp<1) 
+    interp=1;
+  else if (interp>1) {
+    t = malloc(sizeof(double)*(interp+1));
+    for (i=0; i<=interp; i++)
+      t[i] = i/(double)(interp);
+  }
+  
+  for (i=0; i<n; i+=interp) {
+    qp_bore2det_hwp(mem, q_off, ctime[i], q_bore[i], q_hwp[i], q);
+    qp_quat2radec(mem, q, ra+i, dec+i, sin2psi+i, cos2psi+i);
+    if (interp>1 && i>0)
+      qp_interp_radec(&ra[i-interp], &dec[i-interp], &sin2psi[i-interp],
+		      &cos2psi[i-interp], t,interp+1);
+    // TODO handle chunk ends!
+  }
+  
+  if (interp>1) free(t);
+}
+
+void qp_bore2rasindec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 		      double *ra, double *sindec, double *sin2psi, 
 		      double *cos2psi, int n) {
   int i;
-  quat_t q_off, q;
+  quat_t q;
   double *t;
   int interp = 1; //disable for now
   
@@ -443,10 +492,36 @@ void qp_bore2rasindec(qp_memory_t *mem, double delta_az, double delta_el,
       t[i] = i/(double)(interp);
   }
   
-  qp_det_offset(delta_az, delta_el, delta_psi, q_off);
-  
   for (i=0; i<n; i+=interp) {
     qp_bore2det(mem, q_off, ctime[i], q_bore[i], q);
+    qp_quat2rasindec(mem, q, ra+i, sindec+i, sin2psi+i, cos2psi+i);
+    if (interp>1 && i>0)
+      qp_interp_radec(&ra[i-interp], &sindec[i-interp], &sin2psi[i-interp],
+		      &cos2psi[i-interp], t,interp+1);
+    // TODO handle chunk ends!
+  }
+  
+  if (interp>1) free(t);
+}
+
+void qp_bore2rasindec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+			  quat_t *q_hwp, double *ra, double *sindec, double *sin2psi, 
+			  double *cos2psi, int n) {
+  int i;
+  quat_t q;
+  double *t;
+  int interp = 1; //disable for now
+  
+  if (interp<1) 
+    interp=1;
+  else if (interp>1) {
+    t = malloc(sizeof(double)*(interp+1));
+    for (i=0; i<=interp; i++)
+      t[i] = i/(double)(interp);
+  }
+  
+  for (i=0; i<n; i+=interp) {
+    qp_bore2det_hwp(mem, q_off, ctime[i], q_bore[i], q_hwp[i], q);
     qp_quat2rasindec(mem, q, ra+i, sindec+i, sin2psi+i, cos2psi+i);
     if (interp>1 && i>0)
       qp_interp_radec(&ra[i-interp], &sindec[i-interp], &sin2psi[i-interp],
@@ -477,6 +552,26 @@ void qp_azel2radec(qp_memory_t *mem,
 }
 
 // all input and output angles are in degrees!
+void qp_azel2radec_hwp(qp_memory_t *mem,
+		       double delta_az, double delta_el, double delta_psi,
+		       double *az, double *el, double *pitch, double *roll,
+		       double *lon, double *lat, double *ctime, double *hwp,
+		       double *ra, double *dec, double *sin2psi, 
+		       double *cos2psi, int n) {
+  quat_t q_det, q_off, q_bore, q_hwp;
+  
+  qp_det_offset(delta_az, delta_el, delta_psi, q_off);
+  
+  for (int i=0; i<n; i++) {
+    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
+		 q_bore);
+    qp_hwp_quat(hwp[i], q_hwp);
+    qp_bore2det_hwp(mem, q_off, ctime[i], q_bore, q_hwp, q_det);
+    qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
+  }
+}
+
+// all input and output angles are in degrees!
 void qp_azel2rasindec(qp_memory_t *mem,
 		      double delta_az, double delta_el, double delta_psi,
 		      double *az, double *el, double *pitch, double *roll,
@@ -491,6 +586,26 @@ void qp_azel2rasindec(qp_memory_t *mem,
     qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
 		 q_bore);
     qp_bore2det(mem, q_off, ctime[i], q_bore, q_det);
+    qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
+  }
+}
+
+// all input and output angles are in degrees!
+void qp_azel2rasindec_hwp(qp_memory_t *mem,
+			  double delta_az, double delta_el, double delta_psi,
+			  double *az, double *el, double *pitch, double *roll,
+			  double *lon, double *lat, double *ctime, double *hwp,
+			  double *ra, double *sindec, double *sin2psi, 
+			  double *cos2psi, int n) {
+  quat_t q_det, q_off, q_bore, q_hwp;
+  
+  qp_det_offset(delta_az, delta_el, delta_psi, q_off);
+  
+  for (int i=0; i<n; i++) {
+    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
+		 q_bore);
+    qp_hwp_quat(hwp[i], q_hwp);
+    qp_bore2det_hwp(mem, q_off, ctime[i], q_bore, q_hwp, q_det);
     qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
   }
 }

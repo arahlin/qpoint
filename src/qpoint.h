@@ -242,6 +242,12 @@ extern "C" {
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
   
+  /* Calculate waveplate quaternion */
+  void qp_hwp_quat(double ang, quat_t q);
+  
+  /* Calculate waveplate quaternions */
+  void qp_hwp_quatn(double *ang, quat_t *q, int n);
+  
   /* Calculate atmospheric refraction */
   double qp_refraction(double el, double lat, double height, double temp,
 		       double press, double hum, double freq, double lapse,
@@ -267,6 +273,11 @@ extern "C" {
   /* Compute detector offset quaternion. */
   void qp_det_offset(double delta_az, double delta_el, double delta_psi,
 		     quat_t q);
+
+  
+  /* Compute detector offset quaternion. */
+  void qp_det_offsetn(double *delta_az, double *delta_el, double *delta_psi,
+		      quat_t *q, int n);
   
   /* Compute ra/dec and sin(2*psi)/cos(2*psi) for a given quaternion */
   void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
@@ -280,20 +291,31 @@ extern "C" {
   void qp_bore2det(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
 		   quat_t q_det);
   
+  /* Calculate the detector quaternion from the boresight, offset and HWP angle. */
+  void qp_bore2det_hwp(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
+		       quat_t q_hwp, quat_t q_det);
+  
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from an array of boresight quaternions. */
-  void qp_bore2radec(qp_memory_t *mem,
-		     double delta_az, double delta_el, double delta_psi,
-		     double *ctime, quat_t *q_bore,
+  void qp_bore2radec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 		     double *ra, double *dec, double *sin2psi, double *cos2psi,
 		     int n);
   
+  /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from an array of boresight and waveplate quaternions. */
+  void qp_bore2radec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
+			 quat_t *q_bore, quat_t *q_hwp, double *ra, double *dec,
+			 double *sin2psi, double *cos2psi, int n);
+  
   /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset. */
-  void qp_bore2rasindec(qp_memory_t *mem,
-			double delta_az, double delta_el, double delta_psi,
-			double *ctime, quat_t *q_bore,
+  void qp_bore2rasindec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 			double *ra, double *sindec, double *sin2psi, double *cos2psi,
 			int n);
+  
+  /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset. */
+  void qp_bore2rasindec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
+			    quat_t *q_bore, quat_t *q_hwp, double *ra, double *sindec,
+			    double *sin2psi, double *cos2psi, int n);
   
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations. */
@@ -303,6 +325,15 @@ extern "C" {
 		     double *lon, double *lat, double *ctime, 
 		     double *ra, double *dec, double *sin2psi, double *cos2psi,
 		     int n);
+
+  /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations and waveplate angles. */
+  void qp_azel2radec_hwp(qp_memory_t *mem,
+			 double delta_az, double delta_el, double delta_psi,
+			 double *az, double *el, double *pitch, double *roll,
+			 double *lon, double *lat, double *ctime, double *hwp,
+			 double *ra, double *dec, double *sin2psi, double *cos2psi,
+			 int n);
   
   /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations.  */
@@ -312,6 +343,15 @@ extern "C" {
 			double *lon, double *lat, double *ctime, 
 			double *ra, double *sindec, double *sin2psi, double *cos2psi,
 			int n);
+
+  /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations.  */
+  void qp_azel2rasindec_hwp(qp_memory_t *mem,
+			    double delta_az, double delta_el, double delta_psi,
+			    double *az, double *el, double *pitch, double *roll,
+			    double *lon, double *lat, double *ctime, double *hwp,
+			    double *ra, double *sindec, double *sin2psi,
+			    double *cos2psi, int n);
   
   /* ************************************************************************* 
      Pixelization
@@ -329,17 +369,41 @@ extern "C" {
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map_single(qp_memory_t *mem,
-			  double delta_az, double delta_el, double delta_psi,
+  void qp_bore2map_single(qp_memory_t *mem, quat_t q_off,
 			  double *ctime, quat_t *q_bore, int n,
 			  pixel_t *pmap, int nside);
   
+  /* Compute pointing matrix map for given boresight timestream and detector
+     offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2map_single_hwp(qp_memory_t *mem, quat_t q_off,
+			      double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
+			      pixel_t *pmap, int nside);
+  
+  /* Compute pointing matrix map for given boresight timestream and detector
+     offset for both A and B polarizations.
+     pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2map_pair(qp_memory_t *mem, quat_t q_off,
+			double *ctime, quat_t *q_bore, int n,
+			pixel_t *pmap, int nside);
+  
+  /* Compute pointing matrix map for given boresight timestream and detector
+     offset for both A and B polarizations.
+     pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2map_pair_hwp(qp_memory_t *mem, quat_t q_off,
+			    double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
+			    pixel_t *pmap, int nside);
+  
   /* Compute pointing matrix map for given boresight timestream and many detector
      offsets. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map(qp_memory_t *mem,
-		   double *delta_az, double *delta_el, double *delta_psi, int ndet,
+  void qp_bore2map(qp_memory_t *mem, quat_t *q_off, int ndet,
 		   double *ctime, quat_t *q_bore, int n,
 		   pixel_t *pmap, int nside);
+  
+  /* Compute pointing matrix map for given boresight timestream and many detector
+     offsets. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2map_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+		       double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
+		       pixel_t *pmap, int nside);
   
 #ifdef __cplusplus
 }

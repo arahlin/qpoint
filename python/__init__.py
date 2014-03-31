@@ -19,7 +19,7 @@ class QPoint(object):
         Any keyword arguments are passed to QPoint.set to update memory.
         """
         
-        # initialize memoery
+        # initialize memory
         self._memory = _libqp.qp_init_memory()
         
         # collect all parameter functions
@@ -29,7 +29,7 @@ class QPoint(object):
         for k,v in qp_funcs.items():
             self._all_funcs.update(**v)
         
-        # set an reqeusted parameters
+        # set any requested parameters
         self.set(**kwargs)
         
     def __del__(self):
@@ -93,6 +93,10 @@ class QPoint(object):
         fast_math      If True, use polynomial approximations for trig
                        functions
         polconv        Specify the 'cosmo' or 'iau' polarization convention
+        pair_dets      If True, A/B detectors are paired in bore2map
+                       (factor of 2 speed up in computation, but assumes ideality)
+        pix_order      'nest' or 'ring' for healpix pixel ordering
+        num_threads    Number of threads for openMP bore2map computation
         
         * Weather:
         height         height above sea level, meters
@@ -205,6 +209,62 @@ class QPoint(object):
                 return delta[()]
             return delta
         return self._get('ref_delta')
+
+    def det_offset(self, delta_az, delta_el, delta_psi):
+        """
+        Return quaternion corresponding to the requested detector offset.
+        Vectorized.
+
+        Arguments:
+        
+        delta_az   azimuthal offset of the detector (degrees)
+        delta_el   elevation offset of the detector (degrees)
+        delta_psi  polarization offset of the detector (degrees)
+        
+        Outputs:
+        
+        q          detector offset quaternion for each detector
+        """
+        
+        delta_az, delta_el, delta_psi \
+            = [_np.array(_np.atleast_1d(x), dtype=_np.double) for x in
+               _np.broadcast_arrays(delta_az, delta_el, delta_psi)]
+        ndet = delta_az.size
+        
+        for x in (delta_el, delta_psi):
+            if x.shape != delta_az.shape:
+                raise ValueError, "input offset vectors must have the same shape"
+        
+        if ndet == 1:
+            quat = _np.empty((4,), dtype=_np.double)
+            _libqp.qp_det_offset(delta_az[0], delta_el[0], delta_psi[0], quat)
+        else:
+            quat = _np.empty(delta_az.shape + (4,), dtype=_np.double)
+            _libqp.qp_det_offsetn(delta_az, delta_el, delta_psi, quat)
+        
+        return quat
+        
+    def hwp_quat(self, ang):
+        """
+        Return quaternion corresponding to the requested HWP angle.
+        Vectorized.
+        
+        Arguments:
+        
+        ang        hwp physical angle (degrees)
+        
+        Outputs:
+        
+        q          quaternion for each hwp angle
+        """
+        ang = _np.array(_np.atleast_1d(ang), dtype=_np.double)
+        if ang.size == 1:
+            quat = _np.empty((4,), dtype=_np.double)
+            _libqp.qp_hwp_quat(ang[0], quat)
+        else:
+            quat = _np.empty(ang.shape + (4,), dtype=_np.double)
+            _libqp.qp_hwp_quatn(ang, quat)
+        return quat
     
     def azel2bore(self, az, el, pitch, roll, lon, lat, ctime, **kwargs):
         """
@@ -253,8 +313,7 @@ class QPoint(object):
         
         return q
     
-    def bore2radec(self, delta_az, delta_el, delta_psi, ctime, q_bore,
-                   **kwargs):
+    def bore2radec(self, q_off, ctime, q_bore, q_hwp=None, sindec=False, **kwargs):
         """
         Calculate the orientation on the sky for a detector offset from the
         boresight.  Detector offsets are defined assuming the boresight is
@@ -263,14 +322,18 @@ class QPoint(object):
         
         Arguments:
         
-        delta_az   azimuthal offset of the detector (degrees)
-        delta_el   elevation offset of the detector (degrees)
-        delta_psi  polarization angle of the detector (degrees)
+        q_off      Detector offset quaternion for a single detector,
+                   calculated using det_offset
         ctime      array of unix times in seconds UTC
         q_bore     Nx4 array of quaternions encoding the boresight orientation 
                    on the sky (as output by azel2radec)
         
         Keyword arguments:
+        
+        q_hwp      HWP angle quaternions calculated using hwp_quat
+                   must be same shape as q_bore
+        sindec     If True, return sin(dec) instead of dec in degrees
+                   (default False)
         
         Any keywords accepted by the QPoint.set function can also be passed
         here, and will be processed prior to calculation.    
@@ -278,13 +341,14 @@ class QPoint(object):
         Outputs:
         
         ra         detector right ascension (degrees)
-        dec        detector declination (degrees)
+        dec/sindec detector declination (degrees) or sin(dec)
         sin2psi    detector polarization orientation
         cos2psi    detector polarization orientation
         """
         
         self.set(**kwargs)
         
+        q_off  = _np.asarray(q_off,  dtype=_np.double)
         ctime  = _np.asarray(ctime,  dtype=_np.double)
         q_bore = _np.asarray(q_bore, dtype=_np.double)
         ra  = _np.empty(ctime.shape, dtype=_np.double)
@@ -295,64 +359,33 @@ class QPoint(object):
         
         if q_bore.shape != ctime.shape + (4,):
             raise ValueError,\
-                'ctime and q must have compatible shapes (N,) and (N,4)'
+                'ctime and q_bore must have compatible shapes (N,) and (N,4)'
         
-        _libqp.qp_bore2radec(self._memory, delta_az, delta_el, delta_psi,
-                             ctime, q_bore, ra, dec, sin2psi, cos2psi, n)
+        if q_hwp is None:
+            if sindec:
+                _libqp.qp_bore2rasindec(self._memory, q_off, ctime, q_bore,
+                                        ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_bore2radec(self._memory, q_off, ctime, q_bore,
+                                     ra, dec, sin2psi, cos2psi, n)
+        else:
+            q_hwp = _np.asarray(q_hwp, dtype=_np.double)
+            if q_bore.shape != q_hwp.shape:
+                raise ValueError,\
+                    'q_bore and q_hwp must have the same shape'
+            
+            if sindec:
+                _libqp.qp_bore2rasindec_hwp(self._memory, q_off, ctime, q_bore,
+                                            q_hwp, ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_bore2radec_hwp(self._memory, q_off, ctime, q_bore,
+                                         q_hwp, ra, dec, sin2psi, cos2psi, n)
         
         return ra, dec, sin2psi, cos2psi
     
-    def bore2rasindec(self, delta_az, delta_el, delta_psi, ctime, q_bore,
-                      **kwargs):
-        """
-        Calculate the orientation on the sky for a detector offset from the
-        boresight. Detector offsets are defined assuming the boresight is
-        pointed toward the horizon, and that the boresight polarization axis is
-        along the vertical.
-        
-        Arguments:
-        
-        delta_az   azimuthal offset of the detector (degrees)
-        delta_el   elevation offset of the detector (degrees)
-        delta_psi  polarization angle of the detector (degrees)
-        ctime      array of unix times in seconds UTC
-        q_bore     Nx4 array of quaternions encoding the boresight orientation 
-                   on the sky (as output by azel2radec)
-        
-        Keyword arguments:
-        
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.    
-        
-        Outputs:
-        
-        ra         detector right ascension (degrees)
-        sindec     detector sin(declination)
-        sin2psi    detector polarization orientation
-        cos2psi    detector polarization orientation
-        """
-        
-        self.set(**kwargs)
-        
-        ctime  = _np.asarray(ctime,  dtype=_np.double)
-        q_bore = _np.asarray(q_bore, dtype=_np.double)
-        ra  = _np.empty(ctime.shape, dtype=_np.double)
-        sindec = _np.empty(ctime.shape, dtype=_np.double)
-        sin2psi = _np.empty(ctime.shape, dtype=_np.double)
-        cos2psi = _np.empty(ctime.shape, dtype=_np.double)
-        n = ctime.size
-        
-        if q_bore.shape != ctime.shape + (4,):
-            raise ValueError, \
-                'ctime and q must have compatible shapes (N,) and (N,4)'
-        
-        _libqp.qp_bore2rasindec(self._memory, delta_az, delta_el, delta_psi,
-                                ctime, q_bore, ra, sindec, sin2psi, cos2psi, n)
-        
-        return ra, sindec, sin2psi, cos2psi
-    
     def azel2radec(self, delta_az, delta_el, delta_psi,
-                   az, el, pitch, roll, lon, lat, ctime, **kwargs):
+                   az, el, pitch, roll, lon, lat, ctime,
+                   hwp=None, sindec=False, **kwargs):
         """
         Estimate the orientation on the sky for a detector offset from
         boresight, given the boresight attitude (az/el/pitch/roll), location on
@@ -376,13 +409,17 @@ class QPoint(object):
         
         Keyword arguments:
         
+        hwp        HWP angles (degrees)
+        sindec     If True, return sin(dec) instead of dec in degrees
+                   (default False)
+        
         Any keywords accepted by the QPoint.set function can also be passed
         here, and will be processed prior to calculation.    
         
         Outputs:
         
         ra         detector right ascension (degrees)
-        dec        detector declination (degrees)
+        dec/sindec detector declination (degrees)
         sin2psi    detector polarization orientation
         cos2psi    detector polarization orientation
         """
@@ -405,76 +442,34 @@ class QPoint(object):
         for x in (el, pitch, roll, lon, lat, ctime):
             if x.shape != az.shape:
                 raise ValueError,"input vectors must have the same shape"
+        
+        if hwp is None:
+            if sindec:
+                _libqp.qp_azel2rasindec(self._memory, delta_az, delta_el, delta_psi,
+                                        az, el, pitch, roll, lon, lat, ctime,
+                                        ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_azel2radec(self._memory, delta_az, delta_el, delta_psi,
+                                     az, el, pitch, roll, lon, lat, ctime,
+                                     ra, dec, sin2psi, cos2psi, n)
+        else:
+            hwp = _np.asarray(hwp, dtype=_np.double)
+            if hwp.shape != az.shape:
+                raise ValueError,"input vectors must have the same shape"
             
-        _libqp.qp_azel2radec(self._memory, delta_az, delta_el, delta_psi,
-                             az, el, pitch, roll, lon, lat, ctime,
-                             ra, dec, sin2psi, cos2psi, n)
+            if sindec:
+                _libqp.qp_azel2rasindec_hwp(self._memory, delta_az, delta_el, delta_psi,
+                                            az, el, pitch, roll, lon, lat, ctime, hwp,
+                                            ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_azel2radec_hwp(self._memory, delta_az, delta_el, delta_psi,
+                                         az, el, pitch, roll, lon, lat, ctime, hwp,
+                                         ra, dec, sin2psi, cos2psi, n)
         
         return ra, dec, sin2psi, cos2psi
-    
-    def azel2rasindec(self, delta_az, delta_el, delta_psi,
-                      az, el, pitch, roll, lon, lat, ctime, **kwargs):
-        """
-        Estimate the orientation on the sky for a detector offset from
-        boresight, given the boresight attitude (az/el/pitch/roll), location on
-        the earth (lon/lat) and UTC time.  Input vectors must by
-        numpy-array-like and of the same shape.  Detector offsets are defined
-        assuming the boresight is pointed toward the horizon, and that the
-        boresight polarization axis is along the horizontal.
         
-        Arguments:
-        
-        delta_az   azimuthal offset of the detector (degrees)
-        delta_el   elevation offset of the detector (degrees)
-        delta_psi  polarization offset of the detector (degrees)
-        az         boresight azimuth (degrees)
-        el         boresight elevation (degrees)
-        pitch      boresight pitch (degrees)
-        roll       boresight roll (degrees)
-        lon        observer longitude (degrees)
-        lat        observer latitude (degrees)
-        ctime      unix time in seconds UTC
-        
-        Keyword arguments:
-        
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-        
-        Outputs:
-        
-        ra         detector right ascension (degrees)
-        sindec     detector sin(declination)
-        sin2psi    detector polarization orientation
-        cos2psi    detector polarization orientation
-        """
-        
-        self.set(**kwargs)
-        
-        az    = _np.asarray(az,    dtype=_np.double)
-        el    = _np.asarray(el,    dtype=_np.double)
-        pitch = _np.asarray(pitch, dtype=_np.double)
-        roll  = _np.asarray(roll,  dtype=_np.double)
-        lon   = _np.asarray(lon,   dtype=_np.double)
-        lat   = _np.asarray(lat,   dtype=_np.double)
-        ctime = _np.asarray(ctime, dtype=_np.double)
-        ra  = _np.empty(az.shape, dtype=_np.double)
-        sindec = _np.empty(az.shape, dtype=_np.double)
-        sin2psi = _np.empty(az.shape, dtype=_np.double)
-        cos2psi = _np.empty(az.shape, dtype=_np.double)
-        n = az.size
-        
-        for x in (el, pitch, roll, lon, lat, ctime):
-            if x.shape != az.shape:
-                raise ValueError,"input vectors must have the same shape"
-        
-        _libqp.qp_azel2rasindec(self._memory, delta_az, delta_el, delta_psi,
-                                az, el, pitch, roll, lon, lat, ctime,
-                                ra, sindec, sin2psi, cos2psi, n)
-        
-        return ra, sindec, sin2psi, cos2psi
-        
-    def bore2map(self, delta_az, delta_el, delta_psi, ctime, q_bore, nside,
-                 pmap=None, **kwargs):
+    def bore2map(self, q_off, ctime, q_bore, nside,
+                 hwp=None, pmap=None, **kwargs):
         """
         Calculate hits map for given detectors and boresight orientations.
         Returns a npix-x-6 array containing (hits, p01, p02, p11, p12, p22).
@@ -483,17 +478,8 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        delta_az, delta_el, delta_psi \
-            = [_np.array(_np.atleast_1d(x), dtype=_np.double) for x in
-               _np.broadcast_arrays(delta_az, delta_el, delta_psi)]
-        # delta_az  = _np.asarray(delta_az,  dtype=_np.double)
-        # delta_el  = _np.asarray(delta_el,  dtype=_np.double)
-        # delta_psi = _np.asarray(delta_psi, dtype=_np.double)
-        ndet = delta_az.size
-        
-        for x in (delta_el, delta_psi):
-            if x.shape != delta_az.shape:
-                raise ValueError, "input offset vectors must have the same shape"
+        q_off = _np.asarray(q_off, dtype=_np.double)
+        ndet = q_off.size/4
         
         ctime  = _np.asarray(ctime,  dtype=_np.double)
         q_bore = _np.asarray(q_bore, dtype=_np.double)
@@ -509,9 +495,17 @@ class QPoint(object):
             raise ValueError,"input pmap must have shape %s" % mshape
         if pmap.dtype != _np.double:
             raise TypeError,"input pmap must be of type numpy.double"
+        
+        if q_hwp is None:
+            _libqp.qp_bore2map(self._memory, q_off, ndet, ctime, q_bore, n,
+                               pmap, nside)
+        else:
+            q_hwp = _np.asarray(q_hwp, dtype=_np.double)
+            if q_hwp.shape != q_bore.shape:
+                raise ValueError, "input q_hwp must have the same shape as q_bore"
             
-        _libqp.qp_bore2map(self._memory, delta_az, delta_el, delta_psi, ndet,
-                           ctime, q_bore, n, pmap, nside)
+            _libqp.qp_bore2map_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                   q_hwp, n, pmap, nside)
         
         return pmap
         

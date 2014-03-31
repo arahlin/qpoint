@@ -90,6 +90,22 @@ libqp.qp_azel2radec.argtypes = (qp_memory_t_p, # params
                                 NDP(dtype=np.double), # cos2psi
                                 ct.c_int) # n
 
+libqp.qp_azel2radec_hwp.argtypes = (qp_memory_t_p, # params
+                                    ct.c_double, ct.c_double, ct.c_double, # offset
+                                    NDP(dtype=np.double), # az
+                                    NDP(dtype=np.double), # el
+                                    NDP(dtype=np.double), # pitch
+                                    NDP(dtype=np.double), # roll
+                                    NDP(dtype=np.double), # lon
+                                    NDP(dtype=np.double), # lat
+                                    NDP(dtype=np.double), # ctime
+                                    NDP(dtype=np.double), # hwp
+                                    NDP(dtype=np.double), # ra
+                                    NDP(dtype=np.double), # dec
+                                    NDP(dtype=np.double), # sin2psi
+                                    NDP(dtype=np.double), # cos2psi
+                                    ct.c_int) # n
+
 libqp.qp_azel2rasindec.argtypes = (qp_memory_t_p, # params
                                    ct.c_double, ct.c_double, ct.c_double, # offset
                                    NDP(dtype=np.double), # az
@@ -105,6 +121,22 @@ libqp.qp_azel2rasindec.argtypes = (qp_memory_t_p, # params
                                    NDP(dtype=np.double), # cos2psi
                                    ct.c_int) # n
 
+libqp.qp_azel2rasindec_hwp.argtypes = (qp_memory_t_p, # params
+                                       ct.c_double, ct.c_double, ct.c_double, # offset
+                                       NDP(dtype=np.double), # az
+                                       NDP(dtype=np.double), # el
+                                       NDP(dtype=np.double), # pitch
+                                       NDP(dtype=np.double), # roll
+                                       NDP(dtype=np.double), # lon
+                                       NDP(dtype=np.double), # lat
+                                       NDP(dtype=np.double), # ctime
+                                       NDP(dtype=np.double), # hwp
+                                       NDP(dtype=np.double), # ra
+                                       NDP(dtype=np.double), # sindec
+                                       NDP(dtype=np.double), # sin2psi
+                                       NDP(dtype=np.double), # cos2psi
+                                       ct.c_int) # n
+
 libqp.qp_azel2bore.argtypes = (qp_memory_t_p, # params
                                NDP(dtype=np.double), # az
                                NDP(dtype=np.double), # el
@@ -116,8 +148,24 @@ libqp.qp_azel2bore.argtypes = (qp_memory_t_p, # params
                                NDP(dtype=np.double), # q
                                ct.c_int) # n
 
+libqp.qp_det_offset.argtypes = (ct.c_double, ct.c_double, ct.c_double, # offset
+                               NDP(dtype=np.double)) # quat
+
+libqp.qp_det_offsetn.argtypes = (NDP(dtype=np.double), # delta_az
+                                NDP(dtype=np.double), # delta_el
+                                NDP(dtype=np.double), # delta_psi
+                                NDP(dtype=np.double), # quat
+                                ct.c_int) # n
+
+libqp.qp_hwp_quat.argtypes = (ct.c_double, # ang
+                              NDP(dtype=np.double)) # quat
+
+libqp.qp_hwp_quatn.argtypes = (NDP(dtype=np.double), # ang
+                               NDP(dtype=np.double), # quat
+                               ct.c_int) # n
+
 libqp.qp_bore2radec.argtypes = (qp_memory_t_p, # params
-                                ct.c_double, ct.c_double, ct.c_double, # offset
+                                NDP(dtype=np.double), # offset
                                 NDP(dtype=np.double), # ctime
                                 NDP(dtype=np.double), # q
                                 NDP(dtype=np.double), # ra
@@ -126,8 +174,19 @@ libqp.qp_bore2radec.argtypes = (qp_memory_t_p, # params
                                 NDP(dtype=np.double), # cos2psi
                                 ct.c_int) # n
 
+libqp.qp_bore2radec_hwp.argtypes = (qp_memory_t_p, # params
+                                    NDP(dtype=np.double), # offset
+                                    NDP(dtype=np.double), # ctime
+                                    NDP(dtype=np.double), # q_bore
+                                    NDP(dtype=np.double), # q_hwp
+                                    NDP(dtype=np.double), # ra
+                                    NDP(dtype=np.double), # dec
+                                    NDP(dtype=np.double), # sin2psi
+                                    NDP(dtype=np.double), # cos2psi
+                                    ct.c_int) # n
+
 libqp.qp_bore2rasindec.argtypes = (qp_memory_t_p, # params
-                                   ct.c_double, ct.c_double, ct.c_double, # offset
+                                   NDP(dtype=np.double), # offset
                                    NDP(dtype=np.double), # ctime
                                    NDP(dtype=np.double), # q
                                    NDP(dtype=np.double), # ra
@@ -136,24 +195,35 @@ libqp.qp_bore2rasindec.argtypes = (qp_memory_t_p, # params
                                    NDP(dtype=np.double), # cos2psi
                                    ct.c_int) # n
 
-libqp.qp_bore2map_single.argtypes = (qp_memory_t_p, # params
-                                     ct.c_double, ct.c_double, ct.c_double, # offset
-                                     NDP(dtype=np.double), # ctime
-                                     NDP(dtype=np.double), # q_bore
-                                     ct.c_int, # n
-                                     NDP(dtype=np.double), # pmap
-                                     ct.c_int) # nside
+libqp.qp_bore2rasindec_hwp.argtypes = (qp_memory_t_p, # params
+                                       NDP(dtype=np.double), # offset
+                                       NDP(dtype=np.double), # ctime
+                                       NDP(dtype=np.double), # q_bore
+                                       NDP(dtype=np.double), # q_hwp
+                                       NDP(dtype=np.double), # ra
+                                       NDP(dtype=np.double), # sindec
+                                       NDP(dtype=np.double), # sin2psi
+                                       NDP(dtype=np.double), # cos2psi
+                                       ct.c_int) # n
 
 libqp.qp_bore2map.argtypes = (qp_memory_t_p, # params
-                              NDP(dtype=np.double), # delta_az
-                              NDP(dtype=np.double), # delta_el
-                              NDP(dtype=np.double), # delta_psi
+                              NDP(dtype=np.double), # offsets
                               ct.c_int, # ndet
                               NDP(dtype=np.double), # ctime
                               NDP(dtype=np.double), # q_bore
                               ct.c_int, # n
                               NDP(dtype=np.double), # pmap
                               ct.c_int) # nside
+
+libqp.qp_bore2map_hwp.argtypes = (qp_memory_t_p, # params
+                                  NDP(dtype=np.double), # offsets
+                                  ct.c_int, # ndet
+                                  NDP(dtype=np.double), # ctime
+                                  NDP(dtype=np.double), # q_bore
+                                  NDP(dtype=np.double), # q_hwp
+                                  ct.c_int, # n
+                                  NDP(dtype=np.double), # pmap
+                                  ct.c_int) # nside
 
 libqp.set_iers_bulletin_a.argtypes = (qp_memory_t_p,
                                       ct.c_int, ct.c_int, # mjd_min, mjd_max
