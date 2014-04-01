@@ -29,9 +29,11 @@ int main(int argc, char *argv[]) {
   double delta_az = -3.314806;
   double delta_el = -8.010956;
   double delta_psi = 22.5;
+  quat_t q_off;
   double deltas_az[9] = {-8,-6,-4,-2,0,2,4,6,8};
   double deltas_el[9] = {-8,-6,-4,-2,0,2,4,6,8};
   double deltas_psi[9] = {22.5,-22.5,22.5,-22.5,22.5,-22.5,22.5,-22.5,22.5};
+  quat_t qs_off[9];
   int nside = 256;
   long npix = 12*nside*nside;
   // double framerate;
@@ -39,6 +41,9 @@ int main(int argc, char *argv[]) {
   
   int mode = 0;
   if (argc>1) mode = atoi(argv[1]);
+  
+  qp_det_offset(delta_az, delta_el, delta_psi, q_off);
+  qp_det_offsetn(deltas_az, deltas_el, deltas_psi, qs_off, 9);
   
   if (mode == 0) {
     az = malloc(sizeof(double)*NSAMP);
@@ -125,9 +130,8 @@ int main(int argc, char *argv[]) {
     fclose(f);
     
     printf("bore2rasindec\n");
-    qp_bore2rasindec(mem, delta_az,delta_el,delta_psi,
-		     ctime,q_bore,ra,dec,sin2psi,cos2psi,NSAMP);
-
+    qp_bore2rasindec(mem, q_off,ctime,q_bore,ra,dec,sin2psi,cos2psi,NSAMP);
+    
     printf("save\n");
     FILE *of = fopen("test.dat","w");
     for (i = 0; i < NSAMP; i++) {
@@ -144,8 +148,7 @@ int main(int argc, char *argv[]) {
     fclose(f);
     
     printf("bore2map\n");
-    qp_bore2map_omp(mem, deltas_az, deltas_el, deltas_psi, 9,
-		    ctime, q_bore, NSAMP, pmap, nside);
+    qp_bore2map(mem, qs_off, 9, ctime, q_bore, NSAMP, pmap, nside);
     
     printf("save\n");
     FILE *of = fopen("map_omp.dat","w");
