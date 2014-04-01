@@ -164,6 +164,17 @@ libqp.qp_hwp_quatn.argtypes = (NDP(dtype=np.double), # ang
                                NDP(dtype=np.double), # quat
                                ct.c_int) # n
 
+libqp.qp_lmst.argtypes = (qp_memory_t_p, # params
+                          ct.c_double, # ctime
+                          ct.c_double) # lon
+libqp.qp_lmst.restype = ct.c_double # lmst
+
+libqp.qp_lmstn.argtypes = (qp_memory_t_p, # params
+                           NDP(dtype=np.double), # ctime
+                           NDP(dtype=np.double), # lon
+                           NDP(dtype=np.double), # lmst
+                           ct.c_int) # n
+
 libqp.qp_bore2radec.argtypes = (qp_memory_t_p, # params
                                 NDP(dtype=np.double), # offset
                                 NDP(dtype=np.double), # ctime

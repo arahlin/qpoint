@@ -8,6 +8,8 @@
 #include "vec3.h"
 #include "quaternion.h"
 
+#define _unused(x) ((void)x)
+
 void ctime2jd(double ctime, double jd[2]) {
   jd[0] = CTIME_JD_EPOCH;
   jd[1] = secs2days(ctime);
@@ -26,13 +28,53 @@ void ctime2jdtt(double ctime, double jd_tt[2]) {
   stat = iauUtctai(jd_utc[0], jd_utc[1], &jd_tai[0], &jd_tai[1]);
   assert(stat == 0);
   stat = iauTaitt(jd_tai[0], jd_tai[1], &jd_tt[0], &jd_tt[1]);
-  assert(stat == 0);  
+  assert(stat == 0);
+  _unused(stat);
 }
 
 void jdutc2jdut1(double jd_utc[2], double dut1, double jd_ut1[2]) {
   int stat;
+  
   stat = iauUtcut1(jd_utc[0], jd_utc[1], dut1, &jd_ut1[0], &jd_ut1[1]);
   assert(stat == 0);
+  _unused(stat);
+}
+
+double ctime2gmst(double ctime, double dut1, int accuracy) {
+  double jd_utc[2], jd_ut1[2], jd_tt[2];
+  
+  ctime2jd(ctime, jd_utc);
+  
+  if (!accuracy) {
+    jdutc2jdut1(jd_utc, dut1, jd_ut1);
+    ctime2jdtt(ctime, jd_tt);
+    return iauGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
+  } else {
+    return iauGmst00(jd_utc[0], jd_utc[1], jd_utc[0], jd_utc[1]);
+  }
+}
+
+double qp_lmst(qp_memory_t *mem, double ctime, double lon) {
+  double jd_utc[2];
+  ctime2jd(ctime, jd_utc);
+  double mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
+  double x,y,gmst;
+  
+  if (mem->accuracy) {
+    if (qp_check_update(&mem->state_dut1, ctime)) {
+      get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+    }
+    gmst = ctime2gmst(ctime, mem->dut1, mem->accuracy);
+  } else {
+    gmst = ctime2gmst(ctime, 0, 0);
+  }
+  return fmod(rad2deg(gmst) + lon / 15.0, 24.);
+}
+
+void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst, int n) {
+  for (int ii=0; ii<n; ii++) {
+    lmst[ii] = qp_lmst(mem, ctime[ii], lon[ii]);
+  }
 }
 
 void qp_aberration(quat_t q, vec3_t beta, quat_t qa) {
@@ -266,7 +308,7 @@ void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
 }
 
 void qp_hwp_quat(double ang, quat_t q) {
-  Quaternion_r3(q, -deg2rad(ang));
+  Quaternion_r3(q, -2.*deg2rad(ang));  // rotate psi by 2*theta!
 #ifdef DEBUG
   qp_print_debug("hwp", q);
 #endif

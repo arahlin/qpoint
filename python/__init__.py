@@ -209,12 +209,47 @@ class QPoint(object):
                 return delta[()]
             return delta
         return self._get('ref_delta')
-
+    
+    def lmst(self, ctime, lon, **kwargs):
+        """
+        Return local mean sidereal time for given ctimes and longitudes.
+        Vectorized.
+        
+        Arguments:
+        
+        ctime      unix time in seconds UTC
+        lon        observer longitude (degrees)
+        
+        Keyword arguments:
+        
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+        
+        Outputs:
+        
+        lmst       local mean sidereal time of the observer
+        """
+        
+        self.set(**kwargs)
+        
+        ctime = _np.array(_np.atleast_1d(ctime), dtype=_np.double)
+        lon   = _np.array(_np.atleast_1d(lon),   dtype=_np.double)
+        
+        if ctime.shape != lon.shape:
+            raise ValueError, "input vectors must have the same shape"
+        
+        if ctime.size == 1:
+            return _libqp.qp_lmst(self._memory, ctime[0], lon[0])
+        
+        lmst = _np.empty(ctime.shape, dtype=_np.double)
+        _libqp.qp_lmstn(self._memory, ctime, lon, lmst, ctime.size)
+        return lmst
+        
     def det_offset(self, delta_az, delta_el, delta_psi):
         """
         Return quaternion corresponding to the requested detector offset.
         Vectorized.
-
+        
         Arguments:
         
         delta_az   azimuthal offset of the detector (degrees)
@@ -240,30 +275,31 @@ class QPoint(object):
             _libqp.qp_det_offset(delta_az[0], delta_el[0], delta_psi[0], quat)
         else:
             quat = _np.empty(delta_az.shape + (4,), dtype=_np.double)
-            _libqp.qp_det_offsetn(delta_az, delta_el, delta_psi, quat)
+            _libqp.qp_det_offsetn(delta_az, delta_el, delta_psi, quat, ndet)
         
         return quat
         
-    def hwp_quat(self, ang):
+    def hwp_quat(self, theta):
         """
-        Return quaternion corresponding to the requested HWP angle.
+        Return quaternion corresponding to rotation by 2*theta,
+        where theta is the physical waveplate angle.
         Vectorized.
         
         Arguments:
         
-        ang        hwp physical angle (degrees)
+        theta      hwp physical angle (degrees)
         
         Outputs:
         
         q          quaternion for each hwp angle
         """
-        ang = _np.array(_np.atleast_1d(ang), dtype=_np.double)
-        if ang.size == 1:
+        theta = _np.array(_np.atleast_1d(theta), dtype=_np.double)
+        if theta.size == 1:
             quat = _np.empty((4,), dtype=_np.double)
-            _libqp.qp_hwp_quat(ang[0], quat)
+            _libqp.qp_hwp_quat(theta[0], quat)
         else:
-            quat = _np.empty(ang.shape + (4,), dtype=_np.double)
-            _libqp.qp_hwp_quatn(ang, quat)
+            quat = _np.empty(theta.shape + (4,), dtype=_np.double)
+            _libqp.qp_hwp_quatn(theta, quat, theta.size)
         return quat
     
     def azel2bore(self, az, el, pitch, roll, lon, lat, ctime, **kwargs):
@@ -468,8 +504,8 @@ class QPoint(object):
         
         return ra, dec, sin2psi, cos2psi
         
-    def bore2map(self, q_off, ctime, q_bore, nside,
-                 hwp=None, pmap=None, **kwargs):
+    def bore2map(self, q_off, ctime, q_bore, nside=256,
+                 q_hwp=None, pmap=None, **kwargs):
         """
         Calculate hits map for given detectors and boresight orientations.
         Returns a npix-x-6 array containing (hits, p01, p02, p11, p12, p22).
@@ -491,8 +527,12 @@ class QPoint(object):
         mshape = (12*nside*nside, 6)
         if pmap is None:
             pmap = _np.zeros(mshape, dtype=_np.double)
+        else:
+            nside = int(_np.sqrt(pmap.size/6/12))
+            mshape = (12*nside*nside, 6)
         if pmap.shape != mshape:
-            raise ValueError,"input pmap must have shape %s" % mshape
+            print pmap.shape
+            raise ValueError,"input pmap must have shape %s" % str(mshape)
         if pmap.dtype != _np.double:
             raise TypeError,"input pmap must be of type numpy.double"
         

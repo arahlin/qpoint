@@ -193,6 +193,7 @@ extern "C" {
   double jd2ctime(double jd[2]);
   void ctime2jdtt(double ctime, double jd_tt[2]);
   void jdutc2jdut1(double jd_utc[2], double dut1, double jd_ut1[2]);
+  double ctime2gmst(double ctime, double dut1, int accuracy);
   static inline double secs2days( double s ) { return s/86400.; }
   static inline double days2secs( double d ) { return d*86400.; }
   static inline double jd2mjd( double jd ) { return jd - 2400000.5; }
@@ -242,7 +243,14 @@ extern "C" {
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
   
-  /* Calculate waveplate quaternion */
+  /* Calculate local mean sidereal time */
+  double qp_lmst(qp_memory_t *mem, double ctime, double lon);
+  
+  /* Calculate local mean sidereal time */
+  void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst,
+		int n);
+  
+  /* Calculate waveplate quaternion, given _physical_ HWP angle */
   void qp_hwp_quat(double ang, quat_t q);
   
   /* Calculate waveplate quaternions */
