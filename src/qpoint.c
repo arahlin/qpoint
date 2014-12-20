@@ -68,7 +68,7 @@ double qp_lmst(qp_memory_t *mem, double ctime, double lon) {
   } else {
     gmst = ctime2gmst(ctime, 0, 0);
   }
-  return fmod(rad2deg(gmst) + lon / 15.0, 24.);
+  return fmod( (rad2deg(gmst) + lon) / 15.0, 24.);
 }
 
 void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst, int n) {
