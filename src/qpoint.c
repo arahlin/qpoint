@@ -54,7 +54,7 @@ double ctime2gmst(double ctime, double dut1, int accuracy) {
   }
 }
 
-double qp_lmst(qp_memory_t *mem, double ctime, double lon) {
+double qp_gmst(qp_memory_t *mem, double ctime) {
   double jd_utc[2];
   ctime2jd(ctime, jd_utc);
   double mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
@@ -68,7 +68,18 @@ double qp_lmst(qp_memory_t *mem, double ctime, double lon) {
   } else {
     gmst = ctime2gmst(ctime, 0, 0);
   }
-  return fmod( (rad2deg(gmst) + lon) / 15.0, 24.);
+  return fmod(rad2deg(gmst) / 15.0, 24.);
+}
+
+void qp_gmstn(qp_memory_t *mem, double *ctime, double *gmst, int n) {
+  for (int ii=0; ii<n; ii++) {
+    gmst[ii] = qp_gmst(mem, ctime[ii]);
+  }
+}
+
+double qp_lmst(qp_memory_t *mem, double ctime, double lon) {
+  double gmst = qp_gmst(mem, ctime);
+  return fmod(gmst + lon / 15.0, 24.);
 }
 
 void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst, int n) {

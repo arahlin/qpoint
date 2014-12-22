@@ -209,7 +209,37 @@ class QPoint(object):
                 return delta[()]
             return delta
         return self._get('ref_delta')
-    
+
+    def gmst(self, ctime, **kwargs):
+        """
+        Return Greenwich mean sidereal time for given ctimes and longitudes.
+        Vectorized.
+
+        Arguments:
+
+        ctime      unix time in seconds UTC
+
+        Keyword arguments:
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        gmst       Greenwich mean sidereal time of the observer
+        """
+
+        self.set(**kwargs)
+
+        ctime = _np.array(_np.atleast_1d(ctime), dtype=_np.double)
+
+        if ctime.size == 1:
+            return _libqp.qp_gmst(self._memory, ctime[0])
+
+        gmst = _np.empty(ctime.shape, dtype=_np.double)
+        _libqp.qp_gmstn(self._memory, ctime, gmst, ctime.size)
+        return gmst
+
     def lmst(self, ctime, lon, **kwargs):
         """
         Return local mean sidereal time for given ctimes and longitudes.

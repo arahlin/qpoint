@@ -243,10 +243,16 @@ extern "C" {
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
   
-  /* Calculate local mean sidereal time */
+  /* Calculate Greenwich mean sidereal time in hours */
+  double qp_gmst(qp_memory_t *mem, double ctime);
+
+  /* Calculate Greenwich mean sidereal time in hours */
+  void qp_gmstn(qp_memory_t *mem, double *ctime, double *gmst, int n);
+
+  /* Calculate local mean sidereal time in hours */
   double qp_lmst(qp_memory_t *mem, double ctime, double lon);
   
-  /* Calculate local mean sidereal time */
+  /* Calculate local mean sidereal time in hours */
   void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst,
 		int n);
   
