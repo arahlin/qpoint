@@ -11,7 +11,7 @@ extra_obj = [libsofa_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC','-fopenmp']
 
 libslarefro_file = 'slarefro/libslarefro.a'
-if not os.path.exists(libslarefro_file):
+if os.path.exists(libslarefro_file):
     incl_dirs.append('slarefro')
     extra_obj.append(libslarefro_file)
     extra_args.append('-DSLAREFRO')

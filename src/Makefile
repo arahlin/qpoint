@@ -14,8 +14,16 @@ SLAINC = -I../slarefro -DSLAREFRO
 SLALIB = -L../slarefro -lslarefro
 endif
 
-CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa $(SLAINC) -I/usr/local/include -I/opt/local/include -fPIC -fopenmp
-LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib -lchealpix -lgomp
+ifeq ($(HEALPIX), )
+HPXINC =
+HPXLIB = -lchealpix
+else
+HPXINC = -I$(HEALPIX)/inc
+HPXLIB = -L$(HEALPIX)/lib -lchealpix
+endif
+
+CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa $(SLAINC) -I/usr/local/include -I/opt/local/include $(HPXINC) -fPIC -fopenmp
+LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) -lgomp
 
 SRCS = $(filter-out test_qpoint.c test_math.c,$(wildcard *.c))
 OBJS = $(SRCS:.c=.o)
