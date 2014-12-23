@@ -2,7 +2,9 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "sofa.h"
+#ifdef SLAREFRO
 #include "slarefro.h"
+#endif
 #include "qpoint.h"
 #include "fast_math.h"
 #include "vec3.h"
@@ -152,12 +154,14 @@ void qp_wobble_quat(double xp, double yp, quat_t q) {
 double qp_refraction(double el, double lat, double height, double temp,
 		     double press, double hum, double freq, double lapse,
 		     double tol) {
-  double ref;
+  double ref = 0;
+#ifdef SLAREFRO
   slaf_refro(M_PI_2 - deg2rad(el),
 	     height, temp + 273.15, // temperature, K
 	     press, hum, C_MS * 1e-3 / freq, // wavelength, um
 	     deg2rad(lat), lapse, tol, // precision, radians
 	     &ref);
+#endif
   return rad2deg(ref);
 }
 

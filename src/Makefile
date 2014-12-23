@@ -1,9 +1,22 @@
-VPATH=../sofa:../slarefro:.
+VPATH=../sofa:.
 DEBUG = -g -O3
 # DEBUG = -O3
 CC = gcc
-CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa -I../slarefro -I/usr/local/include -I/opt/local/include -fPIC -fopenmp
-LDFLAGS = -L../sofa -lsofa_c -L../slarefro -lslarefro -L/opt/local/lib -lchealpix -lgomp
+
+# HACK
+# need gfortran for slarefro package
+ifeq ($(shell which gfortran),)
+SLAINC =
+SLALIB =
+else
+VPATH = ../sofa:../slarefro:.
+SLAINC = -I../slarefro -DSLAREFRO
+SLALIB = -L../slarefro -lslarefro
+endif
+
+CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa $(SLAINC) -I/usr/local/include -I/opt/local/include -fPIC -fopenmp
+LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib -lchealpix -lgomp
+
 SRCS = $(filter-out test_qpoint.c test_math.c,$(wildcard *.c))
 OBJS = $(SRCS:.c=.o)
 HEADERS = $(wildcard *.h)

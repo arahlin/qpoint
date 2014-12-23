@@ -1,11 +1,19 @@
 CC=gcc
 
+# HACK
+# need gfortran to build slarefro package
+ifeq ($(shell which gfortran),)
+SLAR =
+else
+SLAR = slarefro
+endif
+
 default: all
 
 all: qpoint python
 
 .PHONY: qpoint sofa slarefro python
-qpoint: sofa slarefro
+qpoint: sofa $(SLAR)
 	make -C src
 
 sofa:
