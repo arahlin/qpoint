@@ -18,7 +18,7 @@ ifeq ($(HEALPIX), )
 HPXINC =
 HPXLIB = -lchealpix
 else
-HPXINC = -I$(HEALPIX)/inc
+HPXINC = -I$(HEALPIX)/include
 HPXLIB = -L$(HEALPIX)/lib -lchealpix
 endif
 
