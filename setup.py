@@ -9,6 +9,7 @@ if not os.path.exists(libsofa_file):
 incl_dirs = ['src','sofa']
 extra_obj = [libsofa_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC','-fopenmp']
+libs = ['gomp']
 
 libslarefro_file = 'slarefro/libslarefro.a'
 if os.path.exists(libslarefro_file):
@@ -16,13 +17,20 @@ if os.path.exists(libslarefro_file):
     extra_obj.append(libslarefro_file)
     extra_args.append('-DSLAREFRO')
 
+hpx = os.getenv('HEALPIX').strip()
+if hpx:
+    extra_obj.append(os.path.join(hpx,'lib/libchealpix.a'))
+    incl_dirs.append(os.path.join(hpx,'include'))
+else:
+    libs.append('chealpix')
+
 # this isn't technically an extension...
 # hack to make a shared library to install with the package
 ext_qp = Extension('qpoint.libqpoint',[x for x in glob.glob('src/*.c')
                                        if 'test_' not in x],
                    include_dirs=incl_dirs,
                    extra_compile_args=extra_args,
-                   libraries=['gomp','chealpix'],
+                   libraries=libs,
                    extra_objects=extra_obj)
 
 setup(name='qpoint',
