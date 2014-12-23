@@ -17,8 +17,9 @@ if os.path.exists(libslarefro_file):
     extra_obj.append(libslarefro_file)
     extra_args.append('-DSLAREFRO')
 
-hpx = os.getenv('HEALPIX').strip()
+hpx = os.getenv('HEALPIX')
 if hpx:
+    hpx = hpx.strip()
     extra_obj.append(os.path.join(hpx,'lib/libchealpix.a'))
     incl_dirs.append(os.path.join(hpx,'include'))
 else:
