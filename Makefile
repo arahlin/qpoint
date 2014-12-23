@@ -2,7 +2,7 @@ CC=gcc
 
 # HACK
 # need gfortran to build slarefro package
-ifeq ($(shell which gfortran),)
+ifeq ($(shell which gfortran), )
 SLAR =
 else
 SLAR = slarefro
@@ -28,7 +28,7 @@ install-sofa: sofa
 install-slarefro: slarefro
 	make -C slarefro install
 
-python: sofa slarefro
+python: sofa $(SLAR)
 	CC=$(CC) python setup.py build
 
 install-python: python

@@ -5,7 +5,7 @@ CC = gcc
 
 # HACK
 # need gfortran for slarefro package
-ifeq ($(shell which gfortran),)
+ifeq ($(shell which gfortran), )
 SLAINC =
 SLALIB =
 else
