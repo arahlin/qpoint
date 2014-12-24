@@ -35,14 +35,6 @@ PREFIX?=/usr/local
 default: all
 all: $(LIB)
 
-test: test_qpoint test_math
-
-test_qpoint: test_qpoint.o $(LIB)
-	gcc $(DEBUG) -o $@ $< $(LDFLAGS) -lgetdata -L. -lqpoint
-
-test_math: test_math.o sincos.o
-	gcc $(DEBUG) -o $@ $< sincos.o
-
 iers_bulletin_a.c: iers_bulletin_a.dat
 	python make_iers_bulletin_a_dot_c.py
 

@@ -2,5 +2,3 @@
 *~
 build/
 *.a
-test_qpoint
-test_math
