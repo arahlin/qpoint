@@ -101,17 +101,17 @@ double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec) {
   const double vhelio = 0.00027;
   const double dipole_epoch = 2451170;
 
-  double dra = fabs(dipole_ra - ra);
+  double dra = fabs(dipole_ra - deg2rad(ra));
   if (dra > M_PI) dra = 2 * M_PI - dra;
 
   double sdec, cdec, cdra;
   if (mem->fast_math) {
-    sdec = poly_sin(dec);
-    cdec = poly_cos(dec);
+    sdec = poly_sin(deg2rad(dec));
+    cdec = poly_cos(deg2rad(dec));
     cdra = poly_cos(dra);
   } else {
-    sdec = sin(dec);
-    cdec = cos(dec);
+    sdec = sin(deg2rad(dec));
+    cdec = cos(deg2rad(dec));
     cdra = cos(dra);
   }
 
