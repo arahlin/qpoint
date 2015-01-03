@@ -275,6 +275,44 @@ class QPoint(object):
         _libqp.qp_lmstn(self._memory, ctime, lon, lmst, ctime.size)
         return lmst
         
+    def dipole(self, ctime, ra, dec, **kwargs):
+        """
+        Return dipole amplitude in the given equatorial direction.
+        Vectorized.
+
+        Arguments:
+
+        ctime      unix time in seconds UTC
+        ra         right ascension on the sky
+        dec        declination on the sky
+
+        Keyword arguments:
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        dipole     dipole amplitude in K
+        """
+
+        self.set(**kwargs)
+
+        ctime = _np.array(_np.atleast_1d(ctime), dtype=_np.double)
+        ra    = _np.array(_np.atleast_1d(ra),    dtype=_np.double)
+        dec   = _np.array(_np.atleast_1d(dec),   dtype=_np.double)
+
+        for x in (ra, dec):
+            if ctime.shape != x.shape:
+                raise ValueError, "input vectors must have the same shape"
+
+        if ctime.size == 1:
+            return _libqp.qp_dipole(self._memory, ctime[0], ra[0], dec[0])
+
+        dipole = _np.empty(ctime.shape, dtype=_np.double)
+        _libqp.qp_dipolen(self._memory, ctime, ra, dec, dipole, ctime.size)
+        return dipole
+
     def det_offset(self, delta_az, delta_el, delta_psi):
         """
         Return quaternion corresponding to the requested detector offset.

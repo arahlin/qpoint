@@ -184,6 +184,19 @@ libqp.qp_lmstn.argtypes = (qp_memory_t_p, # params
                            NDP(dtype=np.double), # lmst
                            ct.c_int) # n
 
+libqp.qp_dipole.argtypes = (qp_memory_t_p, # params
+                            ct.c_double, # ctime
+                            ct.c_double, # ra
+                            ct.c_double) # dec
+libqp.qp_dipole.restype = ct.c_double # dipole
+
+libqp.qp_dipolen.argtypes = (qp_memory_t_p, # params
+                             NDP(dtype=np.double), # ctime
+                             NDP(dtype=np.double), # ra
+                             NDP(dtype=np.double), # dec
+                             NDP(dtype=np.double), # dipole
+                             ct.c_int) # n
+
 libqp.qp_bore2radec.argtypes = (qp_memory_t_p, # params
                                 NDP(dtype=np.double), # offset
                                 NDP(dtype=np.double), # ctime

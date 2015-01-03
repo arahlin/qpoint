@@ -256,6 +256,13 @@ extern "C" {
   void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst,
 		int n);
   
+  /* Calculate dipole amplitude */
+  double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec);
+
+  /* Calculate dipole amplitudes */
+  void qp_dipolen(qp_memory_t *mem, double *ctime, double *ra, double *dec,
+                  double *dipole, int n);
+
   /* Calculate waveplate quaternion, given _physical_ HWP angle */
   void qp_hwp_quat(double ang, quat_t q);
   

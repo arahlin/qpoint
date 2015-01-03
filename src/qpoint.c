@@ -90,6 +90,55 @@ void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst, int n)
   }
 }
 
+double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec) {
+
+  const double tcmb = 2.726;
+  const double dipole_ra = deg2rad(167.987505);
+  const double dipole_dec = deg2rad(-7.22);
+  const double sddec = sin(dipole_dec);
+  const double cddec = cos(dipole_dec);
+  const double beta = 370e3 / C_MS;
+  const double vhelio = 0.00027;
+  const double dipole_epoch = 2451170;
+
+  double dra = fabs(dipole_ra - ra);
+  if (dra > M_PI) dra = 2 * M_PI - dra;
+
+  double sdec, cdec, cdra;
+  if (mem->fast_math) {
+    sdec = poly_sin(dec);
+    cdec = poly_cos(dec);
+    cdra = poly_cos(dra);
+  } else {
+    sdec = sin(dec);
+    cdec = cos(dec);
+    cdra = cos(dra);
+  }
+
+  double cdist = sddec * sdec + cddec * cdec * cdra;
+  if (fabs(cdist) > 1) cdist = 1;
+  double out = tcmb * beta * (cdist + beta/2. * (2 * cdist * cdist - 1));
+
+  double jd[2];
+  ctime2jd(ctime, jd);
+  double delta = (jd[1] + (jd[0] - dipole_epoch)) / 365.25;
+
+  if (mem->fast_math) {
+    out += vhelio * poly_cos(2 * M_PI * delta);
+  } else {
+    out += vhelio * cos(2 * M_PI * delta);
+  }
+
+  return out;
+}
+
+void qp_dipolen(qp_memory_t *mem, double *ctime, double *ra, double *dec,
+                double *dipole, int n) {
+  for (int ii=0; ii<n; ii++) {
+    dipole[ii] = qp_dipole(mem, ctime[ii], ra[ii], dec[ii]);
+  }
+}
+
 void qp_aberration(quat_t q, vec3_t beta, quat_t qa) {
   vec3_t u,n;
   Quaternion_to_matrix_col3(q,u);
