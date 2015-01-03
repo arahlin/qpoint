@@ -386,7 +386,11 @@ extern "C" {
   #define QP_ORDER_RING 0
   
   /* Compute healpix pixel number for given nside and ra/dec */
-  long qp_radec2pix(qp_memory_t *mem, double nside, double ra, double dec);
+  long qp_radec2pix(qp_memory_t *mem, int nside, double ra, double dec);
+
+  /* Compute healpix pixel number for given nside and ra/dec */
+  void qp_radec2pixn(qp_memory_t *mem, int nside, double *ra, double *dec,
+                     long *pix, int n);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */

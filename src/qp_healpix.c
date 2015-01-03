@@ -11,12 +11,19 @@
 #endif
 
 /* Compute healpix pixel number for given nside and ra/dec */
-long qp_radec2pix(qp_memory_t *mem, double nside, double ra, double dec) {
+long qp_radec2pix(qp_memory_t *mem, int nside, double ra, double dec) {
   long pix;
   if (mem->pix_order == QP_ORDER_NEST)
     ang2pix_nest(nside, M_PI_2 - deg2rad(dec), deg2rad(ra), &pix);
   ang2pix_ring(nside, M_PI_2 - deg2rad(dec), deg2rad(ra), &pix);
   return pix;
+}
+
+void qp_radec2pixn(qp_memory_t *mem, int nside, double *ra, double *dec,
+                   long *pix, int n) {
+  for (int ii = 0; ii < n; ii++) {
+    pix[ii] = qp_radec2pix(mem, nside, ra[ii], dec[ii]);
+  }
 }
 
 /* Compute pointing matrix map for given boresight timestream and detector

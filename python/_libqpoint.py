@@ -239,6 +239,19 @@ libqp.qp_bore2rasindec_hwp.argtypes = (qp_memory_t_p, # params
                                        NDP(dtype=np.double), # cos2psi
                                        ct.c_int) # n
 
+libqp.qp_radec2pix.argtypes = (qp_memory_t_p, # params
+                               ct.c_int, # nside
+                               ct.c_double, # ra
+                               ct.c_double) # dec
+libqp.qp_radec2pix.restype = ct.c_int
+
+libqp.qp_radec2pixn.argtypes = (qp_memory_t_p, # params
+                                ct.c_int, # nside
+                                NDP(dtype=np.double), # ra
+                                NDP(dtype=np.double), # dec
+                                NDP(dtype=np.int), # pix
+                                ct.c_int) # n
+
 libqp.qp_bore2map.argtypes = (qp_memory_t_p, # params
                               NDP(dtype=np.double), # offsets
                               ct.c_int, # ndet

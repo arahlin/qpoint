@@ -572,6 +572,26 @@ class QPoint(object):
         
         return ra, dec, sin2psi, cos2psi
         
+    def radec2pix(self, nside, ra, dec, **kwargs):
+        """
+        Calculate healpix pixel number for given ra/dec and nside
+        """
+
+        self.set(**kwargs)
+
+        ra    = _np.asarray(ra,     dtype=_np.double)
+        dec   = _np.asarray(dec,    dtype=_np.double)
+
+        if ra.shape != dec.shape:
+            raise ValueError, "input vectors must have the same shape"
+
+        if ra.size == 1:
+            return _libqp.qp_radec2pix(self._memory, nside, ra[0], dec[0])
+
+        pix = _np.empty(ra.shape, dtype=_np.int)
+        _libqp.qp_radec2pixn(self._memory, nside, ra, dec, pix, ra.size)
+        return pix
+
     def bore2map(self, q_off, ctime, q_bore, nside=256,
                  q_hwp=None, pmap=None, **kwargs):
         """
