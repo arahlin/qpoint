@@ -92,36 +92,35 @@ void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst, int n)
 
 double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec) {
 
-  const double tcmb = 2.726;
-  const double dipole_ra = deg2rad(167.987505);
-  const double dipole_dec = deg2rad(-7.22);
-  const double sddec = sin(dipole_dec);
-  const double cddec = cos(dipole_dec);
-  const double beta = 370e3 / C_MS;
+  const double tcmb = 2.725;
+  const double dipole_phi = deg2rad(167.987505);
+  const double dipole_theta = M_PI/2 - deg2rad(-7.22);
+  const double sdtheta = sin(dipole_theta);
+  const double cdtheta = cos(dipole_theta);
+  const double beta = 369e3 / C_MS;
   const double vhelio = 0.00027;
   const double dipole_epoch = 2451170;
 
-  double dra = fabs(dipole_ra - deg2rad(ra));
-  if (dra > M_PI) dra = 2 * M_PI - dra;
+  double theta = M_PI/2 - deg2rad(dec);
+  double phi = deg2rad(ra);
 
-  double sdec, cdec, cdra;
+  double stheta, ctheta, cdphi;
   if (mem->fast_math) {
-    sdec = poly_sin(deg2rad(dec));
-    cdec = poly_cos(deg2rad(dec));
-    cdra = poly_cos(dra);
+    stheta = poly_sin(theta);
+    ctheta = poly_cos(theta);
+    cdphi = poly_cos(dipole_phi - phi);
   } else {
-    sdec = sin(deg2rad(dec));
-    cdec = cos(deg2rad(dec));
-    cdra = cos(dra);
+    stheta = sin(theta);
+    ctheta = cos(theta);
+    cdphi = cos(dipole_phi - phi);
   }
 
-  double cdist = sddec * sdec + cddec * cdec * cdra;
-  if (fabs(cdist) > 1) cdist = 1;
+  double cdist = cdtheta * ctheta + sdtheta * stheta * cdphi;
   double out = tcmb * beta * (cdist + beta/2. * (2 * cdist * cdist - 1));
 
   double jd[2];
   ctime2jd(ctime, jd);
-  double delta = (jd[1] + (jd[0] - dipole_epoch)) / 365.25;
+  double delta = (jd[1] + jd[0] - dipole_epoch) / 365.25;
 
   if (mem->fast_math) {
     out += vhelio * poly_cos(2 * M_PI * delta);
