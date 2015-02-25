@@ -84,9 +84,9 @@ extern "C" {
   void qp_free_memory(qp_memory_t *mem);
   
   /* common update rates */
-#define QP_DO_ALWAYS 0
-#define QP_DO_ONCE   -1
-#define QP_DO_NEVER  -999
+  extern const int QP_DO_ALWAYS;
+  extern const int QP_DO_ONCE;
+  extern const int QP_DO_NEVER;
   
   /* Set correction rates for each state, in seconds; control accuracy and speed
      Use above macros to allow states to be applied always, once or never. */
@@ -394,42 +394,104 @@ extern "C" {
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map_single(qp_memory_t *mem, quat_t q_off,
+  void qp_bore2pnt_single(qp_memory_t *mem, quat_t q_off,
 			  double *ctime, quat_t *q_bore, int n,
 			  pixel_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map_single_hwp(qp_memory_t *mem, quat_t q_off,
+  void qp_bore2pnt_single_hwp(qp_memory_t *mem, quat_t q_off,
 			      double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
 			      pixel_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset for both A and B polarizations.
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map_pair(qp_memory_t *mem, quat_t q_off,
+  void qp_bore2pnt_pair(qp_memory_t *mem, quat_t q_off,
 			double *ctime, quat_t *q_bore, int n,
 			pixel_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset for both A and B polarizations.
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map_pair_hwp(qp_memory_t *mem, quat_t q_off,
+  void qp_bore2pnt_pair_hwp(qp_memory_t *mem, quat_t q_off,
 			    double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
 			    pixel_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and many detector
      offsets. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map(qp_memory_t *mem, quat_t *q_off, int ndet,
+  void qp_bore2pnt(qp_memory_t *mem, quat_t *q_off, int ndet,
 		   double *ctime, quat_t *q_bore, int n,
 		   pixel_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and many detector
      offsets. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2map_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+  void qp_bore2pnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 		       double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
 		       pixel_t *pmap, int nside);
   
+  /* Compute signal map for given boresight timestream, signal timestream,
+     and detector offset.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
+  void qp_bore2sig_single(qp_memory_t *mem, quat_t q_off,
+                          double *ctime, quat_t *q_bore, double *tod, int n,
+                          vec3_t *smap, int nside);
+
+  /* Compute signal map for given boresight timestream, hwp timestream,
+     signal timestream and detector offset.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
+  void qp_bore2sig_single_hwp(qp_memory_t *mem, quat_t q_off,
+                              double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                              double *tod, int n, vec3_t *smap, int nside);
+
+  /* Compute signal map for given boresight timestream, many signal timestreams,
+     and many detector offsets.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
+  void qp_bore2sig(qp_memory_t *mem, quat_t *q_off, int ndet,
+                   double *ctime, quat_t *q_bore, double **tod, int n,
+                   vec3_t *smap, int nside);
+
+  /* Compute signal map for given boresight timestream, hwp timestream,
+     many signal timestreams, and many detector offsets.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
+  void qp_bore2sig_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+                       double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                       double **tod, int n, vec3_t *smap, int nside);
+
+  /* Compute signal and pointing matrix maps for given boresight timestream,
+     signal timestream, and detector offset.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
+     pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2sigpnt_single(qp_memory_t *mem, quat_t q_off,
+                             double *ctime, quat_t *q_bore, double *tod, int n,
+                             vec3_t *smap, pixel_t *pmap, int nside);
+
+  /* Compute signal and pointing matrix maps for given boresight timestream,
+     hwp timestream, signal timestream, and detector offset.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
+     pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2sigpnt_single_hwp(qp_memory_t *mem, quat_t q_off,
+                                 double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                                 double *tod, int n, vec3_t *smap,
+                                 pixel_t *pmap, int nside);
+
+  /* Compute signal and pointing matrix maps for given boresight timestream,
+     many signal timestreams, and many detector offsets.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
+     pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2sigpnt(qp_memory_t *mem, quat_t *q_off, int ndet,
+                      double *ctime, quat_t *q_bore, double **tod, int n,
+                      vec3_t *smap, pixel_t *pmap, int nside);
+
+  /* Compute signal and pointing matrix maps for given boresight timestream,
+     hwp timestream, many signal timestreams, and many detector offsets.
+     smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
+     pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
+  void qp_bore2sigpnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+                          double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                          double **tod, int n, vec3_t *smap, pixel_t *pmap,
+                          int nside);
+
 #ifdef __cplusplus
 }
 #endif

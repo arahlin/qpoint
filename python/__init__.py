@@ -7,7 +7,7 @@ Uses the SOFA Software Collection, available from http://www.iausofa.org/
 """
 
 import numpy as _np
-from _libqpoint import libqp as _libqp
+from _libqpoint import libqp as _libqp, QP_DO_ALWAYS, QP_DO_ONCE, QP_DO_NEVER
 
 class QPoint(object):
     
@@ -593,11 +593,15 @@ class QPoint(object):
         return pix
 
     def bore2map(self, q_off, ctime, q_bore, nside=256,
-                 q_hwp=None, pmap=None, **kwargs):
+                 q_hwp=None, tod=None, smap=None, pmap=None, **kwargs):
         """
-        Calculate hits map for given detectors and boresight orientations.
-        Returns a npix-x-6 array containing (hits, p01, p02, p11, p12, p22).
-        Optionally accumulate hits in place by supplying an existing pmap array.
+        Calculate signal and hits maps for given detectors and boresight orientations.
+        Returns an npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)), and
+        an npix-x-6 array containing (hits, p01, p02, p11, p12, p22).
+        If either smap or pmap is False, then that map is not computed or returned.
+        If tod is not supplied then smap is not computed.
+        tod must be an array of shape (ndet, ntod).
+        Optionally accumulate hits in place by supplying an existing smap and pmap array.
         """
         
         self.set(**kwargs)
@@ -612,30 +616,78 @@ class QPoint(object):
         if ctime.shape[0] != q_bore.shape[0]:
             raise ValueError,"input ctime and q_bore must have compatible shape"
         
+        do_pnt = not (pmap is False)
+        do_sig = not (tod is None or tod is False or smap is False)
+
+        if not (do_pnt or do_sig):
+            raise KeyError, 'Either smap or pmap must not be False'
+
         mshape = (12*nside*nside, 6)
-        if pmap is None:
-            pmap = _np.zeros(mshape, dtype=_np.double)
-        else:
-            nside = int(_np.sqrt(pmap.size/6/12))
-            mshape = (12*nside*nside, 6)
-        if pmap.shape != mshape:
-            print pmap.shape
-            raise ValueError,"input pmap must have shape %s" % str(mshape)
-        if pmap.dtype != _np.double:
-            raise TypeError,"input pmap must be of type numpy.double"
         
+        if do_pnt:
+            if pmap is None:
+                pmap = _np.zeros(mshape, dtype=_np.double)
+            else:
+                nside = int(_np.sqrt(pmap.size/6/12))
+                mshape = (12*nside*nside, 6)
+            if pmap.shape != mshape:
+                print pmap.shape
+                raise ValueError,"input pmap must have shape %s" % str(mshape)
+            if pmap.dtype != _np.double:
+                raise TypeError,"input pmap must be of type numpy.double"
+
+        if do_sig:
+            tod = _np.asarray(tod, dtype=_np.double)
+            if tod.shape != (ndet, n):
+                raise ValueError, "input tod has incompatible shape %s" % tod.shape
+            # convert to array of pointers
+            assert(tod.flags['C_CONTIGUOUS'])
+            todp = (tod.__array_interface__['data'][0] +
+                    _np.arange(tod.shape[0]) * tod.strides[0]).astype(_np.uintp)
+
+            if smap is None:
+                smap = _np.zeros(mshape, dtype=_np.double)
+            else:
+                nside = int(_np.sqrt(smap.size/3/12))
+                mshape = (12*nside*nside, 3)
+            if smap.shape != mshape:
+                print smap.shape
+                raise ValueError,"input smap must have shape %s" % str(mshape)
+            if smap.dtype != _np.double:
+                raise TypeError,"input smap must be of type numpy.double"
+
         if q_hwp is None:
-            _libqp.qp_bore2map(self._memory, q_off, ndet, ctime, q_bore, n,
-                               pmap, nside)
+            if do_pnt and do_sig:
+                _libqp.qp_bore2sigpnt(self._memory, q_off, ndet, ctime, q_bore, todp, n,
+                                      smap, pmap, nside)
+                ret = (smap, pmap)
+            elif do_sig:
+                _libqp.qp_bore2sig(self._memory, q_off, ndet, ctime, q_bore, todp, n,
+                                   smap, nside)
+                ret = smap
+            elif do_pnt:
+                _libqp.qp_bore2pnt(self._memory, q_off, ndet, ctime, q_bore, n,
+                                   pmap, nside)
+                ret = pmap
         else:
             q_hwp = _np.asarray(q_hwp, dtype=_np.double)
             if q_hwp.shape != q_bore.shape:
                 raise ValueError, "input q_hwp must have the same shape as q_bore"
             
-            _libqp.qp_bore2map_hwp(self._memory, q_off, ndet, ctime, q_bore,
-                                   q_hwp, n, pmap, nside)
-        
-        return pmap
+            if do_pnt and do_sig:
+                _libqp.qp_bore2sigpnt_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                          q_hwp, todp, n, smap, pmap, nside)
+                ret = (smap, pmap)
+            elif do_sig:
+                _libqp.qp_bore2sig_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                       q_hwp, todp, n, smap, nside)
+                ret = smap
+            elif do_pnt:
+                _libqp.qp_bore2pnt_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                       q_hwp, n, pmap, nside)
+                ret = pmap
+
+        return ret
         
     def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
         """
