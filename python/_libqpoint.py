@@ -388,12 +388,12 @@ def get_rfunc(state):
     return f
 
 def check_set_state(state):
-    rdict = {'always':0,'once':-1,'never':-999}
+    rdict = {'always':QP_DO_ALWAYS, 'once':QP_DO_ONCE, 'never':QP_DO_NEVER}
     state = rdict.get(state,state)
     return check_set_float(state)
 
 def check_get_state(state):
-    rdict = {0:'always',-1:'once',-999:'never'}
+    rdict = {QP_DO_ALWAYS:'always', QP_DO_ONCE:'once', QP_DO_NEVER:'never'}
     state = rdict.get(state,state)
     return state
 
