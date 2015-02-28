@@ -166,8 +166,10 @@ void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q) {
   Quaternion_r3(q, M_PI);
   Quaternion_r2_mul(M_PI_2 - deg2rad(el), q);
   Quaternion_r3_mul(-deg2rad(az), q);
-  Quaternion_r2_mul(-deg2rad(pitch), q);
-  Quaternion_r1_mul(-deg2rad(roll), q);
+  if (pitch != 0)
+    Quaternion_r2_mul(-deg2rad(pitch), q);
+  if (roll != 0)
+    Quaternion_r1_mul(-deg2rad(roll), q);
 }
 
 void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy) {
@@ -366,8 +368,8 @@ void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
 		  double *roll, double *lon, double *lat, double *ctime, 
 		  quat_t *q, int n) {
   for (int i=0; i<n; i++)
-    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i],
-		 ctime[i], q[i]);
+    qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
+                 (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i], q[i]);
 }
 
 void qp_hwp_quat(double ang, quat_t q) {
@@ -536,8 +538,9 @@ void qp_azel2radec(qp_memory_t *mem,
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
-    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
-		 q_bore);
+    qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
+                 (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
+                 q_bore);
     qp_bore2det(mem, q_off, ctime[i], q_bore, q_det);
     qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
   }
@@ -555,8 +558,9 @@ void qp_azel2radec_hwp(qp_memory_t *mem,
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
-    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
-		 q_bore);
+    qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
+                 (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
+                 q_bore);
     qp_hwp_quat(hwp[i], q_hwp);
     qp_bore2det_hwp(mem, q_off, ctime[i], q_bore, q_hwp, q_det);
     qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
@@ -575,8 +579,9 @@ void qp_azel2rasindec(qp_memory_t *mem,
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
-    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
-		 q_bore);
+    qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
+                 (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
+                 q_bore);
     qp_bore2det(mem, q_off, ctime[i], q_bore, q_det);
     qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
   }
@@ -594,8 +599,9 @@ void qp_azel2rasindec_hwp(qp_memory_t *mem,
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
-    qp_azel2quat(mem, az[i], el[i], pitch[i], roll[i], lon[i], lat[i], ctime[i],
-		 q_bore);
+    qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
+                 (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
+                 q_bore);
     qp_hwp_quat(hwp[i], q_hwp);
     qp_bore2det_hwp(mem, q_off, ctime[i], q_bore, q_hwp, q_det);
     qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
