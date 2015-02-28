@@ -42,10 +42,11 @@ void iauAtioq(double ri, double di, iauASTROM *astrom,
 **      refb   double       refraction constant B (radians)
 **
 **  Returned:
-**     aob    double     observed azimuth (radians: N=0,E=90)
-**     zob    double     observed zenith distance (radians)
-**     hob    double     observed hour angle (radians)
-**     dob    double     observed right ascension (CIO-based, radians)
+**     aob    double*    observed azimuth (radians: N=0,E=90)
+**     zob    double*    observed zenith distance (radians)
+**     hob    double*    observed hour angle (radians)
+**     dob    double*    observed declination (radians)
+**     rob    double*    observed right ascension (CIO-based, radians)
 **
 **  Notes:
 **
@@ -99,11 +100,11 @@ void iauAtioq(double ri, double di, iauASTROM *astrom,
 **     iauC2s       p-vector to spherical
 **     iauAnp       normalize angle into range 0 to 2pi
 **
-**  This revision:   2013 October 18
+**  This revision:   2013 December 5
 **
-**  SOFA release 2013-12-02
+**  SOFA release 2015-02-09
 **
-**  Copyright (C) 2013 IAU SOFA Board.  See notes at end.
+**  Copyright (C) 2015 IAU SOFA Board.  See notes at end.
 */
 {
 /* Minimum cos(alt) and sin(alt) for refraction purposes */
@@ -188,7 +189,7 @@ void iauAtioq(double ri, double di, iauASTROM *astrom,
 
 /*----------------------------------------------------------------------
 **
-**  Copyright (C) 2013
+**  Copyright (C) 2015
 **  Standards Of Fundamental Astronomy Board
 **  of the International Astronomical Union.
 **
