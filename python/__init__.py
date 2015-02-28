@@ -380,8 +380,8 @@ class QPoint(object):
         
         az         boresight azimuth (degrees)
         el         boresight elevation (degrees)
-        pitch      boresight pitch (degrees)
-        roll       boresight pitch (degrees)
+        pitch      boresight pitch (degrees); can be None
+        roll       boresight pitch (degrees); can be None
         lon        observer longitude (degrees)
         lat        observer latitude (degrees)
         ctime      unix time in seconds UTC
@@ -400,15 +400,21 @@ class QPoint(object):
         
         az    = _np.asarray(az,    dtype=_np.double)
         el    = _np.asarray(el,    dtype=_np.double)
-        pitch = _np.asarray(pitch, dtype=_np.double)
-        roll  = _np.asarray(roll,  dtype=_np.double)
+        if pitch is not None:
+            pitch = _np.asarray(pitch, dtype=_np.double)
+        else:
+            pitch = _np.zeros_like(az)
+        if roll is not None:
+            roll  = _np.asarray(roll,  dtype=_np.double)
+        else:
+            roll = _np.zeros_like(az)
         lon   = _np.asarray(lon,   dtype=_np.double)
         lat   = _np.asarray(lat,   dtype=_np.double)
         ctime = _np.asarray(ctime, dtype=_np.double)
         q = _np.empty(az.shape + (4,), dtype=_np.double)
         n = az.size
     
-        for x in (el,pitch,roll,lon,lat,ctime):
+        for x in (el, pitch, roll, lon, lat, ctime):
             if x.shape != az.shape:
                 raise ValueError,"input vectors must have the same shape"
         
@@ -505,8 +511,8 @@ class QPoint(object):
         delta_psi  polarization offset of the detector (degrees)
         az         boresight azimuth (degrees)
         el         boresight elevation (degrees)
-        pitch      boresight pitch (degrees)
-        roll       boresight roll (degrees)
+        pitch      boresight pitch (degrees); can be None
+        roll       boresight roll (degrees); can be None
         lon        observer longitude (degrees)
         lat        observer latitude (degrees)
         ctime      unix time in seconds UTC
@@ -532,8 +538,14 @@ class QPoint(object):
         
         az    = _np.asarray(az,    dtype=_np.double)
         el    = _np.asarray(el,    dtype=_np.double)
-        pitch = _np.asarray(pitch, dtype=_np.double)
-        roll  = _np.asarray(roll,  dtype=_np.double)
+        if pitch is not None:
+            pitch = _np.asarray(pitch, dtype=_np.double)
+        else:
+            pitch = _np.zeros_like(az)
+        if roll is not None:
+            roll  = _np.asarray(roll,  dtype=_np.double)
+        else:
+            roll = _np.zeros_like(az)
         lon   = _np.asarray(lon,   dtype=_np.double)
         lat   = _np.asarray(lat,   dtype=_np.double)
         ctime = _np.asarray(ctime, dtype=_np.double)
@@ -622,19 +634,21 @@ class QPoint(object):
         if not (do_pnt or do_sig):
             raise KeyError, 'Either smap or pmap must not be False'
 
-        mshape = (12*nside*nside, 6)
+        mshapep = (12*nside*nside, 6)
         
         if do_pnt:
             if pmap is None:
-                pmap = _np.zeros(mshape, dtype=_np.double)
+                pmap = _np.zeros(mshapep, dtype=_np.double)
             else:
                 nside = int(_np.sqrt(pmap.size/6/12))
-                mshape = (12*nside*nside, 6)
-            if pmap.shape != mshape:
+                mshapep = (12*nside*nside, 6)
+            if pmap.shape != mshapep:
                 print pmap.shape
-                raise ValueError,"input pmap must have shape %s" % str(mshape)
+                raise ValueError,"input pmap must have shape %s" % str(mshapep)
             if pmap.dtype != _np.double:
                 raise TypeError,"input pmap must be of type numpy.double"
+
+        mshapes = (12*nside*nside, 3)
 
         if do_sig:
             tod = _np.asarray(tod, dtype=_np.double)
@@ -646,13 +660,13 @@ class QPoint(object):
                     _np.arange(tod.shape[0]) * tod.strides[0]).astype(_np.uintp)
 
             if smap is None:
-                smap = _np.zeros(mshape, dtype=_np.double)
+                smap = _np.zeros(mshapes, dtype=_np.double)
             else:
                 nside = int(_np.sqrt(smap.size/3/12))
-                mshape = (12*nside*nside, 3)
-            if smap.shape != mshape:
+                mshapes = (12*nside*nside, 3)
+            if smap.shape != mshapes:
                 print smap.shape
-                raise ValueError,"input smap must have shape %s" % str(mshape)
+                raise ValueError,"input smap must have shape %s" % str(mshapes)
             if smap.dtype != _np.double:
                 raise TypeError,"input smap must be of type numpy.double"
 
