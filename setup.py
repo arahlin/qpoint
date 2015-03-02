@@ -18,9 +18,14 @@ if os.path.exists(libslarefro_file):
     extra_args.append('-DSLAREFRO')
 
 hpx = os.getenv('HEALPIX')
+cfits = os.getenv('CFITSIO')
 if hpx:
     hpx = hpx.strip()
     extra_obj.append(os.path.join(hpx,'lib/libchealpix.a'))
+    if cfits:
+        extra_obj.append(os.path.join(cfits, 'lib/libcfitsio.so'))
+    else:
+        extra_obj.append('/usr/lib64/libcfitsio.so') #location on Feynman if no CFITS variable set
     incl_dirs.append(os.path.join(hpx,'include'))
 else:
     libs.append('chealpix')
