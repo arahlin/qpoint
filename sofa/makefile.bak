@@ -33,7 +33,7 @@
 #      make distclean     delete all generated binaries
 #      make realclean     same as distclean
 #
-# Last revision:   2013 September 2
+# Last revision:   2015 February 9
 #
 # Copyright International Astronomical Union.  All rights reserved.
 #
@@ -49,7 +49,7 @@
 
 # Specify the installation home directory.
 
-INSTALL_DIR = /usr/local
+INSTALL_DIR = $(HOME)
 
 # Specify the installation directory for the library.
 
@@ -78,9 +78,7 @@ INSTALL_DIRS = $(SOFA_LIB_DIR) $(SOFA_INC_DIR)
 # Name the SOFA/C library in its source and target locations.
 
 SOFA_LIB_NAME = libsofa_c.a
-SOFA_SHARED_LIB_NAME = libsofa_c.dylib
 SOFA_LIB = $(SOFA_LIB_DIR)$(SOFA_LIB_NAME)
-SOFA_SHARED_LIB = $(SOFA_LIB_DIR)$(SOFA_SHARED_LIB_NAME)
 
 # Name the SOFA/C testbed in its source and target locations.
 
@@ -186,6 +184,7 @@ SOFA_OBS = iauA2af.o \
            iauFk5hz.o \
            iauFw2m.o \
            iauFw2xy.o \
+           iauG2icrs.o \
            iauGc2gd.o \
            iauGc2gde.o \
            iauGd2gc.o \
@@ -200,6 +199,7 @@ SOFA_OBS = iauA2af.o \
            iauGst94.o \
            iauH2fk5.o \
            iauHfk5z.o \
+           iauIcrs2g.o \
            iauIr.o \
            iauJd2cal.o \
            iauJdcalf.o \
@@ -321,7 +321,7 @@ SOFA_OBS = iauA2af.o \
 #-----------------------------------------------------------------------
 
 # Build (but do not install) the library.
-all : $(SOFA_LIB_NAME) $(SOFA_SHARED_LIB_NAME)
+all : $(SOFA_LIB_NAME)
 	-@ echo ""
 	-@ echo "*** Now type 'make test'" \
                 " to install the library and run tests ***"
@@ -331,21 +331,18 @@ all : $(SOFA_LIB_NAME) $(SOFA_SHARED_LIB_NAME)
 install $(SOFA_LIB) : $(INSTALL_DIRS) $(SOFA_LIB_NAME) $(SOFA_INC)
 	cp $(SOFA_LIB_NAME) $(SOFA_LIB_DIR)
 
-install $(SOFA_SHARED_LIB) : $(INSTALL_DIRS) $(SOFA_SHARED_LIB_NAME) $(SOFA_INC)
-	cp $(SOFA_SHARED_LIB_NAME) $(SOFA_LIB_DIR)
-
 # Deinstall the library and header files.
 uninstall:
-	- $(RM) $(SOFA_LIB) $(SOFA_SHARED_LIB) $(SOFA_INC)
+	- $(RM) $(SOFA_LIB) $(SOFA_INC)
 
 # Test the build.
-check: $(SOFA_TEST_NAME) $(SOFA_INC_NAMES) $(SOFA_LIB_NAME) $(SOFA_SHARED_LIB_NAME)
+check: $(SOFA_TEST_NAME) $(SOFA_INC_NAMES) $(SOFA_LIB_NAME)
 	$(CCOMPC) $(CFLAGX) $(SOFA_TEST_NAME) $(SOFA_LIB_NAME) \
         -lm -o $(SOFA_TEST)
 	./$(SOFA_TEST)
 
 # Test the installed library.
-installcheck test: $(SOFA_TEST_NAME) $(SOFA_INC) $(SOFA_LIB) $(SOFA_SHARED_LIB)
+installcheck test: $(SOFA_TEST_NAME) $(SOFA_INC) $(SOFA_LIB)
 	$(CCOMPC) $(CFLAGX) $(SOFA_TEST_NAME) -I$(SOFA_INC_DIR) \
         -L$(SOFA_LIB_DIR) -lsofa_c -lm -o $(SOFA_TEST)
 	./$(SOFA_TEST)
@@ -356,7 +353,7 @@ clean :
 
 # Delete all generated binaries in the current directory.
 realclean distclean : clean
-	- $(RM) $(SOFA_LIB_NAME) $(SOFA_SHARED_LIB_NAME) $(SOFA_TEST)
+	- $(RM) $(SOFA_LIB_NAME) $(SOFA_TEST)
 
 # Create the installation directories if not already present.
 $(INSTALL_DIRS):
@@ -365,9 +362,6 @@ $(INSTALL_DIRS):
 # Build the library.
 $(SOFA_LIB_NAME): $(SOFA_OBS)
 	ar ru $(SOFA_LIB_NAME) $?
-
-$(SOFA_SHARED_LIB_NAME): $(SOFA_OBS)
-	$(CCOMPC) -dynamiclib -install_name $(SOFA_SHARED_LIB) $? -o $(SOFA_SHARED_LIB_NAME)
 
 # Install the header files.
 $(SOFA_INC) : $(INSTALL_DIRS) $(SOFA_INC_NAMES)
@@ -561,6 +555,8 @@ iauFw2m.o   : fw2m.c   sofa.h sofam.h
 	$(CCOMPC) $(CFLAGF) -o $@ fw2m.c
 iauFw2xy.o  : fw2xy.c  sofa.h sofam.h
 	$(CCOMPC) $(CFLAGF) -o $@ fw2xy.c
+iauG2icrs.o  : g2icrs.c  sofa.h sofam.h
+	$(CCOMPC) $(CFLAGF) -o $@ g2icrs.c
 iauGc2gd.o : gc2gd.c sofa.h sofam.h
 	$(CCOMPC) $(CFLAGF) -o $@ gc2gd.c
 iauGc2gde.o : gc2gde.c sofa.h sofam.h
@@ -589,6 +585,8 @@ iauH2fk5.o  : h2fk5.c  sofa.h sofam.h
 	$(CCOMPC) $(CFLAGF) -o $@ h2fk5.c
 iauHfk5z.o  : hfk5z.c  sofa.h sofam.h
 	$(CCOMPC) $(CFLAGF) -o $@ hfk5z.c
+iauIcrs2g.o  : icrs2g.c  sofa.h sofam.h
+	$(CCOMPC) $(CFLAGF) -o $@ icrs2g.c
 iauIr.o     : ir.c     sofa.h sofam.h
 	$(CCOMPC) $(CFLAGF) -o $@ ir.c
 iauJd2cal.o : jd2cal.c sofa.h sofam.h

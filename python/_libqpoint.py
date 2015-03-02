@@ -75,6 +75,10 @@ qp_memory_t_p = ct.POINTER(qp_memory_t)
 libqp.qp_init_memory.restype = qp_memory_t_p
 libqp.qp_free_memory.argtypes = (qp_memory_t_p,)
 
+QP_DO_ALWAYS = ct.c_int.in_dll(libqp, "QP_DO_ALWAYS").value
+QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
+QP_DO_NEVER = ct.c_int.in_dll(libqp, "QP_DO_NEVER").value
+
 libqp.qp_azel2radec.argtypes = (qp_memory_t_p, # params
                                 ct.c_double, ct.c_double, ct.c_double, # offset
                                 NDP(dtype=np.double), # az
@@ -252,7 +256,7 @@ libqp.qp_radec2pixn.argtypes = (qp_memory_t_p, # params
                                 NDP(dtype=np.int), # pix
                                 ct.c_int) # n
 
-libqp.qp_bore2map.argtypes = (qp_memory_t_p, # params
+libqp.qp_bore2pnt.argtypes = (qp_memory_t_p, # params
                               NDP(dtype=np.double), # offsets
                               ct.c_int, # ndet
                               NDP(dtype=np.double), # ctime
@@ -261,7 +265,7 @@ libqp.qp_bore2map.argtypes = (qp_memory_t_p, # params
                               NDP(dtype=np.double), # pmap
                               ct.c_int) # nside
 
-libqp.qp_bore2map_hwp.argtypes = (qp_memory_t_p, # params
+libqp.qp_bore2pnt_hwp.argtypes = (qp_memory_t_p, # params
                                   NDP(dtype=np.double), # offsets
                                   ct.c_int, # ndet
                                   NDP(dtype=np.double), # ctime
@@ -270,6 +274,50 @@ libqp.qp_bore2map_hwp.argtypes = (qp_memory_t_p, # params
                                   ct.c_int, # n
                                   NDP(dtype=np.double), # pmap
                                   ct.c_int) # nside
+
+libqp.qp_bore2sig.argtypes = (qp_memory_t_p, # params
+                              NDP(dtype=np.double), # offsets
+                              ct.c_int, # ndet
+                              NDP(dtype=np.double), # ctime
+                              NDP(dtype=np.double), # q_bore
+                              NDP(dtype=np.uintp), # tod
+                              ct.c_int, # n
+                              NDP(dtype=np.double), # smap
+                              ct.c_int) # nside
+
+libqp.qp_bore2sig_hwp.argtypes = (qp_memory_t_p, # params
+                                  NDP(dtype=np.double), # offsets
+                                  ct.c_int, # ndet
+                                  NDP(dtype=np.double), # ctime
+                                  NDP(dtype=np.double), # q_bore
+                                  NDP(dtype=np.double), # q_hwp
+                                  NDP(dtype=np.uintp), # tod
+                                  ct.c_int, # n
+                                  NDP(dtype=np.double), # smap
+                                  ct.c_int) # nside
+
+libqp.qp_bore2sigpnt.argtypes = (qp_memory_t_p, # params
+                                 NDP(dtype=np.double), # offsets
+                                 ct.c_int, # ndet
+                                 NDP(dtype=np.double), # ctime
+                                 NDP(dtype=np.double), # q_bore
+                                 NDP(dtype=np.uintp), # tod
+                                 ct.c_int, # n
+                                 NDP(dtype=np.double), # smap
+                                 NDP(dtype=np.double), # pmap
+                                 ct.c_int) # nside
+
+libqp.qp_bore2sigpnt_hwp.argtypes = (qp_memory_t_p, # params
+                                     NDP(dtype=np.double), # offsets
+                                     ct.c_int, # ndet
+                                     NDP(dtype=np.double), # ctime
+                                     NDP(dtype=np.double), # q_bore
+                                     NDP(dtype=np.double), # q_hwp
+                                     NDP(dtype=np.uintp), # tod
+                                     ct.c_int, # n
+                                     NDP(dtype=np.double), # smap
+                                     NDP(dtype=np.double), # pmap
+                                     ct.c_int) # nside
 
 libqp.set_iers_bulletin_a.argtypes = (qp_memory_t_p,
                                       ct.c_int, ct.c_int, # mjd_min, mjd_max
@@ -340,12 +388,12 @@ def get_rfunc(state):
     return f
 
 def check_set_state(state):
-    rdict = {'always':0,'once':-1,'never':-999}
+    rdict = {'always':QP_DO_ALWAYS, 'once':QP_DO_ONCE, 'never':QP_DO_NEVER}
     state = rdict.get(state,state)
     return check_set_float(state)
 
 def check_get_state(state):
-    rdict = {0:'always',-1:'once',-999:'never'}
+    rdict = {QP_DO_ALWAYS:'always', QP_DO_ONCE:'once', QP_DO_NEVER:'never'}
     state = rdict.get(state,state)
     return state
 

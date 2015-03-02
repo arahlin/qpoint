@@ -5,6 +5,10 @@
 #include "qpoint.h"
 #include <omp.h>
 
+const int QP_DO_ALWAYS = 0;
+const int QP_DO_ONCE = -1;
+const int QP_DO_NEVER = -999;
+
 void qp_init_state(qp_state_t *state, double rate) {
   state->update_rate = rate;
   state->ctime_last = -1;

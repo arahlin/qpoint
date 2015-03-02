@@ -24,8 +24,8 @@ ctime = 1418662800. + np.arange(n)/100.
 az = 80. + 100.*np.sin(2*np.pi*np.arange(n)/4000.)
 el = 32. + 10.*np.mod(np.arange(n,dtype=float),500000.)/500000.
 el = np.floor(el/0.1)*0.1
-pitch = np.zeros_like(ctime)
-roll = np.zeros_like(ctime)
+pitch = None # np.zeros_like(ctime)
+roll = None # np.zeros_like(ctime)
 lat = -77.6*np.ones_like(ctime)
 lon = 165.7 - np.arange(n)*3/850000.
 
@@ -56,8 +56,11 @@ delta_psi_list = [22.5,22.5,-22.5,-22.5];
 
 q_off_list = Q.det_offset(delta_az_list, delta_el_list, delta_psi_list)
 
-# initialize and calculate hits map
-pmap = Q.bore2map(q_off_list, ctime, q_bore, nside=256, q_hwp=q_hwp)
+# noise
+tod = 300 * np.random.randn(4,n)
+
+# initialize and calculate hits and data maps
+smap, pmap = Q.bore2map(q_off_list, ctime, q_bore, nside=256, q_hwp=q_hwp, tod=tod)
 
 # several other detector offsets in degrees
 delta_az_list2 = [-3.0,-2.0,2.0,3.0];
@@ -66,13 +69,17 @@ delta_psi_list2 = [22.5,22.5,-22.5,-22.5];
 
 q_off_list2 = Q.det_offset(delta_az_list2, delta_el_list2, delta_psi_list2)
 
+tod2 = 300 * np.random.randn(4,n)
+
 # update pmap
-Q.bore2map(q_off_list2, ctime, q_bore, pmap=pmap, q_hwp=q_hwp)
+Q.bore2map(q_off_list2, ctime, q_bore, pmap=pmap, smap=smap, q_hwp=q_hwp, tod=tod2)
 
 # extract columns
 hits, p01, p02, p11, p12, p22 = pmap.T
+m1, m2, m3 = smap.T
 
 import healpy as hp
 hp.mollview(hits)
+hp.mollview(m1/hits,min=-300,max=300)
 import pylab
 pylab.show()
