@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <float.h>
 #include "sofa.h"
 #ifdef SLAREFRO
 #include "slarefro.h"
@@ -420,28 +421,46 @@ void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
   
   // ZYZ euler angles
   
-  double q01 = q[0]*q[1];
-  double q02 = q[0]*q[2];
-  double q13 = q[1]*q[3];
-  double q23 = q[2]*q[3];
   double q00p33 = q[0]*q[0] + q[3]*q[3];
   double q11p22 = q[1]*q[1] + q[2]*q[2];
   // NB: factors of two have been redistributed...
-  double sina_2 = q23 - q01;
-  double cosa_2 = q02 + q13;
-  double icosb2 = 1./(q00p33*q11p22);
+  double cosb2 = q00p33*q11p22;
   double sinb = q00p33 - q11p22;
-  double sing_cb = q01 + q23;
-  double cosg_cb = q02 - q13;
+  double icosb2, sing_cb, cosg_cb;
+
+  if (cosb2 < DBL_EPSILON) {
+    *ra = 0;
+
+    icosb2 = 1;
+    if (sinb > 0) {
+      cosg_cb = q[0] * q[0] - q[3] * q[3];
+      sing_cb = 2 * q[0] * q[3];
+    } else {
+      cosg_cb = q[2] * q[2] - q[1] * q[1];
+      sing_cb = 2 * q[1] * q[2];
+    }
+  } else {
+    double q01 = q[0]*q[1];
+    double q02 = q[0]*q[2];
+    double q13 = q[1]*q[3];
+    double q23 = q[2]*q[3];
+    double sina_2 = q23 - q01;
+    double cosa_2 = q02 + q13;
+
+    if (mem->fast_math)
+      *ra = rad2deg(poly_atan2(sina_2, cosa_2));
+    else
+      *ra = rad2deg(atan2(sina_2, cosa_2));
+
+    icosb2 = 1./cosb2;
+    sing_cb = q01 + q23;
+    cosg_cb = q02 - q13;
+  }
+
+  *sindec = sinb;
   
   // cosmo (healpix) or IAU polarization convention?
   if (!mem->polconv) sing_cb = -sing_cb;
-  
-  if (mem->fast_math)
-    *ra = rad2deg(poly_atan2(sina_2, cosa_2));
-  else
-    *ra = rad2deg(atan2(sina_2, cosa_2));
-  *sindec = sinb;
   
   *sin2psi = 2.*sing_cb*cosg_cb*icosb2;
   *cos2psi = 2.*cosg_cb*cosg_cb*icosb2 - 1.;
@@ -452,32 +471,51 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
   
   // ZYZ euler angles
   
-  double q01 = q[0]*q[1];
-  double q02 = q[0]*q[2];
-  double q13 = q[1]*q[3];
-  double q23 = q[2]*q[3];
   double q00p33 = q[0]*q[0] + q[3]*q[3];
   double q11p22 = q[1]*q[1] + q[2]*q[2];
   // NB: factors of 2 have been redistributed...
-  double sina_2 = q23 - q01;
-  double cosa_2 = q02 + q13;
   double cosb2 = q00p33*q11p22;
-  double cosb_2 = sqrt(cosb2); // hypot(sina,cosa);
-  double icosb2 = 1./cosb2;
   double sinb_2 = 0.5*(q00p33 - q11p22);
-  double sing_cb = q01 + q23;
-  double cosg_cb = q02 - q13;
+  double icosb2, sing_cb, cosg_cb;
+
+  if (cosb2 < DBL_EPSILON) {
+    *ra = 0;
+    icosb2 = 1;
+
+    if (sinb_2 > 0) {
+      *dec = 90;
+      cosg_cb = q[0] * q[0] - q[3] * q[3];
+      sing_cb = 2 * q[0] * q[3];
+    } else {
+      *dec = -90;
+      cosg_cb = q[2] * q[2] - q[1] * q[1];
+      sing_cb = 2 * q[1] * q[2];
+    }
+  } else {
+    double q01 = q[0]*q[1];
+    double q02 = q[0]*q[2];
+    double q13 = q[1]*q[3];
+    double q23 = q[2]*q[3];
+    double sina_2 = q23 - q01;
+    double cosa_2 = q02 + q13;
+    double cosb_2 = sqrt(cosb2); // hypot(sina,cosa);
+
+    if (mem->fast_math) {
+      *ra = rad2deg(poly_atan2(sina_2, cosa_2));
+      *dec = rad2deg(poly_atan2(sinb_2, cosb_2));
+    } else {
+      *ra = rad2deg(atan2(sina_2, cosa_2));
+      *dec = rad2deg(atan2(sinb_2, cosb_2));
+    }
+
+    icosb2 = 1./cosb2;
+    sing_cb = q01 + q23;
+    cosg_cb = q02 - q13;
+  }
   
   // cosmo (healpix) or IAU polarization convention?
   if (!mem->polconv) sing_cb = -sing_cb;
   
-  if (mem->fast_math) {
-    *ra = rad2deg(poly_atan2(sina_2, cosa_2));
-    *dec = rad2deg(poly_atan2(sinb_2, cosb_2));
-  } else {
-    *ra = rad2deg(atan2(sina_2, cosa_2));
-    *dec = rad2deg(atan2(sinb_2, cosb_2));
-  }
   *sin2psi = 2.*sing_cb*cosg_cb*icosb2;
   *cos2psi = 2.*cosg_cb*cosg_cb*icosb2 - 1.;
 }
