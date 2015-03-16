@@ -32,7 +32,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->pix_order = 0;
   mem->fast_pix = 0;
   qp_set_opt_num_threads(mem, 0);
-  mem->weather.height = 30000.;
+  mem->weather.height = 35000.;
   mem->weather.temperature = 0.;
   mem->weather.pressure = 10.;
   mem->weather.humidity = 0.;
