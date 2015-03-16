@@ -58,6 +58,26 @@ class QPoint(object):
         val = self._all_funcs[key]['get'](self._memory)
         return self._all_funcs[key]['check_get'](val)
     
+    def _check_input(self, name, arg, shape=None, dtype=_np.double):
+        if not isinstance(arg, _np.ndarray):
+            raise TypeError,'input %s must be of type numpy.ndarray' % name
+        if arg.dtype != dtype:
+            arg = arg.astype(dtype)
+        if shape is not None:
+            if arg.shape != shape:
+                raise ValueError,'input %s must have shape %s' % (name, shape)
+        return arg
+
+    def _check_output(self, name, arg=None, shape=None, dtype=_np.double,
+                      **kwargs):
+        if arg is None:
+            arg = kwargs.pop(name, None)
+        if arg is None:
+            if shape is None:
+                raise KeyError,'need shape to initialize output!'
+            arg = _np.empty(shape, dtype=dtype)
+        return self._check_input(name, arg, shape, dtype)
+
     def set(self, **kwargs):
         """
         Available keywords are:
@@ -199,7 +219,7 @@ class QPoint(object):
             if w in kwargs:
                 self._set(w, kwargs.get(w))
 
-        q = kwargs.get('az',None)
+        q = kwargs.get('q',None)
         lat = kwargs.get('lat',None)
         if q is not None and lat is not None:
             def func(x0, x1, x2, x3, y):
@@ -439,7 +459,8 @@ class QPoint(object):
         
         return q
     
-    def bore2radec(self, q_off, ctime, q_bore, q_hwp=None, sindec=False, **kwargs):
+    def bore2radec(self, q_off, ctime, q_bore, q_hwp=None, sindec=False,
+                   ra=None, dec=None, sin2psi=None, cos2psi=None, **kwargs):
         """
         Calculate the orientation on the sky for a detector offset from the
         boresight.  Detector offsets are defined assuming the boresight is
@@ -477,10 +498,12 @@ class QPoint(object):
         q_off  = _np.asarray(q_off,  dtype=_np.double)
         ctime  = _np.asarray(ctime,  dtype=_np.double)
         q_bore = _np.asarray(q_bore, dtype=_np.double)
-        ra  = _np.empty(ctime.shape, dtype=_np.double)
-        dec = _np.empty(ctime.shape, dtype=_np.double)
-        sin2psi = _np.empty(ctime.shape, dtype=_np.double)
-        cos2psi = _np.empty(ctime.shape, dtype=_np.double)
+        ra = self._check_output('ra', ra, shape=ctime.shape, dtype=_np.double)
+        dec = self._check_output('dec', dec, shape=ctime.shape, dtype=_np.double)
+        sin2psi = self._check_output('sin2psi', sin2psi, shape=ctime.shape,
+                                     dtype=_np.double)
+        cos2psi = self._check_output('cos2psi', cos2psi, shape=ctime.shape,
+                                     dtype=_np.double)
         n = ctime.size
         
         if q_bore.shape != ctime.shape + (4,):
@@ -511,7 +534,8 @@ class QPoint(object):
     
     def azel2radec(self, delta_az, delta_el, delta_psi,
                    az, el, pitch, roll, lon, lat, ctime,
-                   hwp=None, sindec=False, **kwargs):
+                   hwp=None, sindec=False, ra=None, dec=None,
+                   sin2psi=None, cos2psi=None, **kwargs):
         """
         Estimate the orientation on the sky for a detector offset from
         boresight, given the boresight attitude (az/el/pitch/roll), location on
@@ -565,10 +589,12 @@ class QPoint(object):
         lon   = _np.asarray(lon,   dtype=_np.double)
         lat   = _np.asarray(lat,   dtype=_np.double)
         ctime = _np.asarray(ctime, dtype=_np.double)
-        ra  = _np.empty(az.shape, dtype=_np.double)
-        dec = _np.empty(az.shape, dtype=_np.double)
-        sin2psi = _np.empty(az.shape, dtype=_np.double)
-        cos2psi = _np.empty(az.shape, dtype=_np.double)
+        ra = self._check_output('ra', ra, shape=az.shape, dtype=_np.double)
+        dec = self._check_output('dec', dec, shape=az.shape, dtype=_np.double)
+        sin2psi = self._check_output('sin2psi', sin2psi, shape=az.shape,
+                                     dtype=_np.double)
+        cos2psi = self._check_output('cos2psi', cos2psi, shape=az.shape,
+                                     dtype=_np.double)
         n = az.size
         
         for x in (el, pitch, roll, lon, lat, ctime):
