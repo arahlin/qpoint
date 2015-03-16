@@ -63,13 +63,13 @@ double qp_gmst(qp_memory_t *mem, double ctime) {
   double mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
   double x,y,gmst;
   
-  if (mem->accuracy) {
+  if (mem->accuracy == 0) {
     if (qp_check_update(&mem->state_dut1, ctime)) {
       get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
     }
     gmst = ctime2gmst(ctime, mem->dut1, mem->accuracy);
   } else {
-    gmst = ctime2gmst(ctime, 0, 0);
+    gmst = ctime2gmst(ctime, 0, mem->accuracy);
   }
   return fmod(rad2deg(gmst) / 15.0, 24.);
 }
@@ -149,7 +149,7 @@ void qp_aberration(quat_t q, vec3_t beta, quat_t qa) {
   qa[1] = -0.5*n[0];
   qa[2] = -0.5*n[1];
   qa[3] = -0.5*n[2];
-};
+}
 
 void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta) {
   double pvb[2][3];
@@ -193,8 +193,8 @@ void qp_erot_quat(double jd_ut1[2], quat_t q) {
   Quaternion_r3(q, theta);
 }
 
-void qp_wobble_quat(double xp, double yp, quat_t q) {
-  double sprime = 0;
+void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q) {
+  double sprime = iauSp00(jd_tt[0], jd_tt[1]);
   
   Quaternion_r1(q, -arcsec2rad(yp));
   Quaternion_r2_mul(-arcsec2rad(xp), q);
@@ -212,17 +212,69 @@ double qp_refraction(double el, double lat, double height, double temp,
 	     press, hum, C_MS * 1e-3 / freq, // wavelength, um
 	     deg2rad(lat), lapse, tol, // precision, radians
 	     &ref);
+#else
+  double A, B;
+  iauRefco(press, temp, hum, C_MS * 1e-3 / freq, &A, &B);
+  double tz = tan(M_PI_2 - deg2rad(el));
+  ref = tz * (A + B * tz * tz);
 #endif
   return rad2deg(ref);
 }
 
-double qp_update_ref(qp_memory_t *mem, double el, double lat) {
+double qp_update_ref(qp_memory_t *mem, quat_t q, double lat) {
   qp_weather_t *W = &mem->weather;
-  double ref = qp_refraction(el, W->height, W->temperature,
-			     W->pressure, W->humidity, W->frequency,
-			     lat, W->lapse_rate, mem->ref_tol);
+  double el;
+
+  if (mem->fast_math)
+    el = rad2deg(poly_asin(q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]));
+  else
+    el = rad2deg(asin(q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]));
+
+  double ref = qp_refraction(el, lat, W->height, W->temperature,
+                             W->pressure, W->humidity, W->frequency,
+                             W->lapse_rate, mem->ref_tol);
   mem->ref_delta = ref;
   return ref;
+}
+
+void qp_apply_refraction(qp_memory_t *mem, double ctime, double lat, quat_t q) {
+  if (qp_check_update(&mem->state_ref, ctime)) {
+    double delta = qp_update_ref(mem, q, lat);
+    quat_t q_delta;
+    Quaternion_r2(q_delta, -deg2rad(delta));
+    Quaternion_copy(mem->q_ref, q_delta);
+#ifdef DEBUG
+    qp_print_debug("ref", q_delta);
+#endif
+  }
+  if (qp_check_apply(&mem->state_ref)) {
+    Quaternion_mul_right(q, mem->q_ref);
+#ifdef DEBUG
+    qp_print_debug("state ref", q);
+#endif
+  }
+}
+
+void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
+                                 quat_t q) {
+  double clat;
+  quat_t q_aber;
+
+  if (qp_check_update(&mem->state_daber, ctime)) {
+    if (mem->fast_math)
+      clat = poly_cos(deg2rad(lat));
+    else
+      clat = cos(deg2rad(lat));
+    mem->beta_rot[1] = -clat * D_ABER_RAD;
+  }
+  if (qp_check_apply(&mem->state_daber)) {
+    qp_aberration(q, (double *)mem->beta_rot, q_aber);
+    Quaternion_mul_left(q_aber, q);
+#ifdef DEBUG
+    qp_print_debug("daber", q_aber);
+    qp_print_debug("state daber", q);
+#endif
+  }
 }
 
 void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q) {
@@ -247,11 +299,9 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
 		  double roll, double lon, double lat, double ctime,
 		  quat_t q) {
   
-  double jd_utc[2], jd_tt[2], jd_ut1[2], mjd_utc;
+  double jd_utc[2], jd_tt[2] = {0,0}, jd_ut1[2], mjd_utc;
   double x,y;
-  double delta;
   quat_t q_step;
-  static const vec3_t beta_diurnal = {0, -D_ABER_RAD, 0};
   
   // deal with times
   ctime2jd(ctime, jd_utc);
@@ -264,33 +314,24 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   qp_print_debug("state init", q);
 #endif
   
-  // apply refraction correction
-  // NB: if rate is never, correction can still be calculated externally
-  // by the user with qp_update_ref()
-  if (qp_check_apply(&mem->state_ref))
-    delta = qp_update_ref(mem, el, lat);
-  else
-    delta = mem->ref_delta;
-#ifdef DEBUG
-  printf("Refraction: %.6g\n", delta);
-#endif
-  
   // apply boresight rotation
-  qp_azel_quat(az, el-delta, pitch, roll, q);
+  qp_azel_quat(az, el, pitch, roll, q_step);
+  Quaternion_mul_left(q_step, q);
 #ifdef DEBUG
-  qp_print_debug("azel", q);
+  qp_print_debug("azel", q_step);
+  qp_print_debug("state azel", q);
 #endif
+
+  // apply refraction correction
+  // NB: per-detector refraction is not fully implemented!
+  // can only be done properly using the azel2radec functions
+  // otherwise, this is treated as a mean correction
+  qp_apply_refraction(mem, ctime, lat, q);
   
   // apply diurnal aberration
+  // NB: same issue as refraction
   // TODO propagate this to aberration step?
-  if (qp_check_apply(&mem->state_daber)) {
-    qp_aberration(q, (double *)beta_diurnal, q_step);
-    Quaternion_mul_left(q_step, q);
-#ifdef DEBUG
-    qp_print_debug("daber", q_step);
-    qp_print_debug("state daber", q);
-#endif
-  }
+  qp_apply_diurnal_aberration(mem, ctime, lat, q);
   
   // rotate to ITRS (by lon/lat)
   if (qp_check_update(&mem->state_lonlat, ctime)) {
@@ -311,7 +352,8 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
   if (qp_check_update(&mem->state_wobble, ctime)) {
     get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
-    qp_wobble_quat(x, y, mem->q_wobble);
+    ctime2jdtt(ctime, jd_tt);
+    qp_wobble_quat(jd_tt, x, y, mem->q_wobble);
 #ifdef DEBUG
     qp_print_debug("wobble", mem->q_wobble);
 #endif
@@ -342,7 +384,7 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   
   // apply nutation/precession/frame bias correction
   if (qp_check_update(&mem->state_npb, ctime)) {
-    ctime2jdtt(ctime, jd_tt);
+    if (jd_tt[0] == 0) ctime2jdtt(ctime, jd_tt);
     qp_npb_quat(jd_tt, mem->q_npb, mem->accuracy);
 #ifdef DEBUG
     qp_print_debug("npb", mem->q_npb);
@@ -366,7 +408,7 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
 }
 
 void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
-		  double *roll, double *lon, double *lat, double *ctime, 
+		  double *roll, double *lon, double *lat, double *ctime,
 		  quat_t *q, int n) {
   for (int i=0; i<n; i++)
     qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
@@ -426,19 +468,19 @@ void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
   // NB: factors of two have been redistributed...
   double cosb2 = q00p33*q11p22;
   double sinb = q00p33 - q11p22;
-  double icosb2, sing_cb, cosg_cb;
+  double norm, sing, cosg;
 
   if (cosb2 < DBL_EPSILON) {
     *ra = 0;
 
-    icosb2 = 1;
     if (sinb > 0) {
-      cosg_cb = q[0] * q[0] - q[3] * q[3];
-      sing_cb = 2 * q[0] * q[3];
+      cosg = q[0] * q[0] - q[3] * q[3];
+      sing = 2 * q[0] * q[3];
     } else {
-      cosg_cb = q[2] * q[2] - q[1] * q[1];
-      sing_cb = 2 * q[1] * q[2];
+      cosg = q[2] * q[2] - q[1] * q[1];
+      sing = 2 * q[1] * q[2];
     }
+    norm = 2. * cosg;
   } else {
     double q01 = q[0]*q[1];
     double q02 = q[0]*q[2];
@@ -452,18 +494,18 @@ void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
     else
       *ra = rad2deg(atan2(sina_2, cosa_2));
 
-    icosb2 = 1./cosb2;
-    sing_cb = q01 + q23;
-    cosg_cb = q02 - q13;
+    sing = q01 + q23;
+    cosg = q02 - q13;
+    norm = 2. * cosg / cosb2;
   }
 
   *sindec = sinb;
   
   // cosmo (healpix) or IAU polarization convention?
-  if (!mem->polconv) sing_cb = -sing_cb;
+  if (!mem->polconv) sing = -sing;
   
-  *sin2psi = 2.*sing_cb*cosg_cb*icosb2;
-  *cos2psi = 2.*cosg_cb*cosg_cb*icosb2 - 1.;
+  *sin2psi = norm * sing;
+  *cos2psi = norm * cosg - 1.;
 }
 
 void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec, 
@@ -476,21 +518,21 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
   // NB: factors of 2 have been redistributed...
   double cosb2 = q00p33*q11p22;
   double sinb_2 = 0.5*(q00p33 - q11p22);
-  double icosb2, sing_cb, cosg_cb;
+  double norm, sing, cosg;
 
   if (cosb2 < DBL_EPSILON) {
     *ra = 0;
-    icosb2 = 1;
 
     if (sinb_2 > 0) {
       *dec = 90;
-      cosg_cb = q[0] * q[0] - q[3] * q[3];
-      sing_cb = 2 * q[0] * q[3];
+      cosg = q[0] * q[0] - q[3] * q[3];
+      sing = 2 * q[0] * q[3];
     } else {
       *dec = -90;
-      cosg_cb = q[2] * q[2] - q[1] * q[1];
-      sing_cb = 2 * q[1] * q[2];
+      cosg = q[2] * q[2] - q[1] * q[1];
+      sing = 2 * q[1] * q[2];
     }
+    norm = 2. * cosg;
   } else {
     double q01 = q[0]*q[1];
     double q02 = q[0]*q[2];
@@ -508,16 +550,16 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
       *dec = rad2deg(atan2(sinb_2, cosb_2));
     }
 
-    icosb2 = 1./cosb2;
-    sing_cb = q01 + q23;
-    cosg_cb = q02 - q13;
+    sing = q01 + q23;
+    cosg = q02 - q13;
+    norm = 2. * cosg / cosb2;
   }
   
   // cosmo (healpix) or IAU polarization convention?
-  if (!mem->polconv) sing_cb = -sing_cb;
+  if (!mem->polconv) sing = -sing;
   
-  *sin2psi = 2.*sing_cb*cosg_cb*icosb2;
-  *cos2psi = 2.*cosg_cb*cosg_cb*icosb2 - 1.;
+  *sin2psi = norm * sing;
+  *cos2psi = norm * cosg - 1.;
 }
 
 void qp_bore2radec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
@@ -564,6 +606,12 @@ void qp_bore2rasindec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t 
   }
 }
 
+// NB: for all azel2radec functions below:
+// since the complete offset -> ra/dec operation is done in one go here,
+// we should not ignore annual aberration.  in this case,
+// enabling mean_aber actually applies the correction at the detector,
+// since q_off is propagated all the way through.
+
 // all input and output angles are in degrees!
 void qp_azel2radec(qp_memory_t *mem,
 		   double delta_az, double delta_el, double delta_psi,
@@ -571,17 +619,21 @@ void qp_azel2radec(qp_memory_t *mem,
 		   double *lon, double *lat, double *ctime,
 		   double *ra, double *dec, double *sin2psi, 
 		   double *cos2psi, int n) {
-  quat_t q_det, q_off, q_bore;
+  quat_t q_det, q_off;
+  int mean_aber = qp_get_opt_mean_aber(mem);
+  qp_set_opt_mean_aber(mem, 1);
   
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
+    Quaternion_copy(q_det, q_off);
     qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
-                 q_bore);
-    qp_bore2det(mem, q_off, ctime[i], q_bore, q_det);
+                 q_det);
     qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
   }
+
+  qp_set_opt_mean_aber(mem, mean_aber);
 }
 
 // all input and output angles are in degrees!
@@ -591,18 +643,23 @@ void qp_azel2radec_hwp(qp_memory_t *mem,
 		       double *lon, double *lat, double *ctime, double *hwp,
 		       double *ra, double *dec, double *sin2psi, 
 		       double *cos2psi, int n) {
-  quat_t q_det, q_off, q_bore, q_hwp;
+  quat_t q_det, q_off, q_hwp;
+  int mean_aber = qp_get_opt_mean_aber(mem);
+  qp_set_opt_mean_aber(mem, 1);
   
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
+    Quaternion_copy(q_det, q_off);
+    qp_hwp_quat(hwp[i], q_hwp);
+    Quaternion_mul_right(q_det, q_hwp);
     qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
-                 q_bore);
-    qp_hwp_quat(hwp[i], q_hwp);
-    qp_bore2det_hwp(mem, q_off, ctime[i], q_bore, q_hwp, q_det);
+                 q_det);
     qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
   }
+
+  qp_set_opt_mean_aber(mem, mean_aber);
 }
 
 // all input and output angles are in degrees!
@@ -612,17 +669,21 @@ void qp_azel2rasindec(qp_memory_t *mem,
 		      double *lon, double *lat, double *ctime,
 		      double *ra, double *sindec, double *sin2psi, 
 		      double *cos2psi, int n) {
-  quat_t q_det, q_off, q_bore;
+  quat_t q_det, q_off;
+  int mean_aber = qp_get_opt_mean_aber(mem);
+  qp_set_opt_mean_aber(mem, 1);
   
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
+    Quaternion_copy(q_det, q_off);
     qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
-                 q_bore);
-    qp_bore2det(mem, q_off, ctime[i], q_bore, q_det);
+                 q_det);
     qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
   }
+
+  qp_set_opt_mean_aber(mem, mean_aber);
 }
 
 // all input and output angles are in degrees!
@@ -632,16 +693,21 @@ void qp_azel2rasindec_hwp(qp_memory_t *mem,
 			  double *lon, double *lat, double *ctime, double *hwp,
 			  double *ra, double *sindec, double *sin2psi, 
 			  double *cos2psi, int n) {
-  quat_t q_det, q_off, q_bore, q_hwp;
+  quat_t q_det, q_off, q_hwp;
+  int mean_aber = qp_get_opt_mean_aber(mem);
+  qp_set_opt_mean_aber(mem, 1);
   
   qp_det_offset(delta_az, delta_el, delta_psi, q_off);
   
   for (int i=0; i<n; i++) {
+    Quaternion_copy(q_det, q_off);
+    qp_hwp_quat(hwp[i], q_hwp);
+    Quaternion_mul_right(q_det, q_hwp);
     qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
-                 q_bore);
-    qp_hwp_quat(hwp[i], q_hwp);
-    qp_bore2det_hwp(mem, q_off, ctime[i], q_bore, q_hwp, q_det);
+                 q_det);
     qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
   }
+
+  qp_set_opt_mean_aber(mem, mean_aber);
 }

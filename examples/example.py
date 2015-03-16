@@ -2,7 +2,7 @@ import qpoint as qp
 import numpy as np
 
 # initialize, maybe change a few options from their defaults
-Q = qp.QPoint(accuracy='low', fast_math=True, pair_dets=True)
+Q = qp.QPoint(accuracy='low', fast_math=True, pair_dets=True, fast_pix=True)
 
 # update a bunch of parameters
 # Q.set(rate_daber='always',

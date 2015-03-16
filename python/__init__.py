@@ -157,7 +157,7 @@ class QPoint(object):
         
         Arguments (positional or keyword):
         
-        el           elevation angle, degrees
+        q            observer orientation in horizon coordinates
         lat          latitude, degrees
         height       height above sea level, meters
         temperature  temperature, Celcius
@@ -187,24 +187,28 @@ class QPoint(object):
             return v
         
         if 'delta' in kwargs:
-            v = kwargs.get('ref_delta')
+            v = kwargs.get('delta')
             self._set('ref_delta', v)
             return v
         
-        arg_names = ['el','lat'] + self._funcs['weather'].keys()
+        arg_names = ['q','lat'] + self._funcs['weather'].keys()
         for idx,a in enumerate(args):
             kwargs[arg_names[idx]] = a
         
         for w in self._funcs['weather']:
             if w in kwargs:
                 self._set(w, kwargs.get(w))
-        
-        el = kwargs.get('el',None)
+
+        q = kwargs.get('az',None)
         lat = kwargs.get('lat',None)
-        if el is not None and lat is not None:
-            def func(x, y): return _libqp.qp_update_ref(self._memory, x, y)
+        if q is not None and lat is not None:
+            def func(x0, x1, x2, x3, y):
+                q = _np.array([x0,x1,x2,x3])
+                return _libqp.qp_update_ref(self._memory, q, y)
             fvec = _np.vectorize(func,[_np.double])
-            delta = fvec(el, lat)
+            if q.size / 4 > 1:
+                q = q.transpose()
+            delta = fvec(q[0], q[1], q[2], q[3], lat)
             if delta.shape == ():
                 return delta[()]
             return delta
@@ -370,7 +374,8 @@ class QPoint(object):
             _libqp.qp_hwp_quatn(theta, quat, theta.size)
         return quat
     
-    def azel2bore(self, az, el, pitch, roll, lon, lat, ctime, **kwargs):
+    def azel2bore(self, az, el, pitch, roll, lon, lat, ctime, q=None,
+                  **kwargs):
         """
         Estimate the quaternion for the boresight orientation on the sky given
         the attitude (az/el/pitch/roll), location on the earth (lon/lat) and
@@ -385,9 +390,10 @@ class QPoint(object):
         lon        observer longitude (degrees)
         lat        observer latitude (degrees)
         ctime      unix time in seconds UTC
+        q          output quaternion array initialized by user
         
         Keywork arguments:
-            
+
         Any keywords accepted by the QPoint.set function can also be passed
         here, and will be processed prior to calculation.
         
@@ -411,12 +417,22 @@ class QPoint(object):
         lon   = _np.asarray(lon,   dtype=_np.double)
         lat   = _np.asarray(lat,   dtype=_np.double)
         ctime = _np.asarray(ctime, dtype=_np.double)
-        q = _np.empty(az.shape + (4,), dtype=_np.double)
         n = az.size
-    
+
         for x in (el, pitch, roll, lon, lat, ctime):
             if x.shape != az.shape:
                 raise ValueError,"input vectors must have the same shape"
+
+        # identity quaternion
+        if isinstance(q, _np.ndarray):
+            q = _np.asarray(q, dtype=_np.double)
+            if q.shape != (n,4):
+                raise ValueError,"input q must have shape (N,4)"
+        elif q is None:
+            q = _np.zeros(az.shape + (4,), dtype=_np.double)
+            q[:,0] = 1
+        else:
+            raise KeyError,"unrecognized input q"
         
         _libqp.qp_azel2bore(self._memory, az, el, pitch, roll, lon, lat,
                             ctime, q, n)
@@ -584,7 +600,7 @@ class QPoint(object):
         
         return ra, dec, sin2psi, cos2psi
         
-    def radec2pix(self, nside, ra, dec, **kwargs):
+    def radec2pix(self, ra, dec, nside=256, **kwargs):
         """
         Calculate healpix pixel number for given ra/dec and nside
         """
@@ -598,11 +614,91 @@ class QPoint(object):
             raise ValueError, "input vectors must have the same shape"
 
         if ra.size == 1:
-            return _libqp.qp_radec2pix(self._memory, nside, ra[0], dec[0])
+            return _libqp.qp_radec2pix(self._memory, ra[0], dec[0], nside)
 
         pix = _np.empty(ra.shape, dtype=_np.int)
-        _libqp.qp_radec2pixn(self._memory, nside, ra, dec, pix, ra.size)
+        _libqp.qp_radec2pixn(self._memory, ra, dec, nside, pix, ra.size)
         return pix
+
+    def quat2pix(self, quat, nside=256, **kwargs):
+        """
+        Calculate healpix pixel number and polarization angle given
+        quaternion and nside
+        """
+
+        self.set(**kwargs)
+
+        quat = _np.asarray(quat, dtype=_np.double)
+        if quat.size / 4 == 1:
+            from _libqpoint import quat2pix
+            return quat2pix(self._memory, quat, nside)
+
+        n = quat.shape[0]
+        shape = (n,)
+        pix = _np.empty(shape, dtype=_np.int)
+        sin2psi = _np.empty(shape, dtype=_np.double)
+        cos2psi = _np.empty(shape, dtype=_np.double)
+        _libqp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
+        return pix, sin2psi, cos2psi
+
+    def bore2pix(self, q_off, ctime, q_bore, q_hwp=None, nside=256, **kwargs):
+        """
+        Calculate the orientation on the sky for a detector offset from the
+        boresight.  Detector offsets are defined assuming the boresight is
+        pointed toward the horizon, and that the boresight polarization axis is
+        along the vertical.
+
+        Arguments:
+
+        q_off      Detector offset quaternion for a single detector,
+                   calculated using det_offset
+        ctime      array of unix times in seconds UTC
+        q_bore     Nx4 array of quaternions encoding the boresight orientation
+                   on the sky (as output by azel2radec)
+
+        Keyword arguments:
+
+        q_hwp      HWP angle quaternions calculated using hwp_quat
+                   must be same shape as q_bore
+        nside      map dimension
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        pix        detector pixel number
+        sin2psi    detector polarization orientation
+        cos2psi    detector polarization orientation
+        """
+
+        self.set(**kwargs)
+
+        q_off  = _np.asarray(q_off,  dtype=_np.double)
+        ctime  = _np.asarray(ctime,  dtype=_np.double)
+        q_bore = _np.asarray(q_bore, dtype=_np.double)
+        pix  = _np.empty(ctime.shape, dtype=_np.int)
+        sin2psi = _np.empty(ctime.shape, dtype=_np.double)
+        cos2psi = _np.empty(ctime.shape, dtype=_np.double)
+        n = ctime.size
+
+        if q_bore.shape != ctime.shape + (4,):
+            raise ValueError,\
+                'ctime and q_bore must have compatible shapes (N,) and (N,4)'
+
+        if q_hwp is None:
+            _libqp.qp_bore2pix(self._memory, q_off, ctime, q_bore,
+                               nside, pix, sin2psi, cos2psi, n)
+        else:
+            q_hwp = _np.asarray(q_hwp, dtype=_np.double)
+            if q_bore.shape != q_hwp.shape:
+                raise ValueError,\
+                    'q_bore and q_hwp must have the same shape'
+
+            _libqp.qp_bore2pix_hwp(self._memory, q_off, ctime, q_bore,
+                                   q_hwp, nside, pix, sin2psi, cos2psi, n)
+
+        return pix, sin2psi, cos2psi
 
     def bore2map(self, q_off, ctime, q_bore, nside=256,
                  q_hwp=None, tod=None, smap=None, pmap=None, **kwargs):
@@ -703,6 +799,43 @@ class QPoint(object):
 
         return ret
         
+    def map2tod(self, q_off, ctime, q_bore, smap, q_hwp=None, **kwargs):
+        """
+        Calculate signal TOD from input map given detector offsets,
+        boresight orientation and hwp orientation (optional).
+        Input map is an npix-x-3 array containing (T,Q,U) maps.
+        Returns an array of shape (ndet, nsamp).
+        """
+
+        self.set(**kwargs)
+
+        q_off = _np.asarray(q_off, dtype=_np.double)
+        ndet = q_off.size/4
+
+        ctime  = _np.asarray(ctime,  dtype=_np.double)
+        q_bore = _np.asarray(q_bore, dtype=_np.double)
+        n = ctime.size
+
+        if ctime.shape[0] != q_bore.shape[0]:
+            raise ValueError,"input ctime and q_bore must have compatible shape"
+
+        nside = int(_np.sqrt(smap.size/3/12))
+        if smap.shape != (12 * nside * nside, 3):
+            raise ValueError,"input smap must have shape (npix, 3)"
+
+        tod = _np.empty((ndet, n), dtype=_np.double)
+        # array of pointers
+        todp = (tod.__array_interface__['data'][0] +
+                _np.arange(tod.shape[0]) * tod.strides[0]).astype(_np.uintp)
+
+        if q_hwp is None:
+            _libqp.qp_map2tod(self._memory, q_off, ndet, ctime, q_bore,
+                              smap, nside, todp, n)
+        else:
+            _libqp.qp_map2tod_hwp(self._memory, q_off, ndet, ctime, q_bore, q_hwp,
+                                  smap, nside, todp, n)
+        return tod
+
     def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
         """
         Load IERS Bulletin A from file and store in memory.  The file must be

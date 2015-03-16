@@ -17,7 +17,7 @@ extern "C" {
   /* state structure for keeping track of transformation updates */
   typedef struct {
     double update_rate; // period in seconds
-    double ctime_last; // time of last update
+    double ctime_last;  // time of last update
   } qp_state_t;
   
   /* structure for storing refraction data */
@@ -61,12 +61,14 @@ extern "C" {
     qp_weather_t weather;     // weather
     double ref_tol;           // refraction tolerance, rad
     double ref_delta;         // refraction correction, deg
+    quat_t q_ref;             // refraction quaternion
     double dut1;              // UT1 correction
     quat_t q_lonlat;          // lonlat quaternion
     quat_t q_wobble;          // wobble quaternion
     quat_t q_npb;             // nutation etc quaternion
     quat_t q_erot;            // earth's rotation quaternion
-    vec3_t beta_earth;        // earth velocity
+    vec3_t beta_earth;        // earth orbital velocity
+    vec3_t beta_rot;          // earth rotational velocity
     qp_bulletina_t bulletinA; // bulletin A data
     
     // options
@@ -76,6 +78,7 @@ extern "C" {
     int polconv;           // polarization convention (0=healpix,1=IAU)
     int pair_dets;         // pair A/B detectors for bore2map (1=True, 0=False)
     int pix_order;         // pixel ordering (1=nest, 0=ring)
+    int fast_pix;           // use vec2pix instead of ang2pix in binners
     int num_threads;       // number of parallel threads
   } qp_memory_t;
   
@@ -134,6 +137,7 @@ extern "C" {
 		      int polconv,
 		      int pair_dets,
 		      int pix_order,
+                      int fast_pix,
 		      int num_threads);
 
 #define OPTIONFUNC(opt)				    \
@@ -145,6 +149,7 @@ extern "C" {
   OPTIONFUNC(polconv);
   OPTIONFUNC(pair_dets);
   OPTIONFUNC(pix_order);
+  OPTIONFUNC(fast_pix);
   OPTIONFUNC(num_threads);
   
   /* Set weather data */
@@ -174,7 +179,7 @@ extern "C" {
      ********************************************************************** */
   
   /* diurnal aberration constant (radians) */
-#define D_ABER_RAD 1.430408829156e-06 // -0.295043 arcsec
+#define D_ABER_RAD 1.54716541e-06 // -0.3191 arcsec
   /* speed of light, AU/day */
 #define C_AUD 173.14463269999999 
   /* speed of light, m/s */
@@ -227,6 +232,10 @@ extern "C" {
   /* Apply annual aberration correction to given quaternion */
   void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q);
   
+  /* Apply diurnal aberration correction to given quaternion */
+  void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
+                                   quat_t q);
+
   /* Calculate nutation/precession/bias correction quaternion
      use (faster) truncated series if accuracy > 0*/
   void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy);
@@ -235,7 +244,7 @@ extern "C" {
   void qp_erot_quat(double jd_ut1[2], quat_t q);
   
   /* Calcuate wobble correction quaternion */
-  void qp_wobble_quat(double xy, double yp, quat_t q);
+  void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q);
   
   /* Calculate gondola orientation quaternion */
   void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q);
@@ -275,8 +284,11 @@ extern "C" {
 		       double tol);
   
   /* Update atmospheric refraction using stored parameters */
-  double qp_update_ref(qp_memory_t *mem, double el, double lat);
-  
+  double qp_update_ref(qp_memory_t *mem, quat_t q, double lat);
+
+  /* Apply refraction correction */
+  void qp_apply_refraction(qp_memory_t *mem, double ctime, double lat, quat_t q);
+
   /* ************************************************************************* 
      Output functions
      ********************************************************************** */
@@ -386,11 +398,30 @@ extern "C" {
   #define QP_ORDER_RING 0
   
   /* Compute healpix pixel number for given nside and ra/dec */
-  long qp_radec2pix(qp_memory_t *mem, int nside, double ra, double dec);
+  long qp_radec2pix(qp_memory_t *mem, double ra, double dec, int nside);
 
   /* Compute healpix pixel number for given nside and ra/dec */
-  void qp_radec2pixn(qp_memory_t *mem, int nside, double *ra, double *dec,
+  void qp_radec2pixn(qp_memory_t *mem, double *ra, double *dec, int nside,
                      long *pix, int n);
+
+  /* Compute pixel number and pol angle for given nside and quaternion */
+  void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
+                   double *sin2psi, double *cos2psi);
+
+  /* Compute pixel numbers and pol angles for given nside and quaternions */
+  void qp_quat2pixn(qp_memory_t *mem, quat_t *q, int nside, long *pix,
+                    double *sin2psi, double *cos2psi, int n);
+
+  /* Compute pix/pol timestreams for given boresight timestream and detector
+     offset */
+  void qp_bore2pix(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+                   int nside, long *pix, double *sin2psi, double *cos2psi, int n);
+
+  /* Compute pix/pol timestreams for given boresight timestream,
+     waveplate timestream and detector offset */
+  void qp_bore2pix_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
+                       quat_t *q_bore, quat_t *q_hwp, int nside, long *pix,
+                       double *sin2psi, double *cos2psi, int n);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
@@ -491,6 +522,31 @@ extern "C" {
                           double *ctime, quat_t *q_bore, quat_t *q_hwp,
                           double **tod, int n, vec3_t *smap, pixel_t *pmap,
                           int nside);
+
+  /* Compute signal timestream given an input map, boresight pointing
+     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+  void qp_map2tod_single(qp_memory_t *mem, quat_t q_off,
+                         double *ctime, quat_t *q_bore, vec3_t *smap,
+                         int nside, double *tod, int n);
+
+  /* Compute signal timestream given an input map, boresight pointing
+     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+  void qp_map2tod_single_hwp(qp_memory_t *mem, quat_t q_off,
+                             double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                             vec3_t *smap, int nside, double *tod, int n);
+
+  /* Compute signal timestream given an input map, boresight pointing
+     and detector offsets. smap is a npix-x-3 array containing (T,Q,U) maps. */
+  void qp_map2tod(qp_memory_t *mem, quat_t *q_off, int ndet,
+                  double *ctime, quat_t *q_bore, vec3_t *smap, int nside,
+                  double **tod, int n);
+
+  /* Compute signal timestream given an input map, boresight pointing,
+     hwp timestream, and detector offsets.
+     smap is a npix-x-3 array containing (T,Q,U) maps. */
+  void qp_map2tod_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+                      double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                      vec3_t *smap, int nside, double **tod, int n);
 
 #ifdef __cplusplus
 }

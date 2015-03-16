@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <float.h>
 #include "qpoint.h"
 #include "fast_math.h"
 #include "vec3.h"
@@ -11,7 +12,7 @@
 #endif
 
 /* Compute healpix pixel number for given nside and ra/dec */
-long qp_radec2pix(qp_memory_t *mem, int nside, double ra, double dec) {
+long qp_radec2pix(qp_memory_t *mem, double ra, double dec, int nside) {
   long pix;
   if (mem->pix_order == QP_ORDER_NEST)
     ang2pix_nest(nside, M_PI_2 - deg2rad(dec), deg2rad(ra), &pix);
@@ -19,10 +20,75 @@ long qp_radec2pix(qp_memory_t *mem, int nside, double ra, double dec) {
   return pix;
 }
 
-void qp_radec2pixn(qp_memory_t *mem, int nside, double *ra, double *dec,
-                   long *pix, int n) {
+void qp_radec2pixn(qp_memory_t *mem, double *ra, double *dec,
+                   int nside, long *pix, int n) {
   for (int ii = 0; ii < n; ii++) {
-    pix[ii] = qp_radec2pix(mem, nside, ra[ii], dec[ii]);
+    pix[ii] = qp_radec2pix(mem, ra[ii], dec[ii], nside);
+  }
+}
+
+/* Compute pixel number and pol angle given nside and quaternion */
+void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
+                 double *sin2psi, double *cos2psi) {
+  if (mem->fast_pix) {
+    vec3_t vec;
+    Quaternion_to_matrix_col3(q, vec);
+    if (mem->pix_order == QP_ORDER_NEST)
+      vec2pix_nest(nside, vec, pix);
+    else
+      vec2pix_ring(nside, vec, pix);
+
+    double cosb2 = 1 - vec[2]*vec[2];
+    double norm, cosg, sing;
+    if (cosb2 < DBL_EPSILON) {
+      if (vec[2] > 0) {
+        cosg = q[0] * q[0] - q[3] * q[3];
+        sing = 2 * q[0] * q[3];
+      } else {
+        cosg = q[2] * q[2] - q[1] * q[1];
+        sing = 2 * q[1] * q[2];
+      }
+      norm = 2 * cosg;
+    } else {
+      cosg = q[0] * q[2] - q[1] * q[3];
+      sing = q[0] * q[1] + q[2] * q[3];
+      norm = 2. * cosg / cosb2;
+    }
+    if (!mem->polconv) sing = -sing;
+    *sin2psi = norm * sing;
+    *cos2psi = norm * cosg - 1;
+  } else {
+    double ra, dec;
+    qp_quat2radec(mem, q, &ra, &dec, sin2psi, cos2psi);
+    *pix = qp_radec2pix(mem, ra, dec, nside);
+  }
+}
+
+void qp_quat2pixn(qp_memory_t *mem, quat_t *q, int nside, long *pix,
+                  double *sin2psi, double *cos2psi, int n) {
+  for (int ii = 0; ii < n; ii++) {
+    qp_quat2pix(mem, q[ii], nside, pix+ii, sin2psi+ii, cos2psi+ii);
+  }
+}
+
+void qp_bore2pix(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+                 int nside, long *pix, double *sin2psi, double *cos2psi, int n) {
+  quat_t q;
+
+  for (int ii = 0; ii < n; ii++) {
+    qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
+    qp_quat2pix(mem, q, nside, pix+ii, sin2psi+ii, cos2psi+ii);
+  }
+}
+
+void qp_bore2pix_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
+                     quat_t *q_bore, quat_t *q_hwp, int nside, long *pix,
+                     double *sin2psi, double *cos2psi, int n) {
+  quat_t q;
+
+  for (int ii = 0; ii < n; ii++) {
+    qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
+    qp_quat2pix(mem, q, nside, pix+ii, sin2psi+ii, cos2psi+ii);
   }
 }
 
@@ -31,14 +97,13 @@ void qp_radec2pixn(qp_memory_t *mem, int nside, double *ra, double *dec,
 void qp_bore2pnt_single(qp_memory_t *mem, quat_t q_off,
 			double *ctime, quat_t *q_bore, int n,
 			pixel_t *pmap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
   
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     pmap[ipix][0] += 1;
     pmap[ipix][1] += cos2psi;
     pmap[ipix][2] += sin2psi;
@@ -54,14 +119,13 @@ void qp_bore2pnt_single(qp_memory_t *mem, quat_t q_off,
 void qp_bore2sig_single(qp_memory_t *mem, quat_t q_off,
                         double *ctime, quat_t *q_bore, double *tod, int n,
                         vec3_t *smap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
 
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
@@ -74,14 +138,13 @@ void qp_bore2sig_single(qp_memory_t *mem, quat_t q_off,
 void qp_bore2sigpnt_single(qp_memory_t *mem, quat_t q_off,
                            double *ctime, quat_t *q_bore, double *tod, int n,
                            vec3_t *smap, pixel_t *pmap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
 
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
@@ -99,14 +162,13 @@ void qp_bore2sigpnt_single(qp_memory_t *mem, quat_t q_off,
 void qp_bore2pnt_single_hwp(qp_memory_t *mem, quat_t q_off,
 			    double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
 			    pixel_t *pmap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
   
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     pmap[ipix][0] += 1;
     pmap[ipix][1] += cos2psi;
     pmap[ipix][2] += sin2psi;
@@ -122,14 +184,13 @@ void qp_bore2pnt_single_hwp(qp_memory_t *mem, quat_t q_off,
 void qp_bore2sig_single_hwp(qp_memory_t *mem, quat_t q_off,
                             double *ctime, quat_t *q_bore, quat_t *q_hwp,
                             double *tod, int n, vec3_t *smap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
 
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
@@ -143,14 +204,13 @@ void qp_bore2sigpnt_single_hwp(qp_memory_t *mem, quat_t q_off,
                                double *ctime, quat_t *q_bore, quat_t *q_hwp,
                                double *tod, int n, vec3_t *smap,
                                pixel_t *pmap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
 
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
@@ -168,14 +228,13 @@ void qp_bore2sigpnt_single_hwp(qp_memory_t *mem, quat_t q_off,
 void qp_bore2pnt_pair(qp_memory_t *mem, quat_t q_off,
 		      double *ctime, quat_t *q_bore, int n,
 		      pixel_t *pmap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
   
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     pmap[ipix][0] += 2;
     pmap[ipix][3] += 2*cos2psi*cos2psi;
     pmap[ipix][4] += 2*cos2psi*sin2psi;
@@ -188,14 +247,13 @@ void qp_bore2pnt_pair(qp_memory_t *mem, quat_t q_off,
 void qp_bore2pnt_pair_hwp(qp_memory_t *mem, quat_t q_off,
 			  double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
 			  pixel_t *pmap, int nside) {
-  double ra, dec, sin2psi, cos2psi;
+  double sin2psi, cos2psi;
   long ipix;
   quat_t q;
   
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
-    qp_quat2radec(mem, q, &ra, &dec, &sin2psi, &cos2psi);
-    ipix = qp_radec2pix(mem, nside, ra, dec);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
     pmap[ipix][0] += 2;
     pmap[ipix][3] += 2*cos2psi*cos2psi;
     pmap[ipix][4] += 2*cos2psi*sin2psi;
@@ -494,6 +552,77 @@ void qp_bore2sigpnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 
       free(smaploc);
       free(pmaploc);
+    }
+  }
+}
+
+/* Compute signal timestream given an input map, boresight pointing
+   and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+void qp_map2tod_single(qp_memory_t *mem, quat_t q_off,
+                       double *ctime, quat_t *q_bore, vec3_t *smap,
+                       int nside, double *tod, int n) {
+
+  double sin2psi, cos2psi;
+  long ipix;
+  quat_t q;
+
+  for (int ii=0; ii<n; ii++) {
+    qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
+    tod[ii] = smap[ipix][0] + smap[ipix][1] * cos2psi + smap[ipix][2] * sin2psi;
+  }
+}
+
+/* Compute signal timestream given an input map, boresight pointing
+   and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+void qp_map2tod_single_hwp(qp_memory_t *mem, quat_t q_off,
+                           double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                           vec3_t *smap, int nside, double *tod, int n) {
+
+  double sin2psi, cos2psi;
+  long ipix;
+  quat_t q;
+
+  for (int ii=0; ii<n; ii++) {
+    qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
+    qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
+    tod[ii] = smap[ipix][0] + smap[ipix][1] * cos2psi + smap[ipix][2] * sin2psi;
+  }
+}
+
+/* Compute signal timestream given an input map, boresight pointing
+ and detector offsets. smap is a npix-x-3 array containing (T,Q,U) maps. */
+void qp_map2tod(qp_memory_t *mem, quat_t *q_off, int ndet,
+                double *ctime, quat_t *q_bore, vec3_t *smap, int nside,
+                double **tod, int n) {
+#pragma omp parallel
+  {
+    // local copy of memory
+    qp_memory_t memloc = *mem;
+
+#pragma omp for nowait
+    for (int idet=0; idet<ndet; idet++) {
+      qp_map2tod_single(&memloc, q_off[idet], ctime, q_bore, smap, nside,
+                        tod[idet], n);
+    }
+  }
+}
+
+/* Compute signal timestream given an input map, boresight pointing,
+   hwp timestream, and detector offsets.
+   smap is a npix-x-3 array containing (T,Q,U) maps. */
+void qp_map2tod_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+                    double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                    vec3_t *smap, int nside, double **tod, int n) {
+#pragma omp parallel
+  {
+    // local copy of memory
+    qp_memory_t memloc = *mem;
+
+#pragma omp for nowait
+    for (int idet=0; idet<ndet; idet++) {
+      qp_map2tod_single_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp,
+                            smap, nside, tod[idet], n);
     }
   }
 }

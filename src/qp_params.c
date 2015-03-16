@@ -30,6 +30,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->polconv = 0;
   mem->pair_dets = 0;
   mem->pix_order = 0;
+  mem->fast_pix = 0;
   qp_set_opt_num_threads(mem, 0);
   mem->weather.height = 30000.;
   mem->weather.temperature = 0.;
@@ -171,6 +172,7 @@ OPTIONFUNCD(fast_math)
 OPTIONFUNCD(polconv)
 OPTIONFUNCD(pair_dets)
 OPTIONFUNCD(pix_order)
+OPTIONFUNCD(fast_pix)
 
 void qp_set_options(qp_memory_t *mem,
 		    int accuracy,
@@ -179,6 +181,7 @@ void qp_set_options(qp_memory_t *mem,
 		    int polconv,
 		    int pair_dets,
 		    int pix_order,
+                    int fast_pix,
 		    int num_threads) {
   qp_set_opt_accuracy   (mem, accuracy);
   qp_set_opt_mean_aber  (mem, mean_aber);
@@ -186,6 +189,7 @@ void qp_set_options(qp_memory_t *mem,
   qp_set_opt_polconv    (mem, polconv);
   qp_set_opt_pair_dets  (mem, pair_dets);
   qp_set_opt_pix_order  (mem, pix_order);
+  qp_set_opt_fast_pix   (mem, fast_pix);
   qp_set_opt_num_threads(mem, num_threads);
 }
 

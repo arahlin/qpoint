@@ -63,6 +63,7 @@ class qp_memory_t(ct.Structure):
         ('polconv', ct.c_int),
         ('pair_dets', ct.c_int),
         ('pix_order', ct.c_int),
+        ('fast_pix', ct.c_int),
         ('num_threads', ct.c_int),
         ]
 
@@ -244,17 +245,42 @@ libqp.qp_bore2rasindec_hwp.argtypes = (qp_memory_t_p, # params
                                        ct.c_int) # n
 
 libqp.qp_radec2pix.argtypes = (qp_memory_t_p, # params
-                               ct.c_int, # nside
                                ct.c_double, # ra
-                               ct.c_double) # dec
+                               ct.c_double, # dec
+                               ct.c_int) # nside
 libqp.qp_radec2pix.restype = ct.c_int
 
 libqp.qp_radec2pixn.argtypes = (qp_memory_t_p, # params
-                                ct.c_int, # nside
                                 NDP(dtype=np.double), # ra
                                 NDP(dtype=np.double), # dec
+                                ct.c_int, # nside
                                 NDP(dtype=np.int), # pix
                                 ct.c_int) # n
+
+libqp.qp_quat2pix.argtypes = (qp_memory_t_p, # params
+                              NDP(dtype=np.double), # quat
+                              ct.c_int, # nside
+                              NDP(dtype=np.int), # pix
+                              NDP(dtype=np.double), # sin2psi
+                              NDP(dtype=np.double)) # cos2psi
+
+libqp.qp_quat2pixn.argtypes = (qp_memory_t_p, # params
+                               NDP(dtype=np.double), # quat
+                               ct.c_int, # nside
+                               NDP(dtype=np.int), # pix
+                               NDP(dtype=np.double), # sin2psi
+                               NDP(dtype=np.double), # cos2psi
+                               ct.c_int) # n
+
+libqp.qp_bore2pix.argtypes = (qp_memory_t_p, # params
+                              NDP(dtype=np.double), # q_off
+                              NDP(dtype=np.double), # ctime
+                              NDP(dtype=np.double), # q_bore
+                              ct.c_int, # nside
+                              NDP(dtype=np.int), # pix
+                              NDP(dtype=np.double), # sin2psi
+                              NDP(dtype=np.double), # cos2psi
+                              ct.c_int) # n
 
 libqp.qp_bore2pnt.argtypes = (qp_memory_t_p, # params
                               NDP(dtype=np.double), # offsets
@@ -319,6 +345,27 @@ libqp.qp_bore2sigpnt_hwp.argtypes = (qp_memory_t_p, # params
                                      NDP(dtype=np.double), # pmap
                                      ct.c_int) # nside
 
+libqp.qp_map2tod.argtypes = (qp_memory_t_p, # params
+                             NDP(dtype=np.double), # offsets
+                             ct.c_int, # ndet
+                             NDP(dtype=np.double), # ctime
+                             NDP(dtype=np.double), # q_bore
+                             NDP(dtype=np.double), # smap
+                             ct.c_int, # nside
+                             NDP(dtype=np.uintp), # tod
+                             ct.c_int) # n
+
+libqp.qp_map2tod_hwp.argtypes = (qp_memory_t_p, # params
+                                 NDP(dtype=np.double), # offsets
+                                 ct.c_int, # ndet
+                                 NDP(dtype=np.double), # ctime
+                                 NDP(dtype=np.double), # q_bore
+                                 NDP(dtype=np.double), # q_hwp
+                                 NDP(dtype=np.double), # smap
+                                 ct.c_int, # nside
+                                 NDP(dtype=np.uintp), # tod
+                                 ct.c_int) # n
+
 libqp.set_iers_bulletin_a.argtypes = (qp_memory_t_p,
                                       ct.c_int, ct.c_int, # mjd_min, mjd_max
                                       NDP(dtype=np.double), # dut1
@@ -342,6 +389,14 @@ def get_bulletin_a(mem, mjd):
                               ct.byref(x), ct.byref(y))
     return dut1.value, x.value, y.value
 
+def quat2pix(mem, quat, nside):
+    pix = ct.c_int()
+    sin2psi = ct.c_double()
+    cos2psi = ct.c_double()
+    libqp.qp_quat2pix(mem, quat, nside, ct.byref(pix),
+                      ct.byref(sin2psi), ct.byref(cos2psi))
+    return pix.value, sin2psi.value, cos2psi.value
+
 libqp.qp_refraction.argtypes = (ct.c_double, # elevation angle
                                 ct.c_double, # height
                                 ct.c_double, # temperature
@@ -354,8 +409,8 @@ libqp.qp_refraction.argtypes = (ct.c_double, # elevation angle
 libqp.qp_refraction.restype = ct.c_double
 
 libqp.qp_update_ref.argtypes = (qp_memory_t_p, # params
-                                  ct.c_double, # el
-                                  ct.c_double) # lat
+                                NDP(dtype=np.double), # q
+                                ct.c_double) # lat
 libqp.qp_update_ref.restype = ct.c_double
 
 # parameters and options
@@ -533,6 +588,20 @@ def check_get_pix_order(order):
         return 'nest'
     return 'ring'
 
+def check_set_fast_pix(fast):
+    if fast is None:
+        return 0
+    if fast in [True,1]:
+        return 1
+    if fast in [False,0]:
+        return 0
+    return 0
+
+def check_get_fast_pix(fast):
+    if fast == 1:
+        return True
+    return False
+
 def check_set_num_threads(nt):
     if nt is None:
         return 0
@@ -542,7 +611,7 @@ def check_get_num_threads(nt):
     return nt
 
 options = ['accuracy','mean_aber','fast_math','polconv','pair_dets',
-           'pix_order','num_threads']
+           'pix_order','fast_pix','num_threads']
 option_funcs = dict()
 for p in options:
     option_funcs[p] = dict()
