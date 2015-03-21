@@ -17,16 +17,30 @@ if os.path.exists(libslarefro_file):
     extra_obj.append(libslarefro_file)
     extra_args.append('-DSLAREFRO')
 
-hpx = os.getenv('HEALPIX')
-cfits = os.getenv('CFITSIO')
+hpx = os.getenv('HEALPIX','').strip()
 if hpx:
-    hpx = hpx.strip()
     extra_obj.append(os.path.join(hpx,'lib/libchealpix.a'))
-    if cfits:
-        extra_obj.append(os.path.join(cfits, 'lib/libcfitsio.so'))
-    else:
-        extra_obj.append('/usr/lib64/libcfitsio.so') #location on Feynman if no CFITS variable set
     incl_dirs.append(os.path.join(hpx,'include'))
+
+    # deal with cfitsio library using the standard environment variables
+    ext_cfits = os.getenv('EXTERNAL_CFITSIO','').strip()
+    if ext_cfits == 'yes':
+        ext_pref = os.getenv('CFITSIO_EXT_PREFIX','').strip()
+        if ext_pref:
+            extra_obj.append(os.path.join(ext_pref,'lib/libcfitsio.a'))
+            incl_dirs.append(os.path.join(ext_pref,'include'))
+        else:
+            ext_lib = os.getenv('CFITSIO_EXT_LIB','').strip()
+            if ext_lib:
+                extra_obj.append(ext_lib)
+            ext_inc = os.getenv('CFITSIO_EXT_INC','').strip()
+            if ext_inc:
+                incl_dirs.append(os.path.join(ext_inc, 'include'))
+    else:
+        # location on Feynman if no CFITS variable set
+        cflib = '/usr/lib64/libcfitsio.so'
+        if os.path.exists(cflib):
+            extra_obj.append(cflib)
 else:
     libs.append('chealpix')
 
