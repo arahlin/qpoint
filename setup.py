@@ -35,7 +35,7 @@ if hpx:
                 extra_obj.append(ext_lib)
             ext_inc = os.getenv('CFITSIO_EXT_INC','').strip()
             if ext_inc:
-                incl_dirs.append(os.path.join(ext_inc, 'include'))
+                incl_dirs.append(ext_inc)
     else:
         # location on Feynman if no CFITS variable set
         cflib = '/usr/lib64/libcfitsio.so'
