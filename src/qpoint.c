@@ -565,10 +565,12 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
 void qp_radec2quat(qp_memory_t *mem, double ra, double dec, double sin2psi,
                    double cos2psi, quat_t q) {
   double ang;
+  if (!mem->polconv)
+    sin2psi = -sin2psi;
   if (mem->fast_math)
-    ang = poly_atan2(sin2psi, cos2psi) / 2.0;
+    ang = poly_atan2(sin2psi, cos2psi + 1);
   else
-    ang = atan2(sin2psi, cos2psi) / 2.0;
+    ang = atan2(sin2psi, cos2psi + 1);
   Quaternion_r3(q, ang);
   Quaternion_r2_mul(M_PI_2 - deg2rad(dec), q);
   Quaternion_r3_mul(deg2rad(ra), q);
