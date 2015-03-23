@@ -58,7 +58,7 @@ class QPoint(object):
         val = self._all_funcs[key]['get'](self._memory)
         return self._all_funcs[key]['check_get'](val)
     
-    def _check_input(self, name, arg, shape=None, dtype=_np.double):
+    def _check_input(self, name, arg, shape=None, dtype=_np.double, inplace=True):
         if not isinstance(arg, _np.ndarray):
             raise TypeError,'input %s must be of type numpy.ndarray' % name
         if arg.dtype != dtype:
@@ -66,7 +66,9 @@ class QPoint(object):
         if shape is not None:
             if arg.shape != shape:
                 raise ValueError,'input %s must have shape %s' % (name, shape)
-        return arg
+        if inplace:
+            return arg
+        return arg.copy()
 
     def _check_output(self, name, arg=None, shape=None, dtype=_np.double,
                       **kwargs):
@@ -116,6 +118,8 @@ class QPoint(object):
         pair_dets      If True, A/B detectors are paired in bore2map
                        (factor of 2 speed up in computation, but assumes ideality)
         pix_order      'nest' or 'ring' for healpix pixel ordering
+        fast_pix       If True, use vec2pix to get pixel number directly from
+                       the quaternion instead of ang2pix from ra/dec.
         num_threads    Number of threads for openMP bore2map computation
         
         * Weather:
@@ -825,11 +829,20 @@ class QPoint(object):
 
         return ret
         
-    def map2tod(self, q_off, ctime, q_bore, smap, q_hwp=None, **kwargs):
+    def map2tod(self, q_off, ctime, q_bore, smap, q_hwp=None, tod=None,
+                **kwargs):
         """
         Calculate signal TOD from input map given detector offsets,
         boresight orientation and hwp orientation (optional).
-        Input map is an npix-x-3 array containing (T,Q,U) maps.
+        Input smap is an npix-x-N array containing (T,Q,U) maps and
+        possibly their derivatives.
+
+        N    smap contents
+        3    (T, Q, U)
+        9    + (dTdtheta, dQdtheta, dUdtheta, dTdphi, dQdphi, dUdphi)
+        18   + (dT2dt2, dQ2dt2, dU2dt2, dT2dpdt, dQ2dpdt, dU2dpdt,
+                dT2dp2, dQ2dp2, dU2dp2)
+
         Returns an array of shape (ndet, nsamp).
         """
 
@@ -845,21 +858,46 @@ class QPoint(object):
         if ctime.shape[0] != q_bore.shape[0]:
             raise ValueError,"input ctime and q_bore must have compatible shape"
 
-        nside = int(_np.sqrt(smap.size/3/12))
-        if smap.shape != (12 * nside * nside, 3):
-            raise ValueError,"input smap must have shape (npix, 3)"
+        npix = max(smap.shape)
+        nside = _np.sqrt(npix / 12)
+        if _np.floor(_np.log2(nside)) != _np.log2(nside):
+            raise ValueError,'invalid nside'
+        nside = int(nside)
+        ncol = smap.size / npix
+        if smap.shape == (ncol, npix):
+            smap = _np.ascontiguousarray(smap.transpose())
 
-        tod = _np.empty((ndet, n), dtype=_np.double)
+        if ncol not in [3,9,18]:
+            raise ValueError,'map must have 3,9 or 18 columns'
+
+        if tod is None:
+            tod = _np.empty((ndet, n), dtype=_np.double)
         # array of pointers
         todp = (tod.__array_interface__['data'][0] +
                 _np.arange(tod.shape[0]) * tod.strides[0]).astype(_np.uintp)
 
-        if q_hwp is None:
-            _libqp.qp_map2tod(self._memory, q_off, ndet, ctime, q_bore,
-                              smap, nside, todp, n)
-        else:
-            _libqp.qp_map2tod_hwp(self._memory, q_off, ndet, ctime, q_bore, q_hwp,
+        if ncol == 3:
+            if q_hwp is None:
+                _libqp.qp_map2tod(self._memory, q_off, ndet, ctime, q_bore,
                                   smap, nside, todp, n)
+            else:
+                _libqp.qp_map2tod_hwp(self._memory, q_off, ndet, ctime, q_bore, q_hwp,
+                                      smap, nside, todp, n)
+        elif ncol == 9:
+            if q_hwp is None:
+                _libqp.qp_map2tod_der1(self._memory, q_off, ndet, ctime, q_bore,
+                                       smap, nside, todp, n)
+            else:
+                _libqp.qp_map2tod_der1_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                           q_hwp, smap, nside, todp, n)
+        elif ncol == 18:
+            if q_hwp is None:
+                _libqp.qp_map2tod_der2(self._memory, q_off, ndet, ctime, q_bore,
+                                       smap, nside, todp, n)
+            else:
+                _libqp.qp_map2tod_der2_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                           q_hwp, smap, nside, todp, n)
+
         return tod
 
     def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
@@ -962,4 +1000,3 @@ def _plot_diff(ang1,ang2,asec=True,n=None):
     pylab.plot(ds2p[:n]);
     pylab.subplot(414,sharex=ax);
     pylab.plot(dc2p[:n]);
-

@@ -1,5 +1,6 @@
 import qpoint as qp
 import numpy as np
+import healpy as hp
 
 # initialize, maybe change a few options from their defaults
 Q = qp.QPoint(accuracy='low', fast_math=True, pair_dets=True, fast_pix=True)
@@ -56,10 +57,19 @@ delta_psi_list = [22.5,22.5,-22.5,-22.5];
 
 q_off_list = Q.det_offset(delta_az_list, delta_el_list, delta_psi_list)
 
-# noise
-tod = 300 * np.random.randn(4,n)
+# simulated map with first and second derivatives
+print 'simulating map'
+map_in = np.array([100,3,3]*6) * np.random.randn(hp.nside2npix(512), 18)
+
+# scan map to generate timestreams...
+print 'map2tod'
+tod = Q.map2tod(q_off_list, ctime, q_bore, map_in, q_hwp=q_hwp)
+
+# ... or just simulate noise timestreams
+# tod = 300 * np.random.randn(4,n)
 
 # initialize and calculate hits and data maps
+print 'bore2map'
 smap, pmap = Q.bore2map(q_off_list, ctime, q_bore, nside=256, q_hwp=q_hwp, tod=tod)
 
 # several other detector offsets in degrees
@@ -78,7 +88,8 @@ Q.bore2map(q_off_list2, ctime, q_bore, pmap=pmap, smap=smap, q_hwp=q_hwp, tod=to
 hits, p01, p02, p11, p12, p22 = pmap.T
 m1, m2, m3 = smap.T
 
-import healpy as hp
+# plot stuff
+hp.mollview(map_in[:,0], min=-300, max=300)
 hp.mollview(hits)
 hp.mollview(m1/hits,min=-300,max=300)
 import pylab
