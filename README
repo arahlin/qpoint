@@ -2,6 +2,14 @@ qpoint
 
 A lightweight pointing library for SPIDER.
 
+Requirements:
+
+* libchealpix (tested with version 3.20; older versions should work)
+* libcfitsio (not actually used here, but required by chealpix)
+* gfortran, for SLALIB version of atmospheric refraction function
+  (falls back to SOFA version without this)
+
+
 Installation:
 
 for C library:
@@ -13,6 +21,24 @@ for python bindings:
 
     make python
     sudo make install-python
+
+NB: if the above fails due to a missing chealpix or cfitsio library,
+try setting the following environment variables for both healpix and cfitsio:
+
+    # healpix build path
+    HEALPIX=/path/to/Healpix_x.xx
+
+    # flag for external cfitsio library
+    EXTERNAL_CFITSIO=yes
+
+    # set the install prefix... typically /usr/local
+    CFITSIO_EXT_PREFIX=/path/to/prefix
+
+    # ... or set the lib and include paths directly
+    CFITSIO_EXT_LIB=/path/to/libcfitsio.a
+    # directory containing fitsio.h
+    CFITSIO_EXT_INC=/path/to/include
+
 
 Usage:
 

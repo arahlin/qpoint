@@ -1,5 +1,6 @@
 from distutils.core import setup, Extension
 import os, glob
+from warnings import warn
 
 # hack to avoid recompiling sofa every time
 libsofa_file = 'sofa/libsofa_c.a'
@@ -38,10 +39,14 @@ if hpx:
                 incl_dirs.append(ext_inc)
     else:
         # location on Feynman if no CFITS variable set
+        warn('Hardcoded path to libcfitsio, consider using the appropriate ' \
+             'environment variables (see README)', Warning)
         cflib = '/usr/lib64/libcfitsio.so'
         if os.path.exists(cflib):
             extra_obj.append(cflib)
 else:
+    warn('Blindly trying to link against chealpix, consider using the ' \
+         'appropriate environment variables (see README)', Warning)
     libs.append('chealpix')
 
 # this isn't technically an extension...
