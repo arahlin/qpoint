@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     fclose(f);
     
     printf("bore2map\n");
-    qp_bore2map(mem, qs_off, 9, ctime, q_bore, NSAMP, pmap, nside);
+    qp_bore2pnt(mem, qs_off, 9, ctime, q_bore, NSAMP, pmap, nside);
     
     printf("save\n");
     FILE *of = fopen("map_omp.dat","w");
