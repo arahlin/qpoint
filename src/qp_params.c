@@ -23,7 +23,7 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_erot  , QP_DO_ALWAYS);
   qp_init_state(&mem->state_npb   , 10);
   qp_init_state(&mem->state_aaber , 100);
-  qp_init_state(&mem->state_ref , QP_DO_NEVER);
+  qp_init_state(&mem->state_ref   , QP_DO_NEVER);
   mem->accuracy = 0;
   mem->mean_aber = 0;
   mem->fast_math = 0;
@@ -31,6 +31,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->pair_dets = 0;
   mem->pix_order = 0;
   mem->fast_pix = 0;
+  mem->gal_init = 0;
   qp_set_opt_num_threads(mem, 0);
   mem->weather.height = 35000.;
   mem->weather.temperature = 0.;

@@ -67,6 +67,9 @@ extern "C" {
     quat_t q_wobble;          // wobble quaternion
     quat_t q_npb;             // nutation etc quaternion
     quat_t q_erot;            // earth's rotation quaternion
+    quat_t q_gal;             // galactic coordinates
+    quat_t q_gal_inv;         // inverse of q_gal
+    int gal_init;             // q_gal* initialized?
     vec3_t beta_earth;        // earth orbital velocity
     vec3_t beta_rot;          // earth rotational velocity
     qp_bulletina_t bulletinA; // bulletin A data
@@ -422,6 +425,23 @@ extern "C" {
   /* Compute pixel numbers and pol angles for given nside and quaternions */
   void qp_quat2pixn(qp_memory_t *mem, quat_t *q, int nside, long *pix,
                     double *sin2psi, double *cos2psi, int n);
+
+  /* Rotate from celestial to galactic coordinates */
+  void qp_radec2gal(qp_memory_t *mem, double *ra, double *dec,
+                    double *sin2psi, double *cos2psi);
+  void qp_radec2galn(qp_memory_t *mem, double *ra, double *dec,
+                     double *sin2psi, double *cos2psi, int n);
+
+  /* Rotate from galactic to celestial coordinates */
+  void qp_gal2radec(qp_memory_t *mem, double *ra, double *dec,
+                    double *sin2psi, double *cos2psi);
+  void qp_gal2radecn(qp_memory_t *mem, double *ra, double *dec,
+                     double *sin2psi, double *cos2psi, int n);
+
+  /* Rotate a TQU map from one coordinate system to another */
+  void qp_rotate_map(qp_memory_t *mem, int nside,
+                     vec3_t *map_in, const char coord_in,
+                     vec3_t *map_out, const char coord_out);
 
   /* Compute pix/pol timestreams for given boresight timestream and detector
      offset */

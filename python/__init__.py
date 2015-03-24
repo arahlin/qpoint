@@ -604,8 +604,9 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ra    = self._check_input('ra', ra)
-        dec   = self._check_input('dec', dec, shape=ra.shape)
+        ra    = self._check_input('ra', _np.atleast_1d(ra))
+        dec   = self._check_input('dec', _np.atleast_1d(dec),
+                                  shape=ra.shape)
 
         if ra.size == 1:
             return _libqp.qp_radec2pix(self._memory, ra[0], dec[0], nside)
@@ -613,6 +614,70 @@ class QPoint(object):
         pix = self._check_output('pix', shape=ra.shape, dtype=_np.int)
         _libqp.qp_radec2pixn(self._memory, ra, dec, nside, pix, ra.size)
         return pix
+
+    def radec2gal(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+        """
+        Rotate celestial coordinates to galactic coordinates.
+        """
+
+        self.set(**kwargs)
+
+        ra = self._check_input('ra', _np.atleast_1d(ra), inplace=inplace)
+        dec = self._check_input('dec', _np.atleast_1d(dec), shape=ra.shape,
+                                inplace=inplace)
+        sin2psi = self._check_input('sin2psi', _np.atleast_1d(sin2psi),
+                                    shape=ra.shape, inplace=inplace)
+        cos2psi = self._check_input('cos2psi', _np.atleast_1d(cos2psi),
+                                    shape=ra.shape, inplace=inplace)
+
+        n = ra.size
+
+        _libqp.qp_radec2galn(self._memory, ra, dec, sin2psi, cos2psi, n)
+
+        if n == 1:
+            return ra[0], dec[0], sin2psi[0], cos2psi[0]
+        return ra, dec, sin2psi, cos2psi
+
+    def gal2radec(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+        """
+        Rotate celestial coordinates to galactic coordinates.
+        """
+
+        self.set(**kwargs)
+
+        ra = self._check_input('ra', _np.atleast_1d(ra), inplace=inplace)
+        dec = self._check_input('dec', _np.atleast_1d(dec), shape=ra.shape,
+                                inplace=inplace)
+        sin2psi = self._check_input('sin2psi', _np.atleast_1d(sin2psi),
+                                    shape=ra.shape, inplace=inplace)
+        cos2psi = self._check_input('cos2psi', _np.atleast_1d(cos2psi),
+                                    shape=ra.shape, inplace=inplace)
+
+        n = ra.size
+
+        _libqp.qp_gal2radecn(self._memory, ra, dec, sin2psi, cos2psi, n)
+
+        if n == 1:
+            return ra[0], dec[0], sin2psi[0], cos2psi[0]
+        return ra, dec, sin2psi, cos2psi
+
+    def rotate_map(self, map_in, coord_in='C', coord_out='G', map_out=None,
+                   **kwargs):
+        """
+        Rotate a polarized npix-x-3 map from one coordinate system to another.
+        Supported coordinates:
+
+        C = celestial (J2000)
+        G = galactic
+        """
+
+        nside = int(_np.sqrt(map_in.size / 3 / 12))
+        shape = (12*nside*nside, 3)
+        map_in = self._check_input('map_in', map_in, shape=shape)
+        map_out = self._check_output('map_out', map_out, shape=shape, fill=0)
+
+        _libqp.qp_rotate_map(self._memory, nside, map_in, coord_in, map_out, coord_out)
+        return map_out
 
     def quat2pix(self, quat, nside=256, **kwargs):
         """
@@ -806,10 +871,11 @@ class QPoint(object):
         nside = int(nside)
         ncol = smap.size / npix
         if smap.shape == (ncol, npix):
-            smap = self._check_output('smap', smap.transpose(), shape=(npix, ncol))
+            smap = smap.transpose()
+        smap = self._check_input('smap', smap, shape=(npix, ncol))
 
         if ncol not in [3,9,18]:
-            raise ValueError,'map must have 3,9 or 18 columns'
+            raise ValueError,'map must have 3, 9 or 18 columns'
 
         self._check_output('tod', tod, shape=(ndet, n))
         # array of pointers

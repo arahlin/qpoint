@@ -28,6 +28,113 @@ void qp_radec2pixn(qp_memory_t *mem, double *ra, double *dec,
   }
 }
 
+void qp_init_gal(qp_memory_t *mem) {
+  if (mem->gal_init)
+    return;
+
+  /* galactic pole cf. sofa/g2icrs */
+  double gp_ra = 192.85948;
+  double gp_dec = 27.12825;
+  double gp_psi = deg2rad(32.93192+90);
+  double s = sin(2.*gp_psi);
+  double c = cos(2.*gp_psi);
+
+  qp_radec2quat(mem, gp_ra, gp_dec, s, c, mem->q_gal);
+  Quaternion_copy(mem->q_gal_inv, mem->q_gal);
+  Quaternion_inv(mem->q_gal_inv);
+
+  mem->gal_init = 1;
+}
+
+void qp_radec2gal(qp_memory_t *mem, double *ra, double *dec,
+                  double *sin2psi, double *cos2psi) {
+  quat_t q;
+  qp_init_gal(mem);
+  qp_radec2quat(mem, *ra, *dec, *sin2psi, *cos2psi, q);
+  Quaternion_mul_left(mem->q_gal_inv, q);
+  qp_quat2radec(mem, q, ra, dec, sin2psi, cos2psi);
+}
+
+void qp_radec2galn(qp_memory_t *mem, double *ra, double *dec,
+                   double *sin2psi, double *cos2psi, int n) {
+  for (int ii=0; ii<n; ii++) {
+    qp_radec2gal(mem, ra+ii, dec+ii, sin2psi+ii, cos2psi+ii);
+  }
+}
+
+void qp_gal2radec(qp_memory_t *mem, double *ra, double *dec,
+                  double *sin2psi, double *cos2psi) {
+  quat_t q;
+  qp_init_gal(mem);
+  qp_radec2quat(mem, *ra, *dec, *sin2psi, *cos2psi, q);
+  Quaternion_mul_left(mem->q_gal, q);
+  qp_quat2radec(mem, q, ra, dec, sin2psi, cos2psi);
+}
+
+void qp_gal2radecn(qp_memory_t *mem, double *ra, double *dec,
+                   double *sin2psi, double *cos2psi, int n) {
+  for (int ii=0; ii<n; ii++) {
+    qp_gal2radec(mem, ra+ii, dec+ii, sin2psi+ii, cos2psi+ii);
+  }
+}
+
+void qp_rotate_map(qp_memory_t *mem, int nside,
+                   vec3_t *map_in, const char coord_in,
+                   vec3_t *map_out, const char coord_out) {
+  long npix = 12 * nside * nside;
+  long pix;
+  double ra, dec, sin2psi, cos2psi, norm;
+  double t,q,u;
+
+  /* check inputs */
+  if (!(coord_in == 'C' || coord_in == 'G')) {
+    return;
+  }
+  if (!(coord_out == 'C' || coord_out == 'G')) {
+    return;
+  }
+  if (coord_in == coord_out) {
+    return;
+  }
+
+  for (long ii=0; ii<npix; ii++) {
+    /* ra/dec of output pixel */
+    if (mem->pix_order == QP_ORDER_NEST)
+      pix2ang_nest(nside, ii, &dec, &ra);
+    else
+      pix2ang_ring(nside, ii, &dec, &ra);
+    dec = rad2deg(M_PI_2 - dec);
+    ra = rad2deg(ra);
+    sin2psi = 0;
+    cos2psi = 1;
+
+    /* find corresponding input pixel */
+    if (coord_in == 'C' && coord_out == 'G') {
+      qp_gal2radec(mem, &ra, &dec, &sin2psi, &cos2psi);
+    } else if (coord_in == 'G' && coord_out == 'C') {
+      qp_radec2gal(mem, &ra, &dec, &sin2psi, &cos2psi);
+    }
+    pix = qp_radec2pix(mem, ra, dec, nside);
+
+    /* rotate input pixel to output pixel */
+    t = map_in[pix][0];
+    q = map_in[pix][1];
+    u = map_in[pix][2];
+    map_out[ii][0] = t;
+    norm = sqrt(q*q + u*u);
+    if (norm == 0) continue;
+    cos2psi = q / norm; /* input pol */
+    sin2psi = u / norm;
+    if (coord_in == 'C' && coord_out == 'G') {
+      qp_radec2gal(mem, &ra, &dec, &sin2psi, &cos2psi);
+    } else if (coord_in == 'G' && coord_out == 'C') {
+      qp_gal2radec(mem, &ra, &dec, &sin2psi, &cos2psi);
+    }
+    map_out[ii][1] = norm * cos2psi;
+    map_out[ii][2] = norm * sin2psi;
+  }
+}
+
 /* Compute pixel number and pol angle given nside and quaternion */
 void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
                  double *sin2psi, double *cos2psi) {

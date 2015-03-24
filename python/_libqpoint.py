@@ -55,6 +55,9 @@ class qp_memory_t(ct.Structure):
         ('q_wobble', ct.c_double * 4),
         ('q_npb', ct.c_double * 4),
         ('q_erot', ct.c_double * 4),
+        ('q_gal', ct.c_double * 4),
+        ('q_gal_inv', ct.c_double * 4),
+        ('gal_init', ct.c_int),
         ('beta_earth', ct.c_double * 3),
         ('bulletinA', qp_bulletina_t),
         ('accuracy', ct.c_int),
@@ -256,6 +259,27 @@ libqp.qp_radec2pixn.argtypes = (qp_memory_t_p, # params
                                 ct.c_int, # nside
                                 NDP(dtype=np.int), # pix
                                 ct.c_int) # n
+
+libqp.qp_radec2galn.argtypes = (qp_memory_t_p, # params
+                                NDP(dtype=np.double), # ra
+                                NDP(dtype=np.double), # dec
+                                NDP(dtype=np.double), # sin2psi
+                                NDP(dtype=np.double), # cos2psi
+                                ct.c_int) # n
+
+libqp.qp_gal2radecn.argtypes = (qp_memory_t_p, # params
+                                NDP(dtype=np.double), # ra
+                                NDP(dtype=np.double), # dec
+                                NDP(dtype=np.double), # sin2psi
+                                NDP(dtype=np.double), # cos2psi
+                                ct.c_int) # n
+
+libqp.qp_rotate_map.argtypes = (qp_memory_t_p, # params
+                                ct.c_int, # nside
+                                NDP(dtype=np.double), # map_in
+                                ct.c_char, # coord_in
+                                NDP(dtype=np.double), # map_out
+                                ct.c_char) # coord_out
 
 libqp.qp_quat2pix.argtypes = (qp_memory_t_p, # params
                               NDP(dtype=np.double), # quat
