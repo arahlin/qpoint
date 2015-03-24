@@ -58,7 +58,14 @@ class QPoint(object):
         val = self._all_funcs[key]['get'](self._memory)
         return self._all_funcs[key]['check_get'](val)
     
-    def _check_input(self, name, arg, shape=None, dtype=_np.double, inplace=True):
+    def _check_input(self, name, arg, shape=None, dtype=_np.double, inplace=True,
+                     fill=0):
+        if arg is None:
+            if shape is None:
+                raise ValueError,'need shape to initialize input!'
+            arg = _np.empty(shape, dtype=dtype)
+            if fill is not None:
+                arg[:] = fill
         if not isinstance(arg, _np.ndarray):
             raise TypeError,'input %s must be of type numpy.ndarray' % name
         if arg.dtype != dtype:
@@ -66,18 +73,21 @@ class QPoint(object):
         if shape is not None:
             if arg.shape != shape:
                 raise ValueError,'input %s must have shape %s' % (name, shape)
+        arg = _np.ascontiguousarray(arg)
         if inplace:
             return arg
         return arg.copy()
 
     def _check_output(self, name, arg=None, shape=None, dtype=_np.double,
-                      **kwargs):
+                      fill=None, **kwargs):
         if arg is None:
             arg = kwargs.pop(name, None)
         if arg is None:
             if shape is None:
                 raise KeyError,'need shape to initialize output!'
             arg = _np.empty(shape, dtype=dtype)
+            if fill is not None:
+                arg[:] = fill
         return self._check_input(name, arg, shape, dtype)
 
     def set(self, **kwargs):
@@ -227,7 +237,7 @@ class QPoint(object):
         lat = kwargs.get('lat',None)
         if q is not None and lat is not None:
             def func(x0, x1, x2, x3, y):
-                q = _np.array([x0,x1,x2,x3])
+                q = _np.ascontiguousarray([x0,x1,x2,x3])
                 return _libqp.qp_update_ref(self._memory, q, y)
             fvec = _np.vectorize(func,[_np.double])
             if q.size / 4 > 1:
@@ -259,12 +269,12 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ctime = _np.array(_np.atleast_1d(ctime), dtype=_np.double)
+        ctime = self._check_input('ctime', _np.atleast_1d(ctime))
 
         if ctime.size == 1:
             return _libqp.qp_gmst(self._memory, ctime[0])
 
-        gmst = _np.empty(ctime.shape, dtype=_np.double)
+        gmst = self._check_output('gmst', shape=ctime.shape)
         _libqp.qp_gmstn(self._memory, ctime, gmst, ctime.size)
         return gmst
 
@@ -290,16 +300,13 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        ctime = _np.array(_np.atleast_1d(ctime), dtype=_np.double)
-        lon   = _np.array(_np.atleast_1d(lon),   dtype=_np.double)
-        
-        if ctime.shape != lon.shape:
-            raise ValueError, "input vectors must have the same shape"
+        ctime = self._check_input('ctime', _np.atleast_1d(ctime))
+        lon = self._check_input('lon', _np.atleast_1d(lon), shape=ctime.shape)
         
         if ctime.size == 1:
             return _libqp.qp_lmst(self._memory, ctime[0], lon[0])
         
-        lmst = _np.empty(ctime.shape, dtype=_np.double)
+        lmst = self._check_output('lmst', shape=ctime.shape)
         _libqp.qp_lmstn(self._memory, ctime, lon, lmst, ctime.size)
         return lmst
         
@@ -326,18 +333,14 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ctime = _np.array(_np.atleast_1d(ctime), dtype=_np.double)
-        ra    = _np.array(_np.atleast_1d(ra),    dtype=_np.double)
-        dec   = _np.array(_np.atleast_1d(dec),   dtype=_np.double)
-
-        for x in (ra, dec):
-            if ctime.shape != x.shape:
-                raise ValueError, "input vectors must have the same shape"
+        ctime = self._check_input('ctime', _np.atleast_1d(ctime))
+        ra = self._check_input('ra', _np.atleast_1d(ra), shape=ctime.shape)
+        dec = self._check_input('dec', _np.atleast_1d(dec), shape=ctime.shape)
 
         if ctime.size == 1:
             return _libqp.qp_dipole(self._memory, ctime[0], ra[0], dec[0])
 
-        dipole = _np.empty(ctime.shape, dtype=_np.double)
+        dipole = self._check_output('dipole', shape=ctime.shape)
         _libqp.qp_dipolen(self._memory, ctime, ra, dec, dipole, ctime.size)
         return dipole
 
@@ -358,8 +361,8 @@ class QPoint(object):
         """
         
         delta_az, delta_el, delta_psi \
-            = [_np.array(_np.atleast_1d(x), dtype=_np.double) for x in
-               _np.broadcast_arrays(delta_az, delta_el, delta_psi)]
+            = [self._check_input('offset', _np.atleast_1d(x))
+               for x in _np.broadcast_arrays(delta_az, delta_el, delta_psi)]
         ndet = delta_az.size
         
         for x in (delta_el, delta_psi):
@@ -367,10 +370,10 @@ class QPoint(object):
                 raise ValueError, "input offset vectors must have the same shape"
         
         if ndet == 1:
-            quat = _np.empty((4,), dtype=_np.double)
+            quat = self._check_output('quat', shape=(4,))
             _libqp.qp_det_offset(delta_az[0], delta_el[0], delta_psi[0], quat)
         else:
-            quat = _np.empty(delta_az.shape + (4,), dtype=_np.double)
+            quat = self._check_output('quat', shape=(ndet,4))
             _libqp.qp_det_offsetn(delta_az, delta_el, delta_psi, quat, ndet)
         
         return quat
@@ -389,12 +392,12 @@ class QPoint(object):
         
         q          quaternion for each hwp angle
         """
-        theta = _np.array(_np.atleast_1d(theta), dtype=_np.double)
+        theta = self._check_input('theta', _np.atleast_1d(theta))
         if theta.size == 1:
-            quat = _np.empty((4,), dtype=_np.double)
+            quat = self._check_output('quat', shape=(4,))
             _libqp.qp_hwp_quat(theta[0], quat)
         else:
-            quat = _np.empty(theta.shape + (4,), dtype=_np.double)
+            quat = self._check_output('quat', shape=(theta.size,4))
             _libqp.qp_hwp_quatn(theta, quat, theta.size)
         return quat
     
@@ -428,36 +431,20 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        az    = _np.asarray(az,    dtype=_np.double)
-        el    = _np.asarray(el,    dtype=_np.double)
-        if pitch is not None:
-            pitch = _np.asarray(pitch, dtype=_np.double)
-        else:
-            pitch = _np.zeros_like(az)
-        if roll is not None:
-            roll  = _np.asarray(roll,  dtype=_np.double)
-        else:
-            roll = _np.zeros_like(az)
-        lon   = _np.asarray(lon,   dtype=_np.double)
-        lat   = _np.asarray(lat,   dtype=_np.double)
-        ctime = _np.asarray(ctime, dtype=_np.double)
+        az    = self._check_input('az', az)
+        el    = self._check_input('el',    el,    shape=az.shape)
+        pitch = self._check_input('pitch', pitch, shape=az.shape, fill=0)
+        roll  = self._check_input('roll',  roll,  shape=az.shape, fill=0)
+        lon   = self._check_input('lon',   lon,   shape=az.shape)
+        lat   = self._check_input('lat',   lat,   shape=az.shape)
+        ctime = self._check_input('ctime', ctime, shape=az.shape)
         n = az.size
 
-        for x in (el, pitch, roll, lon, lat, ctime):
-            if x.shape != az.shape:
-                raise ValueError,"input vectors must have the same shape"
-
         # identity quaternion
-        if isinstance(q, _np.ndarray):
-            q = _np.asarray(q, dtype=_np.double)
-            if q.shape != (n,4):
-                raise ValueError,"input q must have shape (N,4)"
-        elif q is None:
-            q = _np.zeros(az.shape + (4,), dtype=_np.double)
+        q = self._check_output('q', q, shape=(n,4), fill=0)
+        if _np.all(q==0):
             q[:,0] = 1
-        else:
-            raise KeyError,"unrecognized input q"
-        
+
         _libqp.qp_azel2bore(self._memory, az, el, pitch, roll, lon, lat,
                             ctime, q, n)
         
@@ -499,9 +486,9 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        q_off  = _np.asarray(q_off,  dtype=_np.double)
-        ctime  = _np.asarray(ctime,  dtype=_np.double)
-        q_bore = _np.asarray(q_bore, dtype=_np.double)
+        q_off  = self._check_input('q_off', q_off)
+        ctime  = self._check_input('ctime', ctime)
+        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         ra = self._check_output('ra', ra, shape=ctime.shape, dtype=_np.double)
         dec = self._check_output('dec', dec, shape=ctime.shape, dtype=_np.double)
         sin2psi = self._check_output('sin2psi', sin2psi, shape=ctime.shape,
@@ -509,10 +496,6 @@ class QPoint(object):
         cos2psi = self._check_output('cos2psi', cos2psi, shape=ctime.shape,
                                      dtype=_np.double)
         n = ctime.size
-        
-        if q_bore.shape != ctime.shape + (4,):
-            raise ValueError,\
-                'ctime and q_bore must have compatible shapes (N,) and (N,4)'
         
         if q_hwp is None:
             if sindec:
@@ -522,11 +505,7 @@ class QPoint(object):
                 _libqp.qp_bore2radec(self._memory, q_off, ctime, q_bore,
                                      ra, dec, sin2psi, cos2psi, n)
         else:
-            q_hwp = _np.asarray(q_hwp, dtype=_np.double)
-            if q_bore.shape != q_hwp.shape:
-                raise ValueError,\
-                    'q_bore and q_hwp must have the same shape'
-            
+            q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
             if sindec:
                 _libqp.qp_bore2rasindec_hwp(self._memory, q_off, ctime, q_bore,
                                             q_hwp, ra, dec, sin2psi, cos2psi, n)
@@ -580,19 +559,13 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        az    = _np.asarray(az,    dtype=_np.double)
-        el    = _np.asarray(el,    dtype=_np.double)
-        if pitch is not None:
-            pitch = _np.asarray(pitch, dtype=_np.double)
-        else:
-            pitch = _np.zeros_like(az)
-        if roll is not None:
-            roll  = _np.asarray(roll,  dtype=_np.double)
-        else:
-            roll = _np.zeros_like(az)
-        lon   = _np.asarray(lon,   dtype=_np.double)
-        lat   = _np.asarray(lat,   dtype=_np.double)
-        ctime = _np.asarray(ctime, dtype=_np.double)
+        az    = self._check_input('az', az)
+        el    = self._check_input('el',    el,    shape=az.shape)
+        pitch = self._check_input('pitch', pitch, shape=az.shape, fill=0)
+        roll  = self._check_input('roll',  roll,  shape=az.shape, fill=0)
+        lon   = self._check_input('lon',   lon,   shape=az.shape)
+        lat   = self._check_input('lat',   lat,   shape=az.shape)
+        ctime = self._check_input('ctime', ctime, shape=az.shape)
         ra = self._check_output('ra', ra, shape=az.shape, dtype=_np.double)
         dec = self._check_output('dec', dec, shape=az.shape, dtype=_np.double)
         sin2psi = self._check_output('sin2psi', sin2psi, shape=az.shape,
@@ -600,10 +573,6 @@ class QPoint(object):
         cos2psi = self._check_output('cos2psi', cos2psi, shape=az.shape,
                                      dtype=_np.double)
         n = az.size
-        
-        for x in (el, pitch, roll, lon, lat, ctime):
-            if x.shape != az.shape:
-                raise ValueError,"input vectors must have the same shape"
         
         if hwp is None:
             if sindec:
@@ -615,10 +584,8 @@ class QPoint(object):
                                      az, el, pitch, roll, lon, lat, ctime,
                                      ra, dec, sin2psi, cos2psi, n)
         else:
-            hwp = _np.asarray(hwp, dtype=_np.double)
-            if hwp.shape != az.shape:
-                raise ValueError,"input vectors must have the same shape"
-            
+            hwp = self._check_input('hwp', hwp, shape=az.shape)
+
             if sindec:
                 _libqp.qp_azel2rasindec_hwp(self._memory, delta_az, delta_el, delta_psi,
                                             az, el, pitch, roll, lon, lat, ctime, hwp,
@@ -637,16 +604,13 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ra    = _np.asarray(ra,     dtype=_np.double)
-        dec   = _np.asarray(dec,    dtype=_np.double)
-
-        if ra.shape != dec.shape:
-            raise ValueError, "input vectors must have the same shape"
+        ra    = self._check_input('ra', ra)
+        dec   = self._check_input('dec', dec, shape=ra.shape)
 
         if ra.size == 1:
             return _libqp.qp_radec2pix(self._memory, ra[0], dec[0], nside)
 
-        pix = _np.empty(ra.shape, dtype=_np.int)
+        pix = self._check_output('pix', shape=ra.shape, dtype=_np.int)
         _libqp.qp_radec2pixn(self._memory, ra, dec, nside, pix, ra.size)
         return pix
 
@@ -658,16 +622,16 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        quat = _np.asarray(quat, dtype=_np.double)
+        quat = self._check_input('quat', quat)
         if quat.size / 4 == 1:
             from _libqpoint import quat2pix
             return quat2pix(self._memory, quat, nside)
 
         n = quat.shape[0]
         shape = (n,)
-        pix = _np.empty(shape, dtype=_np.int)
-        sin2psi = _np.empty(shape, dtype=_np.double)
-        cos2psi = _np.empty(shape, dtype=_np.double)
+        pix = self._check_output('pix', shape=shape, dtype=_np.int, **kwargs)
+        sin2psi = self._check_output('sin2psi', shape=shape, **kwargs)
+        cos2psi = self._check_output('cos2psi', shape=shape, **kwargs)
         _libqp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
         return pix, sin2psi, cos2psi
 
@@ -704,26 +668,22 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off  = _np.asarray(q_off,  dtype=_np.double)
-        ctime  = _np.asarray(ctime,  dtype=_np.double)
-        q_bore = _np.asarray(q_bore, dtype=_np.double)
-        pix  = _np.empty(ctime.shape, dtype=_np.int)
-        sin2psi = _np.empty(ctime.shape, dtype=_np.double)
-        cos2psi = _np.empty(ctime.shape, dtype=_np.double)
+        q_off  = self._check_input('q_off', q_off)
+        ctime  = self._check_input('ctime', ctime)
+        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
+        pix  = self._check_output('pix', shape=ctime.shape,
+                                  dtype=_np.int, **kwargs)
+        sin2psi = self._check_output('sin2psi', shape=ctime.shape,
+                                     **kwargs)
+        cos2psi = self._check_output('cos2psi', shape=ctime.shape,
+                                     **kwargs)
         n = ctime.size
-
-        if q_bore.shape != ctime.shape + (4,):
-            raise ValueError,\
-                'ctime and q_bore must have compatible shapes (N,) and (N,4)'
 
         if q_hwp is None:
             _libqp.qp_bore2pix(self._memory, q_off, ctime, q_bore,
                                nside, pix, sin2psi, cos2psi, n)
         else:
-            q_hwp = _np.asarray(q_hwp, dtype=_np.double)
-            if q_bore.shape != q_hwp.shape:
-                raise ValueError,\
-                    'q_bore and q_hwp must have the same shape'
+            q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
 
             _libqp.qp_bore2pix_hwp(self._memory, q_off, ctime, q_bore,
                                    q_hwp, nside, pix, sin2psi, cos2psi, n)
@@ -744,15 +704,12 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        q_off = _np.asarray(q_off, dtype=_np.double)
+        q_off = self._check_input('q_off', q_off)
         ndet = q_off.size/4
         
-        ctime  = _np.asarray(ctime,  dtype=_np.double)
-        q_bore = _np.asarray(q_bore, dtype=_np.double)
+        ctime  = self._check_input('ctime', ctime)
+        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         n = ctime.size
-        
-        if ctime.shape[0] != q_bore.shape[0]:
-            raise ValueError,"input ctime and q_bore must have compatible shape"
         
         do_pnt = not (pmap is False)
         do_sig = not (tod is None or tod is False or smap is False)
@@ -768,20 +725,12 @@ class QPoint(object):
             else:
                 nside = int(_np.sqrt(pmap.size/6/12))
                 mshapep = (12*nside*nside, 6)
-            if pmap.shape != mshapep:
-                print pmap.shape
-                raise ValueError,"input pmap must have shape %s" % str(mshapep)
-            if pmap.dtype != _np.double:
-                raise TypeError,"input pmap must be of type numpy.double"
+            self._check_output('pmap', pmap, shape=mshapep)
 
         mshapes = (12*nside*nside, 3)
 
         if do_sig:
-            tod = _np.asarray(tod, dtype=_np.double)
-            if tod.shape != (ndet, n):
-                raise ValueError, "input tod has incompatible shape %s" % tod.shape
-            # convert to array of pointers
-            assert(tod.flags['C_CONTIGUOUS'])
+            tod = self._check_input('tod', tod, shape=(ndet, n))
             todp = (tod.__array_interface__['data'][0] +
                     _np.arange(tod.shape[0]) * tod.strides[0]).astype(_np.uintp)
 
@@ -790,11 +739,7 @@ class QPoint(object):
             else:
                 nside = int(_np.sqrt(smap.size/3/12))
                 mshapes = (12*nside*nside, 3)
-            if smap.shape != mshapes:
-                print smap.shape
-                raise ValueError,"input smap must have shape %s" % str(mshapes)
-            if smap.dtype != _np.double:
-                raise TypeError,"input smap must be of type numpy.double"
+            self._check_output('smap', smap, shape=mshapes)
 
         if q_hwp is None:
             if do_pnt and do_sig:
@@ -810,9 +755,7 @@ class QPoint(object):
                                    pmap, nside)
                 ret = pmap
         else:
-            q_hwp = _np.asarray(q_hwp, dtype=_np.double)
-            if q_hwp.shape != q_bore.shape:
-                raise ValueError, "input q_hwp must have the same shape as q_bore"
+            q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
             
             if do_pnt and do_sig:
                 _libqp.qp_bore2sigpnt_hwp(self._memory, q_off, ndet, ctime, q_bore,
@@ -838,6 +781,7 @@ class QPoint(object):
         possibly their derivatives.
 
         N    smap contents
+        ------------------
         3    (T, Q, U)
         9    + (dTdtheta, dQdtheta, dUdtheta, dTdphi, dQdphi, dUdphi)
         18   + (dT2dt2, dQ2dt2, dU2dt2, dT2dpdt, dQ2dpdt, dU2dpdt,
@@ -848,15 +792,12 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off = _np.asarray(q_off, dtype=_np.double)
+        q_off = self._check_input('q_off', q_off)
         ndet = q_off.size/4
 
-        ctime  = _np.asarray(ctime,  dtype=_np.double)
-        q_bore = _np.asarray(q_bore, dtype=_np.double)
+        ctime  = self._check_input('ctime', ctime)
+        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         n = ctime.size
-
-        if ctime.shape[0] != q_bore.shape[0]:
-            raise ValueError,"input ctime and q_bore must have compatible shape"
 
         npix = max(smap.shape)
         nside = _np.sqrt(npix / 12)
@@ -865,13 +806,12 @@ class QPoint(object):
         nside = int(nside)
         ncol = smap.size / npix
         if smap.shape == (ncol, npix):
-            smap = _np.ascontiguousarray(smap.transpose())
+            smap = self._check_output('smap', smap.transpose(), shape=(npix, ncol))
 
         if ncol not in [3,9,18]:
             raise ValueError,'map must have 3,9 or 18 columns'
 
-        if tod is None:
-            tod = _np.empty((ndet, n), dtype=_np.double)
+        self._check_output('tod', tod, shape=(ndet, n))
         # array of pointers
         todp = (tod.__array_interface__['data'][0] +
                 _np.arange(tod.shape[0]) * tod.strides[0]).astype(_np.uintp)
@@ -881,6 +821,7 @@ class QPoint(object):
                 _libqp.qp_map2tod(self._memory, q_off, ndet, ctime, q_bore,
                                   smap, nside, todp, n)
             else:
+                q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
                 _libqp.qp_map2tod_hwp(self._memory, q_off, ndet, ctime, q_bore, q_hwp,
                                       smap, nside, todp, n)
         elif ncol == 9:
@@ -888,6 +829,7 @@ class QPoint(object):
                 _libqp.qp_map2tod_der1(self._memory, q_off, ndet, ctime, q_bore,
                                        smap, nside, todp, n)
             else:
+                q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
                 _libqp.qp_map2tod_der1_hwp(self._memory, q_off, ndet, ctime, q_bore,
                                            q_hwp, smap, nside, todp, n)
         elif ncol == 18:
@@ -895,6 +837,7 @@ class QPoint(object):
                 _libqp.qp_map2tod_der2(self._memory, q_off, ndet, ctime, q_bore,
                                        smap, nside, todp, n)
             else:
+                q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
                 _libqp.qp_map2tod_der2_hwp(self._memory, q_off, ndet, ctime, q_bore,
                                            q_hwp, smap, nside, todp, n)
 
