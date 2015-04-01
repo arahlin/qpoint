@@ -119,9 +119,9 @@ extern "C" {
   void qp_print_debug(const char *tag, quat_t q);
   
   /* per-correction functions */
-#define RATEFUNC(state)					  \
-  void qp_set_rate_##state(qp_memory_t *mem, double rate); \
-  void qp_reset_rate_##state(qp_memory_t *mem);		  \
+#define RATEFUNC(state)                                         \
+  void qp_set_rate_##state(qp_memory_t *mem, double rate);      \
+  void qp_reset_rate_##state(qp_memory_t *mem);                 \
   double qp_get_rate_##state(qp_memory_t *mem);
   RATEFUNC(daber)
   RATEFUNC(lonlat)
@@ -143,8 +143,8 @@ extern "C" {
                       int fast_pix,
 		      int num_threads);
 
-#define OPTIONFUNC(opt)				    \
-  void qp_set_opt_##opt(qp_memory_t *mem, int val); \
+#define OPTIONFUNC(opt)                                 \
+  void qp_set_opt_##opt(qp_memory_t *mem, int val);     \
   int qp_get_opt_##opt(qp_memory_t *mem);
   OPTIONFUNC(accuracy);
   OPTIONFUNC(mean_aber);
@@ -160,8 +160,8 @@ extern "C" {
 		      double height, double temperature, double pressure,
 		      double humidity, double frequency, double lapse_rate);
   
-#define WEATHFUNC(param)				     \
-  void qp_set_weather_##param(qp_memory_t *mem, double val); \
+#define WEATHFUNC(param)                                        \
+  void qp_set_weather_##param(qp_memory_t *mem, double val);    \
   double qp_get_weather_##param(qp_memory_t *mem);
   WEATHFUNC(height)
   WEATHFUNC(temperature)
@@ -170,8 +170,8 @@ extern "C" {
   WEATHFUNC(frequency)
   WEATHFUNC(lapse_rate)
 
-#define DOUBLEFUNC(param)				 \
-  void qp_set_##param(qp_memory_t *mem, double val); \
+#define DOUBLEFUNC(param)                               \
+  void qp_set_##param(qp_memory_t *mem, double val);    \
   double qp_get_##param(qp_memory_t *mem);
   DOUBLEFUNC(ref_tol)
   DOUBLEFUNC(ref_delta)
@@ -399,17 +399,17 @@ extern "C" {
      ********************************************************************** */
   
   /* Pixel, contains (hits, p01, p02, p11, p12, p22) */
-  typedef double pixel_t[6];
+  typedef double vec6_t[6];
   
   /* map with first derivatives */
-  typedef double mapd1_t[9];
+  typedef double vec9_t[9];
 
   /* map with first and second derivatives */
-  typedef double mapd2_t[18];
+  typedef double vec18_t[18];
 
   /* Ordering */
-  #define QP_ORDER_NEST 1
-  #define QP_ORDER_RING 0
+#define QP_ORDER_NEST 1
+#define QP_ORDER_RING 0
   
   /* Compute healpix pixel number for given nside and ra/dec */
   long qp_radec2pix(qp_memory_t *mem, double ra, double dec, int nside);
@@ -456,103 +456,123 @@ extern "C" {
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2pnt_single(qp_memory_t *mem, quat_t q_off,
-			  double *ctime, quat_t *q_bore, int n,
-			  pixel_t *pmap, int nside);
+  void qp_tod2map_pnt_single(qp_memory_t *mem, quat_t q_off,
+                             double *ctime, quat_t *q_bore, int n,
+                             vec6_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2pnt_single_hwp(qp_memory_t *mem, quat_t q_off,
-			      double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
-			      pixel_t *pmap, int nside);
+  void qp_tod2map_pnt_single_hwp(qp_memory_t *mem, quat_t q_off,
+                                 double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
+                                 vec6_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset for both A and B polarizations.
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2pnt_pair(qp_memory_t *mem, quat_t q_off,
-			double *ctime, quat_t *q_bore, int n,
-			pixel_t *pmap, int nside);
+  void qp_tod2map_pnt_pair(qp_memory_t *mem, quat_t q_off,
+                           double *ctime, quat_t *q_bore, int n,
+                           vec6_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and detector
      offset for both A and B polarizations.
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2pnt_pair_hwp(qp_memory_t *mem, quat_t q_off,
-			    double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
-			    pixel_t *pmap, int nside);
+  void qp_tod2map_pnt_pair_hwp(qp_memory_t *mem, quat_t q_off,
+                               double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
+                               vec6_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and many detector
      offsets. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2pnt(qp_memory_t *mem, quat_t *q_off, int ndet,
-		   double *ctime, quat_t *q_bore, int n,
-		   pixel_t *pmap, int nside);
+  void qp_tod2map_pnt(qp_memory_t *mem, quat_t *q_off, int ndet,
+                      double *ctime, quat_t *q_bore, int n,
+                      vec6_t *pmap, int nside);
   
   /* Compute pointing matrix map for given boresight timestream and many detector
      offsets. pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2pnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
-		       double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
-		       pixel_t *pmap, int nside);
+  void qp_tod2map_pnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+                          double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
+                          vec6_t *pmap, int nside);
+
+  /* Compute hits map for given boresight timestream and many detector
+     offsets. pmap is a npix array containing (hits) */
+  void qp_tod2map_pnt_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
+                            double *ctime, quat_t *q_bore, int n,
+                            double *pmap, int nside);
   
   /* Compute signal map for given boresight timestream, signal timestream,
      and detector offset.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
-  void qp_bore2sig_single(qp_memory_t *mem, quat_t q_off,
-                          double *ctime, quat_t *q_bore, double *tod, int n,
-                          vec3_t *smap, int nside);
+  void qp_tod2map_sig_single(qp_memory_t *mem, quat_t q_off,
+                             double *ctime, quat_t *q_bore, double *tod, int n,
+                             vec3_t *smap, int nside);
 
   /* Compute signal map for given boresight timestream, hwp timestream,
      signal timestream and detector offset.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
-  void qp_bore2sig_single_hwp(qp_memory_t *mem, quat_t q_off,
-                              double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                              double *tod, int n, vec3_t *smap, int nside);
+  void qp_tod2map_sig_single_hwp(qp_memory_t *mem, quat_t q_off,
+                                 double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                                 double *tod, int n, vec3_t *smap, int nside);
 
   /* Compute signal map for given boresight timestream, many signal timestreams,
      and many detector offsets.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
-  void qp_bore2sig(qp_memory_t *mem, quat_t *q_off, int ndet,
-                   double *ctime, quat_t *q_bore, double **tod, int n,
-                   vec3_t *smap, int nside);
+  void qp_tod2map_sig(qp_memory_t *mem, quat_t *q_off, int ndet,
+                      double *ctime, quat_t *q_bore, double **tod, int n,
+                      vec3_t *smap, int nside);
 
   /* Compute signal map for given boresight timestream, hwp timestream,
      many signal timestreams, and many detector offsets.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)). */
-  void qp_bore2sig_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
-                       double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                       double **tod, int n, vec3_t *smap, int nside);
+  void qp_tod2map_sig_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+                          double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                          double **tod, int n, vec3_t *smap, int nside);
+
+  /* Compute signal map for given boresight timestream, many signal timestreams,
+     and many detector offsets.
+     smap is a npix array. */
+  void qp_tod2map_sig_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
+                            double *ctime, quat_t *q_bore, double **tod, int n,
+                            double *smap, int nside);
 
   /* Compute signal and pointing matrix maps for given boresight timestream,
      signal timestream, and detector offset.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2sigpnt_single(qp_memory_t *mem, quat_t q_off,
-                             double *ctime, quat_t *q_bore, double *tod, int n,
-                             vec3_t *smap, pixel_t *pmap, int nside);
+  void qp_tod2map_sigpnt_single(qp_memory_t *mem, quat_t q_off,
+                                double *ctime, quat_t *q_bore, double *tod, int n,
+                                vec3_t *smap, vec6_t *pmap, int nside);
 
   /* Compute signal and pointing matrix maps for given boresight timestream,
      hwp timestream, signal timestream, and detector offset.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2sigpnt_single_hwp(qp_memory_t *mem, quat_t q_off,
-                                 double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                                 double *tod, int n, vec3_t *smap,
-                                 pixel_t *pmap, int nside);
+  void qp_tod2map_sigpnt_single_hwp(qp_memory_t *mem, quat_t q_off,
+                                    double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                                    double *tod, int n, vec3_t *smap,
+                                    vec6_t *pmap, int nside);
 
   /* Compute signal and pointing matrix maps for given boresight timestream,
      many signal timestreams, and many detector offsets.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2sigpnt(qp_memory_t *mem, quat_t *q_off, int ndet,
-                      double *ctime, quat_t *q_bore, double **tod, int n,
-                      vec3_t *smap, pixel_t *pmap, int nside);
+  void qp_tod2map_sigpnt(qp_memory_t *mem, quat_t *q_off, int ndet,
+                         double *ctime, quat_t *q_bore, double **tod, int n,
+                         vec3_t *smap, vec6_t *pmap, int nside);
 
   /* Compute signal and pointing matrix maps for given boresight timestream,
      hwp timestream, many signal timestreams, and many detector offsets.
      smap is a npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)).
      pmap is a npix-x-6 array containing (hits, p01, p02, p11, p12, p22) */
-  void qp_bore2sigpnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
-                          double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                          double **tod, int n, vec3_t *smap, pixel_t *pmap,
-                          int nside);
+  void qp_tod2map_sigpnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
+                             double *ctime, quat_t *q_bore, quat_t *q_hwp,
+                             double **tod, int n, vec3_t *smap, vec6_t *pmap,
+                             int nside);
+
+  /* Compute signal and hits maps for given boresight timestream,
+     many signal timestreams, and many detector offsets.
+     smap is a npix array. pmap is a npix array containing (hits) */
+  void qp_tod2map_sigpnt_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
+                               double *ctime, quat_t *q_bore, double **tod, int n,
+                               double *smap, double *pmap, int nside);
 
   /* Compute signal timestream given an input map, boresight pointing
      and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
@@ -560,35 +580,39 @@ extern "C" {
                          double *ctime, quat_t *q_bore, vec3_t *smap,
                          int nside, double *tod, int n);
 
-  /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+  /* Compute signal timestream given an input map, boresight pointing,
+     HWP and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
   void qp_map2tod_single_hwp(qp_memory_t *mem, quat_t q_off,
                              double *ctime, quat_t *q_bore, quat_t *q_hwp,
                              vec3_t *smap, int nside, double *tod, int n);
 
   /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+     and detector offset. smap is a npix-x-9 array containing (T,Q,U) maps
+     and their first derivatives */
   void qp_map2tod_der1_single(qp_memory_t *mem, quat_t q_off,
-                              double *ctime, quat_t *q_bore, mapd1_t *smap,
+                              double *ctime, quat_t *q_bore, vec9_t *smap,
                               int nside, double *tod, int n);
 
   /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+     and detector offset. smap is a npix-x-9 array containing (T,Q,U) maps
+     and their first derivatives. */
   void qp_map2tod_der1_single_hwp(qp_memory_t *mem, quat_t q_off,
                                   double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                                  mapd1_t *smap, int nside, double *tod, int n);
+                                  vec9_t *smap, int nside, double *tod, int n);
 
   /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+     and detector offset. smap is a npix-x-18 array containing (T,Q,U) maps
+     and their first and second derivatives. */
   void qp_map2tod_der2_single(qp_memory_t *mem, quat_t q_off,
-                              double *ctime, quat_t *q_bore, mapd2_t *smap,
+                              double *ctime, quat_t *q_bore, vec18_t *smap,
                               int nside, double *tod, int n);
 
   /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+     and detector offset. smap is a npix-x-18 array containing (T,Q,U) maps
+     and their first and second derivatives. */
   void qp_map2tod_der2_single_hwp(qp_memory_t *mem, quat_t q_off,
                                   double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                                  mapd2_t *smap, int nside, double *tod, int n);
+                                  vec18_t *smap, int nside, double *tod, int n);
 
   /* Compute signal timestream given an input map, boresight pointing
      and detector offsets. smap is a npix-x-3 array containing (T,Q,U) maps. */
@@ -604,28 +628,52 @@ extern "C" {
                       vec3_t *smap, int nside, double **tod, int n);
 
   /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+     and detector offset. smap is a npix-x-9 array containing (T,Q,U) maps
+     and their first derivatives. */
   void qp_map2tod_der1(qp_memory_t *mem, quat_t *q_off, int ndet,
-                       double *ctime, quat_t *q_bore, mapd1_t *smap,
+                       double *ctime, quat_t *q_bore, vec9_t *smap,
                        int nside, double **tod, int n);
   
   /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+     hwp and detector offset. smap is a npix-x-9 array containing (T,Q,U) maps
+     and their first derivatives. */
   void qp_map2tod_der1_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
                            double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                           mapd1_t *smap, int nside, double **tod, int n);
+                           vec9_t *smap, int nside, double **tod, int n);
 
   /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps
+     and their first and second derivatives. */
   void qp_map2tod_der2(qp_memory_t *mem, quat_t *q_off, int ndet,
-                       double *ctime, quat_t *q_bore, mapd2_t *smap,
+                       double *ctime, quat_t *q_bore, vec18_t *smap,
                        int nside, double **tod, int n);
 
-  /* Compute signal timestream given an input map, boresight pointing
-     and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps. */
+  /* Compute signal timestream given an input map, boresight pointing,
+     hwp and detector offset. smap is a npix-x-3 array containing (T,Q,U) maps
+     and their first and second derivatives. */
   void qp_map2tod_der2_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
                            double *ctime, quat_t *q_bore, quat_t *q_hwp,
-                           mapd2_t *smap, int nside, double **tod, int n);
+                           vec18_t *smap, int nside, double **tod, int n);
+
+  /* Compute signal timestream given an input map, boresight pointing
+     and detector offsets. smap is a npix array. */
+  void qp_map2tod_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
+                        double *ctime, quat_t *q_bore, double *smap, int nside,
+                        double **tod, int n);
+
+  /* Compute signal timestream given an input map, boresight pointing
+     and detector offset. smap is a npix-x-3 array containing a map and its
+     first derivatives. */
+  void qp_map2tod_der1_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
+                             double *ctime, quat_t *q_bore, vec3_t *smap,
+                             int nside, double **tod, int n);
+
+  /* Compute signal timestream given an input map, boresight pointing
+     and detector offset. smap is a npix-x-6 array containing a map and
+     its first and second derivatives. */
+  void qp_map2tod_der2_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
+                             double *ctime, quat_t *q_bore, vec6_t *smap,
+                             int nside, double **tod, int n);
 
 #ifdef __cplusplus
 }

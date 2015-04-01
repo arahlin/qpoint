@@ -59,36 +59,68 @@ class QPoint(object):
         return self._all_funcs[key]['check_get'](val)
     
     def _check_input(self, name, arg, shape=None, dtype=_np.double, inplace=True,
-                     fill=0):
+                     fill=0, allow_transpose=True, allow_tuple=True):
         if arg is None:
             if shape is None:
                 raise ValueError,'need shape to initialize input!'
             arg = _np.empty(shape, dtype=dtype)
             if fill is not None:
                 arg[:] = fill
+        if isinstance(arg, tuple) and allow_tuple:
+            arg = _np.asarray(arg)
         if not isinstance(arg, _np.ndarray):
             raise TypeError,'input %s must be of type numpy.ndarray' % name
+        if _np.all([x is None for x in arg.ravel()]):
+            arg = _np.empty(arg.shape, dtype=dtype)
+            if fill is not None:
+                arg[:] = fill
         if arg.dtype != dtype:
             arg = arg.astype(dtype)
         if shape is not None:
             if arg.shape != shape:
-                raise ValueError,'input %s must have shape %s' % (name, shape)
+                if arg.T.shape == shape and allow_transpose:
+                    arg = arg.T
+                else:
+                    raise ValueError,'input %s must have shape %s' % (name, shape)
         arg = _np.ascontiguousarray(arg)
         if inplace:
             return arg
         return arg.copy()
 
     def _check_output(self, name, arg=None, shape=None, dtype=_np.double,
-                      fill=None, **kwargs):
+                      inplace=True, fill=None, allow_transpose=True,
+                      allow_tuple=True, **kwargs):
         if arg is None:
             arg = kwargs.pop(name, None)
-        if arg is None:
-            if shape is None:
-                raise KeyError,'need shape to initialize output!'
-            arg = _np.empty(shape, dtype=dtype)
-            if fill is not None:
-                arg[:] = fill
-        return self._check_input(name, arg, shape, dtype)
+        return self._check_input(name, arg, shape, dtype, inplace, fill,
+                                 allow_transpose, allow_tuple)
+
+    def _check_map(self, m):
+        as_tuple = False
+        if isinstance(m, tuple):
+            as_tuple = True
+            m = _np.asarray(m)
+        if not isinstance(m, _np.ndarray):
+            raise TypeError, 'map must be of type numpy.ndarray'
+        shape_in = m.shape
+        if len(shape_in) == 2 and shape_in[0] == min(shape_in):
+            m = m.T
+        return m, shape_in, as_tuple
+
+    def _return_map(self, m, shape=None, as_tuple=True):
+        if as_tuple:
+            if len(m.shape) == 1:
+                return m
+            if len(m.shape) == 2 and m.shape[0] == max(m.shape):
+                m = m.T
+            return tuple(m)
+        if shape is None:
+            return m
+        if m.T.shape == shape:
+            m = m.T
+        if m.shape != shape:
+            raise ValueError,'map shape has changed!'
+        return m
 
     def set(self, **kwargs):
         """
@@ -299,7 +331,8 @@ class QPoint(object):
         """
         
         self.set(**kwargs)
-        
+
+        ctime, lon = _np.broadcast_arrays(ctime, lon)
         ctime = self._check_input('ctime', _np.atleast_1d(ctime))
         lon = self._check_input('lon', _np.atleast_1d(lon), shape=ctime.shape)
         
@@ -333,6 +366,7 @@ class QPoint(object):
 
         self.set(**kwargs)
 
+        ctime, ra, dec = _np.broadcast_arrays(ctime, ra, dec)
         ctime = self._check_input('ctime', _np.atleast_1d(ctime))
         ra = self._check_input('ra', _np.atleast_1d(ra), shape=ctime.shape)
         dec = self._check_input('dec', _np.atleast_1d(dec), shape=ctime.shape)
@@ -430,8 +464,11 @@ class QPoint(object):
         """
         
         self.set(**kwargs)
-        
-        az    = self._check_input('az', az)
+
+        az, el, pitch, roll, lon, lat, ctime = \
+            _np.broadcast_arrays(az, el, pitch, roll, lon, lat, ctime)
+
+        az    = self._check_input('az',    az)
         el    = self._check_input('el',    el,    shape=az.shape)
         pitch = self._check_input('pitch', pitch, shape=az.shape, fill=0)
         roll  = self._check_input('roll',  roll,  shape=az.shape, fill=0)
@@ -559,7 +596,10 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        az    = self._check_input('az', az)
+        az, el, pitch, roll, lon, lat, ctime = \
+            _np.broadcast_arrays(az, el, pitch, roll, lon, lat, ctime)
+
+        az    = self._check_input('az',    az)
         el    = self._check_input('el',    el,    shape=az.shape)
         pitch = self._check_input('pitch', pitch, shape=az.shape, fill=0)
         roll  = self._check_input('roll',  roll,  shape=az.shape, fill=0)
@@ -622,6 +662,9 @@ class QPoint(object):
 
         self.set(**kwargs)
 
+        ra, dec, sin2psi, cos2psi = \
+            _np.broadcast_arrays(ra, dec, sin2psi, cos2psi)
+
         ra = self._check_input('ra', _np.atleast_1d(ra), inplace=inplace)
         dec = self._check_input('dec', _np.atleast_1d(dec), shape=ra.shape,
                                 inplace=inplace)
@@ -645,6 +688,9 @@ class QPoint(object):
 
         self.set(**kwargs)
 
+        ra, dec, sin2psi, cos2psi = \
+            _np.broadcast_arrays(ra, dec, sin2psi, cos2psi)
+
         ra = self._check_input('ra', _np.atleast_1d(ra), inplace=inplace)
         dec = self._check_input('dec', _np.atleast_1d(dec), shape=ra.shape,
                                 inplace=inplace)
@@ -661,8 +707,8 @@ class QPoint(object):
             return ra[0], dec[0], sin2psi[0], cos2psi[0]
         return ra, dec, sin2psi, cos2psi
 
-    def rotate_map(self, map_in, coord_in='C', coord_out='G', map_out=None,
-                   **kwargs):
+    def rotate_map(self, map_in, coord=['C','G'], map_out=None,
+                   tuple_out=None, **kwargs):
         """
         Rotate a polarized npix-x-3 map from one coordinate system to another.
         Supported coordinates:
@@ -671,15 +717,25 @@ class QPoint(object):
         G = galactic
         """
 
-        nside = int(_np.sqrt(map_in.size / 3 / 12))
+        map_in, shape_in, tuple_in = self._check_map(map_in)
+        if tuple_out is None:
+            tuple_out = tuple_in
+
+        nside = int(_np.sqrt(max(map.shape) / 12))
         shape = (12*nside*nside, 3)
         map_in = self._check_input('map_in', map_in, shape=shape)
         map_out = self._check_output('map_out', map_out, shape=shape, fill=0)
 
-        _libqp.qp_rotate_map(self._memory, nside, map_in, coord_in, map_out, coord_out)
-        return map_out
+        try:
+            coord_in = coord[0]
+            coord_out = coord[1]
+        except:
+            raise ValueError,'unable to parse coord'
 
-    def quat2pix(self, quat, nside=256, **kwargs):
+        _libqp.qp_rotate_map(self._memory, nside, map_in, coord_in, map_out, coord_out)
+        return self._return_map(map_out, shape_in, tuple_out)
+
+    def quat2pix(self, quat, nside=256, pol=True, **kwargs):
         """
         Calculate healpix pixel number and polarization angle given
         quaternion and nside
@@ -698,9 +754,13 @@ class QPoint(object):
         sin2psi = self._check_output('sin2psi', shape=shape, **kwargs)
         cos2psi = self._check_output('cos2psi', shape=shape, **kwargs)
         _libqp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
-        return pix, sin2psi, cos2psi
 
-    def bore2pix(self, q_off, ctime, q_bore, q_hwp=None, nside=256, **kwargs):
+        if pol:
+            return pix, sin2psi, cos2psi
+        return pix
+
+    def bore2pix(self, q_off, ctime, q_bore, q_hwp=None, nside=256, pol=True,
+                 **kwargs):
         """
         Calculate the orientation on the sky for a detector offset from the
         boresight.  Detector offsets are defined assuming the boresight is
@@ -720,6 +780,7 @@ class QPoint(object):
         q_hwp      HWP angle quaternions calculated using hwp_quat
                    must be same shape as q_bore
         nside      map dimension
+        pol        if False, return only the pixel timestream
 
         Any keywords accepted by the QPoint.set function can also be passed
         here, and will be processed prior to calculation.
@@ -727,8 +788,8 @@ class QPoint(object):
         Outputs:
 
         pix        detector pixel number
-        sin2psi    detector polarization orientation
-        cos2psi    detector polarization orientation
+        sin2psi    detector polarization orientation (if pol is True)
+        cos2psi    detector polarization orientation (if pol is True)
         """
 
         self.set(**kwargs)
@@ -753,20 +814,57 @@ class QPoint(object):
             _libqp.qp_bore2pix_hwp(self._memory, q_off, ctime, q_bore,
                                    q_hwp, nside, pix, sin2psi, cos2psi, n)
 
-        return pix, sin2psi, cos2psi
+        if pol is True:
+            return pix, sin2psi, cos2psi
+        return pix
 
-    def bore2map(self, q_off, ctime, q_bore, nside=256,
-                 q_hwp=None, tod=None, smap=None, pmap=None, **kwargs):
+    def tod2map(self, q_off, ctime, q_bore, nside=256, pol=True,
+                q_hwp=None, tod=None, smap=None, pmap=None,
+                tuple_out=None, **kwargs):
         """
         Calculate signal and hits maps for given detectors and boresight orientations.
-        Returns an npix-x-3 array containing (d, d*cos(2 psi), d*sin(2 psi)), and
-        an npix-x-6 array containing (hits, p01, p02, p11, p12, p22).
-        If either smap or pmap is False, then that map is not computed or returned.
-        If tod is not supplied then smap is not computed.
-        tod must be an array of shape (ndet, ntod).
-        Optionally accumulate hits in place by supplying an existing smap and pmap array.
+
+        Arguments
+        ---------
+        q_off : array_like
+          quaternion offset array, of shape ndex-x-4
+        ctime : array_like
+          UTC time in seconds
+        q_bore : array_like
+          boresight quaternion timestream, of shape nsamp-x-4
+
+        Keyword Arguments
+        -----------------
+        nside : int, optional
+          healpix map size.  Determined from output map, if given.  Default: 256.
+        pol : bool, optional
+          write to polarized map and/or pointing matrix if True.  Determined
+          from output maps if given.  Default: True.
+        q_hwp : array_like, optional
+          HWP quaternion timestream, same shape as q_bore
+        tod : array_like, optional
+          output array for timestreams, of shape ndet-x-nsamp
+          if not supplied, smap is not computed.
+        smap : array_like or bool, optional
+          output signal map, of shape npix-x-3 (if pol) or npix (if not pol).
+          use this argument for in-place computation. if False, do not compute.
+        pmap : array_like or bool, optional
+          output pointing matrix map, of shape npix-x-6 (if pol) or npix (if not pol).
+          use this argument for in-place computation. if False, do not compute.
+        tuple_out : bool, optional
+          if True, return the map as a tuple if npix-sized arrays.
+          set this to False if these maps will be added to my more processes.
+
+        The remaining keyword arguments are passed to the QPoint.set method.
+
+        Returns
+        -------
+        smap : array_like
+           accumulated signal map, if requested
+        pmap: array_like
+           accumulated pointing matrix map, if requested
         """
-        
+
         self.set(**kwargs)
         
         q_off = self._check_input('q_off', q_off)
@@ -782,17 +880,20 @@ class QPoint(object):
         if not (do_pnt or do_sig):
             raise KeyError, 'Either smap or pmap must not be False'
 
-        mshapep = (12*nside*nside, 6)
+        npix = 12 * nside * nside
+        mshapep = (npix, 6) if pol else (npix,)
         
         if do_pnt:
             if pmap is None:
                 pmap = _np.zeros(mshapep, dtype=_np.double)
-            else:
-                nside = int(_np.sqrt(pmap.size/6/12))
-                mshapep = (12*nside*nside, 6)
-            self._check_output('pmap', pmap, shape=mshapep)
+            pmap, pshape_in, ptuple_in = self._check_map(pmap)
+            npix = max(pmap.shape)
+            pol = True if min(pmap.shape) == 6 else False
+            nside = int(_np.sqrt(npix/12))
+            mshapep = (npix, 6) if pol else (npix,)
+            pmap = self._check_output('pmap', pmap, shape=mshapep)
 
-        mshapes = (12*nside*nside, 3)
+        mshapes = (npix, 3) if pol else (npix,)
 
         if do_sig:
             tod = self._check_input('tod', tod, shape=(ndet, n))
@@ -801,58 +902,128 @@ class QPoint(object):
 
             if smap is None:
                 smap = _np.zeros(mshapes, dtype=_np.double)
-            else:
-                nside = int(_np.sqrt(smap.size/3/12))
-                mshapes = (12*nside*nside, 3)
-            self._check_output('smap', smap, shape=mshapes)
+            smap, sshape_in, stuple_in = self._check_map(smap)
+            npix = max(smap.shape)
+            pol = True if min(smap.shape) == 3 else False
+            nside = int(_np.sqrt(npix/12))
+            mshapes = (npix, 3) if pol else (npix,)
+            smap = self._check_output('smap', smap, shape=mshapes)
 
-        if q_hwp is None:
+            if do_pnt:
+                if mshapes[0] != mshapep[0]:
+                    raise ValueError,'smap and pmap have incompatible shapes'
+                if len(mshapes) == 2 and len(mshapep) == 2:
+                    if (mshapes[1] > 1) != (mshapep[1] > 1):
+                        raise ValueError,'smap and pmap have incompatible shapes'
+
+        if tuple_out is None:
+            ptuple_out = ptuple_in
+            stuple_out = stuple_in
+        else:
+            ptuple_out = tuple_out
+            stuple_out = tuple_out
+
+        if pol is False:
             if do_pnt and do_sig:
-                _libqp.qp_bore2sigpnt(self._memory, q_off, ndet, ctime, q_bore, todp, n,
-                                      smap, pmap, nside)
-                ret = (smap, pmap)
+                _libqp.qp_tod2map_sigpnt_nopol(self._memory, q_off, ndet, ctime, q_bore,
+                                               todp, n, smap, pmap, nside)
             elif do_sig:
-                _libqp.qp_bore2sig(self._memory, q_off, ndet, ctime, q_bore, todp, n,
-                                   smap, nside)
-                ret = smap
+                _libqp.qp_tod2map_sig_nopol(self._memory, q_off, ndet, ctime, q_bore,
+                                            todp, n, smap, nside)
             elif do_pnt:
-                _libqp.qp_bore2pnt(self._memory, q_off, ndet, ctime, q_bore, n,
-                                   pmap, nside)
-                ret = pmap
+                _libqp.qp_tod2map_pnt_nopol(self,_memory, q_off, ndet, ctime, q_bore,
+                                            n, pmap, nside)
+        elif q_hwp is None:
+            if do_pnt and do_sig:
+                _libqp.qp_tod2map_sigpnt(self._memory, q_off, ndet, ctime, q_bore,
+                                         todp, n, smap, pmap, nside)
+            elif do_sig:
+                _libqp.qp_tod2map_sig(self._memory, q_off, ndet, ctime, q_bore,
+                                      todp, n, smap, nside)
+            elif do_pnt:
+                _libqp.qp_tod2map_pnt(self._memory, q_off, ndet, ctime, q_bore,
+                                      n, pmap, nside)
         else:
             q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
             
             if do_pnt and do_sig:
-                _libqp.qp_bore2sigpnt_hwp(self._memory, q_off, ndet, ctime, q_bore,
-                                          q_hwp, todp, n, smap, pmap, nside)
-                ret = (smap, pmap)
+                _libqp.qp_tod2map_sigpnt_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                             q_hwp, todp, n, smap, pmap, nside)
             elif do_sig:
-                _libqp.qp_bore2sig_hwp(self._memory, q_off, ndet, ctime, q_bore,
-                                       q_hwp, todp, n, smap, nside)
-                ret = smap
+                _libqp.qp_tod2map_sig_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                          q_hwp, todp, n, smap, nside)
             elif do_pnt:
-                _libqp.qp_bore2pnt_hwp(self._memory, q_off, ndet, ctime, q_bore,
-                                       q_hwp, n, pmap, nside)
-                ret = pmap
+                _libqp.qp_tod2map_pnt_hwp(self._memory, q_off, ndet, ctime, q_bore,
+                                          q_hwp, n, pmap, nside)
 
-        return ret
-        
-    def map2tod(self, q_off, ctime, q_bore, smap, q_hwp=None, tod=None,
-                **kwargs):
+        if do_pnt and do_sig:
+            return (self._return_map(smap, sshape_in, stuple_out),
+                    self._return_map(pmap, pshape_in, ptuple_out))
+        elif do_sig:
+            return self._return_map(smap, sshape_in, stuple_out)
+        elif do_pnt:
+            return self._return_map(pmap, pshape_in, ptuple_out)
+
+    def bore2map(self, *args, **kwargs):
+        """
+        *** This method is deprecated, use QPoint.tod2map ***
+        """
+        from warnings import warn
+        warn("Use of QPoint.bore2map is deprecated, use QPoint.tod2map instead",
+             DeprecationWarning)
+        return self.tod2map(*args, **kwargs)
+    bore2map.__doc__ += tod2map.__doc__
+
+    def map2tod(self, q_off, ctime, q_bore, map_in, q_hwp=None, tod=None,
+                pol=True, **kwargs):
         """
         Calculate signal TOD from input map given detector offsets,
         boresight orientation and hwp orientation (optional).
-        Input smap is an npix-x-N array containing (T,Q,U) maps and
-        possibly their derivatives.
 
-        N    smap contents
-        ------------------
-        3    (T, Q, U)
-        9    + (dTdtheta, dQdtheta, dUdtheta, dTdphi, dQdphi, dUdphi)
-        18   + (dT2dt2, dQ2dt2, dU2dt2, dT2dpdt, dQ2dpdt, dU2dpdt,
-                dT2dp2, dQ2dp2, dU2dp2)
+        Arguments
+        ---------
+        q_off : array_like
+          quaternion offset array, of shape ndex-x-4
+        ctime : array_like
+          UTC time in seconds
+        q_bore : array_like
+          boresight quaternion timestream, of shape nsamp-x-4
+        map_in : array_like
+          input map of shape npix-x-N.  See notes for allowed values of N
 
-        Returns an array of shape (ndet, nsamp).
+        Keyword Arguments
+        -----------------
+        pol : bool, optional
+          if True, input map is polarized.  this argument is only used if
+          the shape of map_in is npix-x-3.  Default: True
+        q_hwp : array_like, optional
+          HWP quaternion timestream, same shape as q_bore
+        tod : array_like, optional
+          output array for timestreams, of shape ndet-x-nsamp
+          use this keyword argument for in-place computation.
+
+        The remaining keyword arguments are passed to the QPoint.set method.
+
+        Returns
+        -------
+        tod : array_like
+          A timestream sampled from the input map for each requested detector.
+          The output array shape is ndet-x-nsamp.
+
+        Notes
+        -----
+        This method will automatically determine the type of map
+        given its shape.  Note that for N=3, the pol keyword argument
+        should be used to disambiguate the two map types.  By default,
+        a polarized map with (T,Q,U) components is assumed.
+
+        N     map_in contents
+        1  :  T
+        3  :  (T, Q, U) --or-- (T, dTdt, dTdp)
+        6  :  (T, dTdt, dTdp) + (dT2dt2, dT2dpdt, dT2dp2)
+        9  :  (T, Q, U) + (dTdt, dQdt, dUdt, dTdp, dQdp, dUdp)
+        18 :  (N=9) + (dT2dt2, dQ2dt2, dU2dt2, dT2dpdt, dQ2dpdt, dU2dpdt,
+                       dT2dp2, dQ2dp2, dU2dp2)
         """
 
         self.set(**kwargs)
@@ -864,48 +1035,57 @@ class QPoint(object):
         q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         n = ctime.size
 
-        npix = max(smap.shape)
+        map_in, _, _ = self._check_map(map_in)
+        npix = max(map_in.shape)
         nside = _np.sqrt(npix / 12)
         if _np.floor(_np.log2(nside)) != _np.log2(nside):
             raise ValueError,'invalid nside'
         nside = int(nside)
-        ncol = smap.size / npix
-        if smap.shape == (ncol, npix):
-            smap = smap.transpose()
-        smap = self._check_input('smap', smap, shape=(npix, ncol))
+        ncol = map_in.size / npix
+        mshape = (npix, ncol) if ncol > 1 else (npix,)
+        map_in = self._check_input('map_in', map_in, shape=mshape)
 
-        if ncol not in [3,9,18]:
-            raise ValueError,'map must have 3, 9 or 18 columns'
+        if ncol not in [1,3,6,9,18]:
+            raise ValueError,'map must have 1, 3, 6, 9 or 18 columns'
 
-        self._check_output('tod', tod, shape=(ndet, n))
+        tod = self._check_output('tod', tod, shape=(ndet, n))
         # array of pointers
         todp = (tod.__array_interface__['data'][0] +
                 _np.arange(tod.shape[0]) * tod.strides[0]).astype(_np.uintp)
 
-        if ncol == 3:
-            if q_hwp is None:
+        if q_hwp is not None and ncol in [3,9,18]:
+            q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
+
+        if ncol == 1:
+            _libqp.qp_map2tod_nopol(self._memory, q_off, ndet, ctime, q_bore,
+                                    map_in, nside, todp, n)
+        elif ncol == 3:
+            if not pol:
+                _libqp.qp_map2tod_der1_nopol(self._memory, q_off, ndet, ctime, q_bore,
+                                             map_in, nside, todp, n)
+            elif q_hwp is None:
                 _libqp.qp_map2tod(self._memory, q_off, ndet, ctime, q_bore,
-                                  smap, nside, todp, n)
+                                  map_in, nside, todp, n)
             else:
-                q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
                 _libqp.qp_map2tod_hwp(self._memory, q_off, ndet, ctime, q_bore, q_hwp,
-                                      smap, nside, todp, n)
+                                      map_in, nside, todp, n)
+        elif ncol == 6:
+            _libqp.qp_map2tod_der2_nopol(self._memory, q_off, ndet, ctime, q_bore,
+                                         map_in, nside, todp, n)
         elif ncol == 9:
             if q_hwp is None:
                 _libqp.qp_map2tod_der1(self._memory, q_off, ndet, ctime, q_bore,
-                                       smap, nside, todp, n)
+                                       map_in, nside, todp, n)
             else:
-                q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
                 _libqp.qp_map2tod_der1_hwp(self._memory, q_off, ndet, ctime, q_bore,
-                                           q_hwp, smap, nside, todp, n)
+                                           q_hwp, map_in, nside, todp, n)
         elif ncol == 18:
             if q_hwp is None:
                 _libqp.qp_map2tod_der2(self._memory, q_off, ndet, ctime, q_bore,
-                                       smap, nside, todp, n)
+                                       map_in, nside, todp, n)
             else:
-                q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
                 _libqp.qp_map2tod_der2_hwp(self._memory, q_off, ndet, ctime, q_bore,
-                                           q_hwp, smap, nside, todp, n)
+                                           q_hwp, map_in, nside, todp, n)
 
         return tod
 

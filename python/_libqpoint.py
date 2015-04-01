@@ -306,47 +306,35 @@ libqp.qp_bore2pix.argtypes = (qp_memory_t_p, # params
                               NDP(dtype=np.double), # cos2psi
                               ct.c_int) # n
 
-libqp.qp_bore2pnt.argtypes = (qp_memory_t_p, # params
-                              NDP(dtype=np.double), # offsets
-                              ct.c_int, # ndet
-                              NDP(dtype=np.double), # ctime
-                              NDP(dtype=np.double), # q_bore
-                              ct.c_int, # n
-                              NDP(dtype=np.double), # pmap
-                              ct.c_int) # nside
+libqp.qp_tod2map_pnt.argtypes = (qp_memory_t_p, # params
+                                 NDP(dtype=np.double), # offsets
+                                 ct.c_int, # ndet
+                                 NDP(dtype=np.double), # ctime
+                                 NDP(dtype=np.double), # q_bore
+                                 ct.c_int, # n
+                                 NDP(dtype=np.double), # pmap
+                                 ct.c_int) # nside
 
-libqp.qp_bore2pnt_hwp.argtypes = (qp_memory_t_p, # params
-                                  NDP(dtype=np.double), # offsets
-                                  ct.c_int, # ndet
-                                  NDP(dtype=np.double), # ctime
-                                  NDP(dtype=np.double), # q_bore
-                                  NDP(dtype=np.double), # q_hwp
-                                  ct.c_int, # n
-                                  NDP(dtype=np.double), # pmap
-                                  ct.c_int) # nside
+libqp.qp_tod2map_pnt_nopol.argtypes = (qp_memory_t_p, # params
+                                       NDP(dtype=np.double), # offsets
+                                       ct.c_int, # ndet
+                                       NDP(dtype=np.double), # ctime
+                                       NDP(dtype=np.double), # q_bore
+                                       ct.c_int, # n
+                                       NDP(dtype=np.double), # pmap
+                                       ct.c_int) # nside
 
-libqp.qp_bore2sig.argtypes = (qp_memory_t_p, # params
-                              NDP(dtype=np.double), # offsets
-                              ct.c_int, # ndet
-                              NDP(dtype=np.double), # ctime
-                              NDP(dtype=np.double), # q_bore
-                              NDP(dtype=np.uintp), # tod
-                              ct.c_int, # n
-                              NDP(dtype=np.double), # smap
-                              ct.c_int) # nside
+libqp.qp_tod2map_pnt_hwp.argtypes = (qp_memory_t_p, # params
+                                     NDP(dtype=np.double), # offsets
+                                     ct.c_int, # ndet
+                                     NDP(dtype=np.double), # ctime
+                                     NDP(dtype=np.double), # q_bore
+                                     NDP(dtype=np.double), # q_hwp
+                                     ct.c_int, # n
+                                     NDP(dtype=np.double), # pmap
+                                     ct.c_int) # nside
 
-libqp.qp_bore2sig_hwp.argtypes = (qp_memory_t_p, # params
-                                  NDP(dtype=np.double), # offsets
-                                  ct.c_int, # ndet
-                                  NDP(dtype=np.double), # ctime
-                                  NDP(dtype=np.double), # q_bore
-                                  NDP(dtype=np.double), # q_hwp
-                                  NDP(dtype=np.uintp), # tod
-                                  ct.c_int, # n
-                                  NDP(dtype=np.double), # smap
-                                  ct.c_int) # nside
-
-libqp.qp_bore2sigpnt.argtypes = (qp_memory_t_p, # params
+libqp.qp_tod2map_sig.argtypes = (qp_memory_t_p, # params
                                  NDP(dtype=np.double), # offsets
                                  ct.c_int, # ndet
                                  NDP(dtype=np.double), # ctime
@@ -354,10 +342,19 @@ libqp.qp_bore2sigpnt.argtypes = (qp_memory_t_p, # params
                                  NDP(dtype=np.uintp), # tod
                                  ct.c_int, # n
                                  NDP(dtype=np.double), # smap
-                                 NDP(dtype=np.double), # pmap
                                  ct.c_int) # nside
 
-libqp.qp_bore2sigpnt_hwp.argtypes = (qp_memory_t_p, # params
+libqp.qp_tod2map_sig_nopol.argtypes = (qp_memory_t_p, # params
+                                       NDP(dtype=np.double), # offsets
+                                       ct.c_int, # ndet
+                                       NDP(dtype=np.double), # ctime
+                                       NDP(dtype=np.double), # q_bore
+                                       NDP(dtype=np.uintp), # tod
+                                       ct.c_int, # n
+                                       NDP(dtype=np.double), # smap
+                                       ct.c_int) # nside
+
+libqp.qp_tod2map_sig_hwp.argtypes = (qp_memory_t_p, # params
                                      NDP(dtype=np.double), # offsets
                                      ct.c_int, # ndet
                                      NDP(dtype=np.double), # ctime
@@ -366,8 +363,41 @@ libqp.qp_bore2sigpnt_hwp.argtypes = (qp_memory_t_p, # params
                                      NDP(dtype=np.uintp), # tod
                                      ct.c_int, # n
                                      NDP(dtype=np.double), # smap
-                                     NDP(dtype=np.double), # pmap
                                      ct.c_int) # nside
+
+libqp.qp_tod2map_sigpnt.argtypes = (qp_memory_t_p, # params
+                                    NDP(dtype=np.double), # offsets
+                                    ct.c_int, # ndet
+                                    NDP(dtype=np.double), # ctime
+                                    NDP(dtype=np.double), # q_bore
+                                    NDP(dtype=np.uintp), # tod
+                                    ct.c_int, # n
+                                    NDP(dtype=np.double), # smap
+                                    NDP(dtype=np.double), # pmap
+                                    ct.c_int) # nside
+
+libqp.qp_tod2map_sigpnt_nopol.argtypes = (qp_memory_t_p, # params
+                                          NDP(dtype=np.double), # offsets
+                                          ct.c_int, # ndet
+                                          NDP(dtype=np.double), # ctime
+                                          NDP(dtype=np.double), # q_bore
+                                          NDP(dtype=np.uintp), # tod
+                                          ct.c_int, # n
+                                          NDP(dtype=np.double), # smap
+                                          NDP(dtype=np.double), # pmap
+                                          ct.c_int) # nside
+
+libqp.qp_tod2map_sigpnt_hwp.argtypes = (qp_memory_t_p, # params
+                                        NDP(dtype=np.double), # offsets
+                                        ct.c_int, # ndet
+                                        NDP(dtype=np.double), # ctime
+                                        NDP(dtype=np.double), # q_bore
+                                        NDP(dtype=np.double), # q_hwp
+                                        NDP(dtype=np.uintp), # tod
+                                        ct.c_int, # n
+                                        NDP(dtype=np.double), # smap
+                                        NDP(dtype=np.double), # pmap
+                                        ct.c_int) # nside
 
 libqp.qp_map2tod.argtypes = (qp_memory_t_p, # params
                              NDP(dtype=np.double), # offsets
@@ -378,6 +408,16 @@ libqp.qp_map2tod.argtypes = (qp_memory_t_p, # params
                              ct.c_int, # nside
                              NDP(dtype=np.uintp), # tod
                              ct.c_int) # n
+
+libqp.qp_map2tod_nopol.argtypes = (qp_memory_t_p, # params
+                                   NDP(dtype=np.double), # offsets
+                                   ct.c_int, # ndet
+                                   NDP(dtype=np.double), # ctime
+                                   NDP(dtype=np.double), # q_bore
+                                   NDP(dtype=np.double), # smap
+                                   ct.c_int, # nside
+                                   NDP(dtype=np.uintp), # tod
+                                   ct.c_int) # n
 
 libqp.qp_map2tod_hwp.argtypes = (qp_memory_t_p, # params
                                  NDP(dtype=np.double), # offsets
@@ -400,6 +440,16 @@ libqp.qp_map2tod_der1.argtypes = (qp_memory_t_p, # params
                                   NDP(dtype=np.uintp), # tod
                                   ct.c_int) # n
 
+libqp.qp_map2tod_der1_nopol.argtypes = (qp_memory_t_p, # params
+                                        NDP(dtype=np.double), # offsets
+                                        ct.c_int, # ndet
+                                        NDP(dtype=np.double), # ctime
+                                        NDP(dtype=np.double), # q_bore
+                                        NDP(dtype=np.double), # smap
+                                        ct.c_int, # nside
+                                        NDP(dtype=np.uintp), # tod
+                                        ct.c_int) # n
+
 libqp.qp_map2tod_der1_hwp.argtypes = (qp_memory_t_p, # params
                                       NDP(dtype=np.double), # offsets
                                       ct.c_int, # ndet
@@ -420,6 +470,16 @@ libqp.qp_map2tod_der2.argtypes = (qp_memory_t_p, # params
                                   ct.c_int, # nside
                                   NDP(dtype=np.uintp), # tod
                                   ct.c_int) # n
+
+libqp.qp_map2tod_der2_nopol.argtypes = (qp_memory_t_p, # params
+                                        NDP(dtype=np.double), # offsets
+                                        ct.c_int, # ndet
+                                        NDP(dtype=np.double), # ctime
+                                        NDP(dtype=np.double), # q_bore
+                                        NDP(dtype=np.double), # smap
+                                        ct.c_int, # nside
+                                        NDP(dtype=np.uintp), # tod
+                                        ct.c_int) # n
 
 libqp.qp_map2tod_der2_hwp.argtypes = (qp_memory_t_p, # params
                                       NDP(dtype=np.double), # offsets

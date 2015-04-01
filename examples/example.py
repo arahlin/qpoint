@@ -58,8 +58,17 @@ delta_psi_list = [22.5,22.5,-22.5,-22.5];
 q_off_list = Q.det_offset(delta_az_list, delta_el_list, delta_psi_list)
 
 # simulated map with first and second derivatives
-print 'simulating map'
-map_in = np.array([100,3,3]*6) * np.random.randn(hp.nside2npix(512), 18)
+
+npix = hp.nside2npix(256)
+
+pol = False
+
+if pol is True:
+    print 'simulating map'
+    map_in = np.array([100,3,3]*6) * np.random.randn(npix, 18)
+    map_in = tuple(map_in.T)
+else:
+    map_in = 100 * np.random.randn(npix)
 
 # scan map to generate timestreams...
 print 'map2tod'
@@ -69,8 +78,11 @@ tod = Q.map2tod(q_off_list, ctime, q_bore, map_in, q_hwp=q_hwp)
 # tod = 300 * np.random.randn(4,n)
 
 # initialize and calculate hits and data maps
-print 'bore2map'
-smap, pmap = Q.bore2map(q_off_list, ctime, q_bore, nside=256, q_hwp=q_hwp, tod=tod)
+print 'tod2map'
+smap, pmap = Q.tod2map(q_off_list, ctime, q_bore, nside=256, q_hwp=q_hwp, tod=tod,
+                       pol=pol)
+print smap.shape
+print pmap.shape
 
 # several other detector offsets in degrees
 delta_az_list2 = [-3.0,-2.0,2.0,3.0];
@@ -82,14 +94,26 @@ q_off_list2 = Q.det_offset(delta_az_list2, delta_el_list2, delta_psi_list2)
 tod2 = 300 * np.random.randn(4,n)
 
 # update pmap
-Q.bore2map(q_off_list2, ctime, q_bore, pmap=pmap, smap=smap, q_hwp=q_hwp, tod=tod2)
+smap1, pmap1 = Q.tod2map(q_off_list2, ctime, q_bore, pmap=pmap, smap=smap,
+                         pol=pol, q_hwp=q_hwp, tod=tod2)
+print smap.shape
+print pmap.shape
+print len(smap1)
+print len(pmap1)
 
 # extract columns
-hits, p01, p02, p11, p12, p22 = pmap.T
-m1, m2, m3 = smap.T
+if pol:
+    hits, p01, p02, p11, p12, p22 = pmap1
+    m1, m2, m3 = smap1
+else:
+    hits = pmap1
+    m1 = smap1
 
 # plot stuff
-hp.mollview(map_in[:,0], min=-300, max=300)
+if pol:
+    hp.mollview(map_in[0], min=-300, max=300)
+else:
+    hp.mollview(map_in, min=-300, max=300)
 hp.mollview(hits)
 hp.mollview(m1/hits,min=-300,max=300)
 import pylab

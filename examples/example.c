@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
   
   int nside = 256;
   int npix = 12 * nside * nside;
-  pixel_t *pmap = calloc(npix,sizeof(pixel_t));
+  vec6_t *pmap = calloc(npix,sizeof(vec6_t));
   
   /* initialize memory */
   
@@ -84,8 +84,8 @@ int main(int argc, char *argv[]) {
   
   /* Calculate hits map */
   
-  qp_bore2map(mem, delta_az_list, delta_el_list, delta_psi_list, ndets,
-	      ctime, q_bore, n, pmap, nside);
+  qp_tod2map_pnt(mem, delta_az_list, delta_el_list, delta_psi_list, ndets,
+                 ctime, q_bore, n, pmap, nside);
   
   /* free all the things */
   
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
   
   free(pmap);
   
-  qp_free_memory(mem)
+  qp_free_memory(mem);
   
   return 0;
 }
