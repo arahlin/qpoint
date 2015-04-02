@@ -248,6 +248,7 @@ void qp_tod2map_sig_single(qp_memory_t *mem, quat_t q_off,
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
+    if (tod[ii] != tod[ii]) continue;
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
@@ -264,6 +265,7 @@ void qp_tod2map_sig_nopol_single(qp_memory_t *mem, quat_t q_off,
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &dum, &dum);
+    if (tod[ii] != tod[ii]) continue;
     smap[ipix] += tod[ii];
   }
 }
@@ -281,6 +283,7 @@ void qp_tod2map_sigpnt_single(qp_memory_t *mem, quat_t q_off,
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
+    if (tod[ii] != tod[ii]) continue;
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
@@ -303,6 +306,7 @@ void qp_tod2map_sigpnt_nopol_single(qp_memory_t *mem, quat_t q_off,
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &dum, &dum);
+    if (tod[ii] != tod[ii]) continue;
     pmap[ipix] += 1;
     smap[ipix] += tod[ii];
   }
@@ -342,6 +346,7 @@ void qp_tod2map_sig_single_hwp(qp_memory_t *mem, quat_t q_off,
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
+    if (tod[ii] != tod[ii]) continue;
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
@@ -362,6 +367,7 @@ void qp_tod2map_sigpnt_single_hwp(qp_memory_t *mem, quat_t q_off,
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
+    if (tod[ii] != tod[ii]) continue;
     smap[ipix][0] += tod[ii];
     smap[ipix][1] += tod[ii] * cos2psi;
     smap[ipix][2] += tod[ii] * sin2psi;
