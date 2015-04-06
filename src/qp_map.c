@@ -35,11 +35,9 @@ void qp_init_gal(qp_memory_t *mem) {
   /* galactic pole cf. sofa/g2icrs */
   double gp_ra = 192.85948;
   double gp_dec = 27.12825;
-  double gp_psi = deg2rad(32.93192+90);
-  double s = sin(2.*gp_psi);
-  double c = cos(2.*gp_psi);
+  double gp_pa = 32.93192+90;
 
-  qp_radec2quat(mem, gp_ra, gp_dec, s, c, mem->q_gal);
+  qp_radecpa2quat(mem, gp_ra, gp_dec, gp_pa, mem->q_gal);
   Quaternion_copy(mem->q_gal_inv, mem->q_gal);
   Quaternion_inv(mem->q_gal_inv);
 

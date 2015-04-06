@@ -637,6 +637,22 @@ class QPoint(object):
         
         return ra, dec, sin2psi, cos2psi
         
+    def radecpa2quat(self, ra, dec, pa, **kwargs):
+        """
+        Calculate quaternion for input ra/dec/pa.
+        """
+        self.set(**kwargs)
+
+        ra, dec, pa = [self._check_input('input', _np.atleast_1d(x))
+                       for x in _np.broadcast_arrays(ra, dec, pa)]
+        n = ra.size
+        quat = self._check_output('quat', shape=ra.shape+(4,), dtype=_np.double,
+                                  **kwargs)
+        _libqp.qp_radecpa2quatn(self._memory, ra, dec, pa, quat, n)
+        if ra.size == 1:
+            return quat[0]
+        return quat
+
     def radec2pix(self, ra, dec, nside=256, **kwargs):
         """
         Calculate healpix pixel number for given ra/dec and nside
@@ -644,14 +660,13 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ra    = self._check_input('ra', _np.atleast_1d(ra))
-        dec   = self._check_input('dec', _np.atleast_1d(dec),
-                                  shape=ra.shape)
+        ra, dec = [self._check_input('input', _np.atleast_1d(x))
+                   for x in _np.broadcast_arrays(ra, dec)]
 
         if ra.size == 1:
             return _libqp.qp_radec2pix(self._memory, ra[0], dec[0], nside)
 
-        pix = self._check_output('pix', shape=ra.shape, dtype=_np.int)
+        pix = self._check_output('pix', shape=ra.shape, dtype=_np.int, **kwargs)
         _libqp.qp_radec2pixn(self._memory, ra, dec, nside, pix, ra.size)
         return pix
 
@@ -743,10 +758,7 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        quat = self._check_input('quat', quat)
-        if quat.size / 4 == 1:
-            from _libqpoint import quat2pix
-            return quat2pix(self._memory, quat, nside)
+        quat = self._check_input('quat', _np.atleast_2d(quat))
 
         n = quat.shape[0]
         shape = (n,)
@@ -755,6 +767,8 @@ class QPoint(object):
         cos2psi = self._check_output('cos2psi', shape=shape, **kwargs)
         _libqp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
 
+        if n == 1:
+            pix, sin2psi, cos2psi = pix[0], sin2psi[0], cos2psi[0]
         if pol:
             return pix, sin2psi, cos2psi
         return pix

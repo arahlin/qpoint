@@ -247,6 +247,13 @@ libqp.qp_bore2rasindec_hwp.argtypes = (qp_memory_t_p, # params
                                        NDP(dtype=np.double), # cos2psi
                                        ct.c_int) # n
 
+libqp.qp_radecpa2quatn.argtypes = (qp_memory_t_p, # params
+                                   NDP(dtype=np.double), # ra
+                                   NDP(dtype=np.double), # dec
+                                   NDP(dtype=np.double), # pa
+                                   NDP(dtype=np.double), # q
+                                   ct.c_int) # n
+
 libqp.qp_radec2pix.argtypes = (qp_memory_t_p, # params
                                ct.c_double, # ra
                                ct.c_double, # dec
@@ -280,13 +287,6 @@ libqp.qp_rotate_map.argtypes = (qp_memory_t_p, # params
                                 ct.c_char, # coord_in
                                 NDP(dtype=np.double), # map_out
                                 ct.c_char) # coord_out
-
-libqp.qp_quat2pix.argtypes = (qp_memory_t_p, # params
-                              NDP(dtype=np.double), # quat
-                              ct.c_int, # nside
-                              NDP(dtype=np.int), # pix
-                              NDP(dtype=np.double), # sin2psi
-                              NDP(dtype=np.double)) # cos2psi
 
 libqp.qp_quat2pixn.argtypes = (qp_memory_t_p, # params
                                NDP(dtype=np.double), # quat
@@ -514,14 +514,6 @@ def get_bulletin_a(mem, mjd):
     libqp.get_iers_bulletin_a(mem, mjd, ct.byref(dut1),
                               ct.byref(x), ct.byref(y))
     return dut1.value, x.value, y.value
-
-def quat2pix(mem, quat, nside):
-    pix = ct.c_int()
-    sin2psi = ct.c_double()
-    cos2psi = ct.c_double()
-    libqp.qp_quat2pix(mem, quat, nside, ct.byref(pix),
-                      ct.byref(sin2psi), ct.byref(cos2psi))
-    return pix.value, sin2psi.value, cos2psi.value
 
 libqp.qp_refraction.argtypes = (ct.c_double, # elevation angle
                                 ct.c_double, # height

@@ -324,6 +324,14 @@ extern "C" {
   void qp_radec2quat(qp_memory_t *mem, double ra, double dec,
                      double sin2psi, double cos2psi, quat_t q);
 
+  /* Compute quaternion given ra/dec/pa */
+  void qp_radecpa2quat(qp_memory_t *mem, double ra, double dec,
+                       double pa, quat_t q);
+
+  /* Compute quaternions given ra/dec/pa */
+  void qp_radecpa2quatn(qp_memory_t *mem, double *ra, double *dec,
+                        double *pa, quat_t *q, int n);
+
   /* Compute ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given quaternion */
   void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
 			double *sin2psi, double *cos2psi);

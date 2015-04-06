@@ -576,6 +576,21 @@ void qp_radec2quat(qp_memory_t *mem, double ra, double dec, double sin2psi,
   Quaternion_r3_mul(deg2rad(ra), q);
 }
 
+void qp_radecpa2quat(qp_memory_t *mem, double ra, double dec, double pa, quat_t q) {
+  if (!mem->polconv)
+    pa = -pa;
+  Quaternion_r3(q, deg2rad(pa));
+  Quaternion_r2_mul(M_PI_2 - deg2rad(dec), q);
+  Quaternion_r3_mul(deg2rad(ra), q);
+}
+
+void qp_radecpa2quatn(qp_memory_t *mem, double *ra, double *dec, double *pa,
+                      quat_t *q, int n) {
+  for (int ii=0; ii < n; ii++) {
+    qp_radecpa2quat(mem, ra[ii], dec[ii], pa[ii], q[ii]);
+  }
+}
+
 void qp_bore2radec(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
 		   double *ra, double *dec, double *sin2psi, 
 		   double *cos2psi, int n) {
