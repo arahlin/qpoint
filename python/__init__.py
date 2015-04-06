@@ -732,11 +732,14 @@ class QPoint(object):
         G = galactic
         """
 
+        from warnings import warn
+        warn('This code is buggy, use at your own risk', UserWarning)
+
         map_in, shape_in, tuple_in = self._check_map(map_in)
         if tuple_out is None:
             tuple_out = tuple_in
 
-        nside = int(_np.sqrt(max(map.shape) / 12))
+        nside = int(_np.sqrt(max(map_in.shape) / 12))
         shape = (12*nside*nside, 3)
         map_in = self._check_input('map_in', map_in, shape=shape)
         map_out = self._check_output('map_out', map_out, shape=shape, fill=0)
