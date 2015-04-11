@@ -254,6 +254,13 @@ libqp.qp_radecpa2quatn.argtypes = (qp_memory_t_p, # params
                                    NDP(dtype=np.double), # q
                                    ct.c_int) # n
 
+libqp.qp_quat2radecpan.argtypes = (qp_memory_t_p, # params
+                                   NDP(dtype=np.double), # q
+                                   NDP(dtype=np.double), # ra
+                                   NDP(dtype=np.double), # dec
+                                   NDP(dtype=np.double), # pa
+                                   ct.c_int) # n
+
 libqp.qp_radec2pix.argtypes = (qp_memory_t_p, # params
                                ct.c_double, # ra
                                ct.c_double, # dec

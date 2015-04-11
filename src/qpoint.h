@@ -316,6 +316,12 @@ extern "C" {
   void qp_det_offsetn(double *delta_az, double *delta_el, double *delta_psi,
 		      quat_t *q, int n);
   
+  /* Compute ra/dec/pa from quaternion */
+  void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
+                       double *pa);
+  void qp_quat2radecpan(qp_memory_t *mem, quat_t *q, double *ra, double *dec,
+                        double *pa, int n);
+
   /* Compute ra/dec and sin(2*psi)/cos(2*psi) for a given quaternion */
   void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
 		     double *sin2psi, double *cos2psi);

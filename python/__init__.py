@@ -179,7 +179,10 @@ class QPoint(object):
         """
         
         for k,v in kwargs.items():
-            self._set(k ,v)
+            try:
+                self._set(k ,v)
+            except KeyError:
+                continue
     
     def get(self,*args):
         """
@@ -652,6 +655,23 @@ class QPoint(object):
         if ra.size == 1:
             return quat[0]
         return quat
+
+    def quat2radecpa(self, quat, **kwargs):
+        """
+        Calculate ra/dec/pa for input quaternion(s).
+        """
+        self.set(**kwargs)
+
+        quat = self._check_input('quat', _np.atleast_2d(quat))
+        n = quat.shape[0]
+        ra = self._check_output('ra', shape=(n,), dtype=_np.double, **kwargs)
+        dec = self._check_output('dec', shape=(n,), dtype=_np.double, **kwargs)
+        pa = self._check_output('pa', shape=(n,), dtype=_np.double, **kwargs)
+
+        _libqp.qp_quat2radecpan(self._memory, quat, ra, dec, pa, n)
+        if n == 1:
+            return ra[0], dec[0], pa[0]
+        return ra, dec, pa
 
     def radec2pix(self, ra, dec, nside=256, **kwargs):
         """
