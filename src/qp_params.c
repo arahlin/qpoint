@@ -52,6 +52,11 @@ qp_memory_t * qp_init_memory(void) {
   return mem;
 }
 
+void qp_copy_memory(qp_memory_t *memdest, qp_memory_t *memsrc) {
+  *memdest = *memsrc;
+  copy_iers_bulletin_a(memdest, memsrc);
+}
+
 void qp_free_memory(qp_memory_t *mem) {
   set_iers_bulletin_a(mem, 0, 0, NULL, NULL, NULL);
   free(mem);

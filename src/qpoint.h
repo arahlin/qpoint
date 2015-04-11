@@ -88,6 +88,7 @@ extern "C" {
   /* parameter initialization */
   qp_memory_t * qp_init_memory(void);
   void qp_free_memory(qp_memory_t *mem);
+  void qp_copy_memory(qp_memory_t *memdest, qp_memory_t *memsrc);
   
   /* common update rates */
   extern const int QP_DO_ALWAYS;
@@ -194,7 +195,9 @@ extern "C" {
   /* Set IERS Bulletin A */
   int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
 			   double *dut1, double *x, double *y );
-  
+  /* Copy IERS Bulletin A */
+  int copy_iers_bulletin_a( qp_memory_t *memdest, qp_memory_t *memsrc );
+
   /* Time conversion */
 #define CTIME_JD_EPOCH 2440587.5 /* JD for ctime = 0 */
   void ctime2jd(double ctime, double jd[2]);

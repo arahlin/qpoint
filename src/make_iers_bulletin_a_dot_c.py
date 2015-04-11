@@ -25,6 +25,7 @@ header = """
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include "qpoint.h"
 
 """
@@ -98,6 +99,22 @@ int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
     B->entries[k].y = y[k];
     B->entries[k].dut1 = dut1[k];
   }
+  return 0;
+}
+
+int copy_iers_bulletin_a(qp_memory_t *memdest, qp_memory_t *memsrc) {
+  qp_bulletina_t *bdest = &memdest->bulletinA;
+  qp_bulletina_t *bsrc = &memsrc->bulletinA;
+
+  if (bsrc->entries != bulletinA_factory) {
+    int n_mjd = bsrc->mjd_max - bsrc->mjd_min + 1;
+    bdest->mjd_max = bsrc->mjd_max;
+    bdest->mjd_min = bsrc->mjd_min;
+    memcpy(bdest->entries, bsrc->entries, n_mjd*sizeof(*(bsrc->entries)));
+  } else {
+    bdest->entries = NULL;
+  }
+
   return 0;
 }
 """
