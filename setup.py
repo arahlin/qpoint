@@ -51,8 +51,7 @@ else:
 
 # this isn't technically an extension...
 # hack to make a shared library to install with the package
-ext_qp = Extension('qpoint.libqpoint',[x for x in glob.glob('src/*.c')
-                                       if 'test_' not in x],
+ext_qp = Extension('qpoint.libqpoint',[x for x in glob.glob('src/*.c')],
                    include_dirs=incl_dirs,
                    extra_compile_args=extra_args,
                    libraries=libs,
