@@ -24,13 +24,14 @@ header = """
 
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "qpoint.h"
 
 """
 
-footer = """
+footer = r"""
 int get_iers_bulletin_a( qp_memory_t *mem, double mjd,
                          double *dut1, double *x, double *y )
 {
@@ -80,7 +81,7 @@ int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
 
   if (dut1 == NULL) {
     // Destroy
-    if (B->entries != bulletinA_factory) {
+    if (B->entries != bulletinA_factory && B->entries != NULL) {
       free(B->entries);
       B->entries = NULL;
     }
@@ -106,13 +107,17 @@ int copy_iers_bulletin_a(qp_memory_t *memdest, qp_memory_t *memsrc) {
   qp_bulletina_t *bdest = &memdest->bulletinA;
   qp_bulletina_t *bsrc = &memsrc->bulletinA;
 
-  if (bsrc->entries != bulletinA_factory) {
+  if (bsrc->entries != bulletinA_factory && bsrc->entries != NULL) {
     int n_mjd = bsrc->mjd_max - bsrc->mjd_min + 1;
     bdest->mjd_max = bsrc->mjd_max;
     bdest->mjd_min = bsrc->mjd_min;
+    if (bdest->entries != bulletinA_factory && bdest->entries != NULL) {
+      free(bdest->entries);
+      bdest->entries = NULL;
+    }
+    bdest->entries = malloc(n_mjd*sizeof(*(bdest->entries)));
+    assert(bdest->entries != NULL);
     memcpy(bdest->entries, bsrc->entries, n_mjd*sizeof(*(bsrc->entries)));
-  } else {
-    bdest->entries = NULL;
   }
 
   return 0;
