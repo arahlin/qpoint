@@ -57,35 +57,42 @@ class QPoint(object):
             raise KeyError,'Unknown parameter %s' % key
         val = self._all_funcs[key]['get'](self._memory)
         return self._all_funcs[key]['check_get'](val)
-    
+
+    def _check_flags(self, arg):
+        return (arg.flags['C_CONTIGUOUS'] |
+                arg.flags['OWNDATA'] << 1 |
+                arg.flags['WRITEABLE'] << 2 |
+                arg.flags['ALIGNED'] << 3)
+
     def _check_input(self, name, arg, shape=None, dtype=_np.double, inplace=True,
-                     fill=0, allow_transpose=True, allow_tuple=True):
+                     fill=0, allow_transpose=True, allow_tuple=True, output=False):
         if arg is None:
             if shape is None:
                 raise ValueError,'need shape to initialize input!'
-            arg = _np.empty(shape, dtype=dtype)
-            if fill is not None:
-                arg[:] = fill
+            if fill is None:
+                arg = _np.empty(shape, dtype=dtype)
+            else:
+                arg = fill * _np.ones(shape, dtype=dtype)
         if isinstance(arg, tuple) and allow_tuple:
-            arg = _np.asarray(arg)
+            arg = _np.vstack(arg)
         if not isinstance(arg, _np.ndarray):
             raise TypeError,'input %s must be of type numpy.ndarray' % name
-        if _np.all([x is None for x in arg.ravel()]):
-            arg = _np.empty(arg.shape, dtype=dtype)
-            if fill is not None:
-                arg[:] = fill
-        if arg.dtype != dtype:
-            arg = arg.astype(dtype)
         if shape is not None:
             if arg.shape != shape:
                 if arg.T.shape == shape and allow_transpose:
                     arg = arg.T
                 else:
                     raise ValueError,'input %s must have shape %s' % (name, shape)
-        arg = _np.ascontiguousarray(arg)
-        if inplace:
-            return arg
-        return arg.copy()
+        istat = self._check_flags(arg)
+        arg = _np.require(arg, dtype, list('AC' + 'W'*output))
+        ostat = self._check_flags(arg)
+        if istat == ostat and inplace is False:
+            return arg.copy()
+        return arg
+
+    def _check_inputs(self, *args, **kwargs):
+        return [self._check_input('input', _np.atleast_1d(x), **kwargs)
+                for x in _np.broadcast_arrays(*args)]
 
     def _check_output(self, name, arg=None, shape=None, dtype=_np.double,
                       inplace=True, fill=None, allow_transpose=True,
@@ -93,33 +100,29 @@ class QPoint(object):
         if arg is None:
             arg = kwargs.pop(name, None)
         return self._check_input(name, arg, shape, dtype, inplace, fill,
-                                 allow_transpose, allow_tuple)
+                                 allow_transpose, allow_tuple, True)
 
     def _check_map(self, m):
         as_tuple = False
         if isinstance(m, tuple):
             as_tuple = True
-            m = _np.asarray(m)
+            m = _np.vstack(m)
         if not isinstance(m, _np.ndarray):
             raise TypeError, 'map must be of type numpy.ndarray'
         shape_in = m.shape
-        if len(shape_in) == 2 and shape_in[0] == min(shape_in):
+        if m.ndim == 2 and _np.argmin(shape_in) == 0:
             m = m.T
         return m, shape_in, as_tuple
 
     def _return_map(self, m, shape=None, as_tuple=True):
-        if as_tuple:
-            if len(m.shape) == 1:
-                return m
-            if len(m.shape) == 2 and m.shape[0] == max(m.shape):
+        if shape is not None:
+            if m.T.shape == shape:
                 m = m.T
-            return tuple(m)
-        if shape is None:
-            return m
-        if m.T.shape == shape:
-            m = m.T
-        if m.shape != shape:
-            raise ValueError,'map shape has changed!'
+            if m.shape != shape:
+                raise ValueError,'map shape has changed!'
+        if as_tuple:
+            if m.ndim == 2 and _np.argmax(m.shape) == 0:
+                m = m.T
         return m
 
     def set(self, **kwargs):
@@ -335,9 +338,7 @@ class QPoint(object):
         
         self.set(**kwargs)
 
-        ctime, lon = _np.broadcast_arrays(ctime, lon)
-        ctime = self._check_input('ctime', _np.atleast_1d(ctime))
-        lon = self._check_input('lon', _np.atleast_1d(lon), shape=ctime.shape)
+        ctime, lon = self._check_inputs(ctime, lon)
         
         if ctime.size == 1:
             return _libqp.qp_lmst(self._memory, ctime[0], lon[0])
@@ -369,10 +370,7 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ctime, ra, dec = _np.broadcast_arrays(ctime, ra, dec)
-        ctime = self._check_input('ctime', _np.atleast_1d(ctime))
-        ra = self._check_input('ra', _np.atleast_1d(ra), shape=ctime.shape)
-        dec = self._check_input('dec', _np.atleast_1d(dec), shape=ctime.shape)
+        ctime, ra, dec = self._check_inputs(ctime, ra, dec)
 
         if ctime.size == 1:
             return _libqp.qp_dipole(self._memory, ctime[0], ra[0], dec[0])
@@ -397,9 +395,8 @@ class QPoint(object):
         q          detector offset quaternion for each detector
         """
         
-        delta_az, delta_el, delta_psi \
-            = [self._check_input('offset', _np.atleast_1d(x))
-               for x in _np.broadcast_arrays(delta_az, delta_el, delta_psi)]
+        delta_az, delta_el, delta_psi = \
+            self._check_inputs(delta_az, delta_el, delta_psi)
         ndet = delta_az.size
         
         for x in (delta_el, delta_psi):
@@ -468,16 +465,12 @@ class QPoint(object):
         
         self.set(**kwargs)
 
+        if pitch is None:
+            pitch = 0
+        if roll is None:
+            roll = 0
         az, el, pitch, roll, lon, lat, ctime = \
-            _np.broadcast_arrays(az, el, pitch, roll, lon, lat, ctime)
-
-        az    = self._check_input('az',    az)
-        el    = self._check_input('el',    el,    shape=az.shape)
-        pitch = self._check_input('pitch', pitch, shape=az.shape, fill=0)
-        roll  = self._check_input('roll',  roll,  shape=az.shape, fill=0)
-        lon   = self._check_input('lon',   lon,   shape=az.shape)
-        lat   = self._check_input('lat',   lat,   shape=az.shape)
-        ctime = self._check_input('ctime', ctime, shape=az.shape)
+            self._check_inputs(az, el, pitch, roll, lon, lat, ctime)
         n = az.size
 
         # identity quaternion
@@ -599,16 +592,13 @@ class QPoint(object):
         
         self.set(**kwargs)
         
+        if pitch is None:
+            pitch = 0
+        if roll is None:
+            roll = 0
         az, el, pitch, roll, lon, lat, ctime = \
-            _np.broadcast_arrays(az, el, pitch, roll, lon, lat, ctime)
+            self._check_inputs(az, el, pitch, roll, lon, lat, ctime)
 
-        az    = self._check_input('az',    az)
-        el    = self._check_input('el',    el,    shape=az.shape)
-        pitch = self._check_input('pitch', pitch, shape=az.shape, fill=0)
-        roll  = self._check_input('roll',  roll,  shape=az.shape, fill=0)
-        lon   = self._check_input('lon',   lon,   shape=az.shape)
-        lat   = self._check_input('lat',   lat,   shape=az.shape)
-        ctime = self._check_input('ctime', ctime, shape=az.shape)
         ra = self._check_output('ra', ra, shape=az.shape, dtype=_np.double)
         dec = self._check_output('dec', dec, shape=az.shape, dtype=_np.double)
         sin2psi = self._check_output('sin2psi', sin2psi, shape=az.shape,
@@ -646,8 +636,7 @@ class QPoint(object):
         """
         self.set(**kwargs)
 
-        ra, dec, pa = [self._check_input('input', _np.atleast_1d(x))
-                       for x in _np.broadcast_arrays(ra, dec, pa)]
+        ra, dec, pa = self._check_inputs(ra, dec, pa)
         n = ra.size
         quat = self._check_output('quat', shape=ra.shape+(4,), dtype=_np.double,
                                   **kwargs)
@@ -680,8 +669,7 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ra, dec = [self._check_input('input', _np.atleast_1d(x))
-                   for x in _np.broadcast_arrays(ra, dec)]
+        ra, dec = self._check_inputs(ra, dec)
 
         if ra.size == 1:
             return _libqp.qp_radec2pix(self._memory, ra[0], dec[0], nside)
@@ -698,16 +686,7 @@ class QPoint(object):
         self.set(**kwargs)
 
         ra, dec, sin2psi, cos2psi = \
-            _np.broadcast_arrays(ra, dec, sin2psi, cos2psi)
-
-        ra = self._check_input('ra', _np.atleast_1d(ra), inplace=inplace)
-        dec = self._check_input('dec', _np.atleast_1d(dec), shape=ra.shape,
-                                inplace=inplace)
-        sin2psi = self._check_input('sin2psi', _np.atleast_1d(sin2psi),
-                                    shape=ra.shape, inplace=inplace)
-        cos2psi = self._check_input('cos2psi', _np.atleast_1d(cos2psi),
-                                    shape=ra.shape, inplace=inplace)
-
+            self._check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
         n = ra.size
 
         _libqp.qp_radec2galn(self._memory, ra, dec, sin2psi, cos2psi, n)
@@ -724,16 +703,7 @@ class QPoint(object):
         self.set(**kwargs)
 
         ra, dec, sin2psi, cos2psi = \
-            _np.broadcast_arrays(ra, dec, sin2psi, cos2psi)
-
-        ra = self._check_input('ra', _np.atleast_1d(ra), inplace=inplace)
-        dec = self._check_input('dec', _np.atleast_1d(dec), shape=ra.shape,
-                                inplace=inplace)
-        sin2psi = self._check_input('sin2psi', _np.atleast_1d(sin2psi),
-                                    shape=ra.shape, inplace=inplace)
-        cos2psi = self._check_input('cos2psi', _np.atleast_1d(cos2psi),
-                                    shape=ra.shape, inplace=inplace)
-
+            self._check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
         n = ra.size
 
         _libqp.qp_gal2radecn(self._memory, ra, dec, sin2psi, cos2psi, n)
