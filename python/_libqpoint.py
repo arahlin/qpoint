@@ -68,6 +68,7 @@ class qp_memory_t(ct.Structure):
         ('pix_order', ct.c_int),
         ('fast_pix', ct.c_int),
         ('num_threads', ct.c_int),
+        ('thread_num', ct.c_int),
         ]
 
 # library functions
@@ -735,8 +736,16 @@ def check_set_num_threads(nt):
 def check_get_num_threads(nt):
     return nt
 
+def check_set_thread_num(tn):
+    if tn is None:
+        return 0
+    return int(nt)
+
+def check_get_thread_num(tn):
+    return tn
+
 options = ['accuracy','mean_aber','fast_math','polconv','pair_dets',
-           'pix_order','fast_pix','num_threads']
+           'pix_order','fast_pix','num_threads','thread_num']
 option_funcs = dict()
 for p in options:
     option_funcs[p] = dict()

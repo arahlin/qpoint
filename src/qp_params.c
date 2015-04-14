@@ -52,9 +52,11 @@ qp_memory_t * qp_init_memory(void) {
   return mem;
 }
 
-void qp_copy_memory(qp_memory_t *memdest, qp_memory_t *memsrc) {
+qp_memory_t * qp_copy_memory(qp_memory_t *memsrc) {
+  qp_memory_t *memdest = malloc(sizeof(*memdest));
   *memdest = *memsrc;
   copy_iers_bulletin_a(memdest, memsrc);
+  return memdest;
 }
 
 void qp_free_memory(qp_memory_t *mem) {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include <float.h>
 #include "qpoint.h"
 #include "fast_math.h"
@@ -206,7 +207,7 @@ void qp_tod2map_pnt_single(qp_memory_t *mem, quat_t q_off,
   double sin2psi, cos2psi;
   long ipix;
   quat_t q;
-  
+
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
@@ -318,7 +319,7 @@ void qp_tod2map_pnt_single_hwp(qp_memory_t *mem, quat_t q_off,
   double sin2psi, cos2psi;
   long ipix;
   quat_t q;
-  
+
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
@@ -386,7 +387,7 @@ void qp_tod2map_pnt_pair(qp_memory_t *mem, quat_t q_off,
   double sin2psi, cos2psi;
   long ipix;
   quat_t q;
-  
+
   for (int ii=0; ii<n; ii++) {
     qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
@@ -405,7 +406,7 @@ void qp_tod2map_pnt_pair_hwp(qp_memory_t *mem, quat_t q_off,
   double sin2psi, cos2psi;
   long ipix;
   quat_t q;
-  
+
   for (int ii=0; ii<n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
     qp_quat2pix(mem, q, nside, &ipix, &sin2psi, &cos2psi);
@@ -416,53 +417,130 @@ void qp_tod2map_pnt_pair_hwp(qp_memory_t *mem, quat_t q_off,
   }
 }
 
+/* boilerplate */
+
+void qp_reduce_smap(vec3_t *smap, vec3_t *smaploc, int npix) {
+#pragma omp critical
+  for (int ipix=0; ipix<npix; ipix++)
+    for (int ii=0; ii<3; ii++)
+      smap[ipix][ii] += smaploc[ipix][ii];
+}
+
+void qp_reduce_pmap(vec6_t *pmap, vec6_t *pmaploc, int npix) {
+#pragma omp critical
+  for (int ipix=0; ipix<npix; ipix++)
+    for (int ii=0; ii<6; ii++)
+      pmap[ipix][ii] += pmaploc[ipix][ii];
+}
+
+void qp_reduce_map_nopol(double *map, double *maploc, int npix) {
+#pragma omp critical
+  for (int ipix=0; ipix<npix; ipix++)
+    map[ipix] += maploc[ipix];
+}
+
+#define INIT_MAP(type, x)                    \
+  type *x##maploc;                           \
+  if (memloc->num_threads > 1) {             \
+    x##maploc = calloc(npix, sizeof(type));  \
+  } else {                                   \
+    x##maploc = x##map;                      \
+  }
+
+#define INIT_MAP1(type, x)                   \
+  qp_memory_t *memloc = qp_copy_memory(mem); \
+  INIT_MAP(type, x)
+
+#define INIT_MAP2(type1, x1, type2, x2) \
+  INIT_MAP1(type1, x1);                 \
+  INIT_MAP(type2, x2)
+
+#define INIT_PARALLELP \
+  INIT_MAP1(vec6_t, p)
+
+#define INIT_PARALLELS \
+  INIT_MAP1(vec3_t, s)
+
+#define INIT_PARALLELSP           \
+  INIT_MAP2(vec3_t, s, vec6_t, p)
+
+#define INIT_PARALLELP_NOPOL \
+  INIT_MAP1(double, p)
+
+#define INIT_PARALLELS_NOPOL \
+  INIT_MAP1(double, s)
+
+#define INIT_PARALLELSP_NOPOL     \
+  INIT_MAP2(double, s, double, p)
+
+#define END_MAP(x)                               \
+  if (memloc->num_threads > 1) {                 \
+    qp_reduce_##x##map(x##map, x##maploc, npix); \
+    free(x##maploc);                             \
+  }
+
+#define END_MAP_NOPOL(x)                          \
+  if (memloc->num_threads > 1) {                  \
+    qp_reduce_map_nopol(x##map, x##maploc, npix); \
+    free(x##maploc);                              \
+  }
+
+#define END_PARALLELP    \
+  END_MAP(p);            \
+  qp_free_memory(memloc)
+
+#define END_PARALLELP_NOPOL \
+  END_MAP_NOPOL(p);         \
+  qp_free_memory(memloc)
+
+#define END_PARALLELS    \
+  END_MAP(s);            \
+  qp_free_memory(memloc)
+
+#define END_PARALLELS_NOPOL \
+  END_MAP_NOPOL(s);         \
+  qp_free_memory(memloc)
+
+#define END_PARALLELSP   \
+  END_MAP(s);            \
+  END_MAP(p);            \
+  qp_free_memory(memloc)
+
+#define END_PARALLELSP_NOPOL \
+  END_MAP_NOPOL(s);          \
+  END_MAP_NOPOL(p);          \
+  qp_free_memory(memloc)
+
+#define INIT_MASTER \
+  long npix = nside2npix(nside)
+
 /* Compute pointing matrix map for given boresight timestream and many detector
    offsets. pmap a 6-x-npix array containing (hits, p01, p02, p11, p12, p22).
    openMP-parallelized. */
 void qp_tod2map_pnt(qp_memory_t *mem, quat_t *q_off, int ndet,
                     double *ctime, quat_t *q_bore, int n,
                     vec6_t *pmap, int nside) {
-  
-  long npix = nside2npix(nside);
 
-#pragma omp parallel
+  INIT_MASTER;
+
+#pragma omp parallel // shared(parr)
   {
-    
-    // local map array
-    vec6_t *pmaploc;
-    if (mem->num_threads > 1) {
-      pmaploc = calloc(npix,sizeof(vec6_t));
-    } else {
-      pmaploc = pmap;
-    }
-    
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-    
-#pragma omp for nowait
+    INIT_PARALLELP;
+
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
 #ifdef DEBUG
-      printf("thread %d, det %d\n", omp_get_thread_num(), idet);
+      printf("thread %d, det %d\n", qp_get_opt_thread_num(memloc), idet);
       printf("offset %f %f %f %f\n", q_off[idet][0], q_off[idet][1],
-	     q_off[idet][2], q_off[idet][3]);
+             q_off[idet][2], q_off[idet][3]);
 #endif
-      if (mem->pair_dets)
-	qp_tod2map_pnt_pair(&memloc, q_off[idet], ctime, q_bore, n, pmaploc, nside);
+      if (memloc->pair_dets)
+        qp_tod2map_pnt_pair(memloc, q_off[idet], ctime, q_bore, n, pmaploc, nside);
       else
-	qp_tod2map_pnt_single(&memloc, q_off[idet], ctime, q_bore, n, pmaploc, nside);
+        qp_tod2map_pnt_single(memloc, q_off[idet], ctime, q_bore, n, pmaploc, nside);
     }
-    
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-	for (int ipix=0; ipix<npix; ipix++)
-	  for (int ii=0; ii<6; ii++)
-	    pmap[ipix][ii] += pmaploc[ipix][ii];
-      }
-      
-      free(pmaploc);
-    }
+
+    END_PARALLELP;
   }
 }
 
@@ -474,39 +552,19 @@ void qp_tod2map_sig(qp_memory_t *mem, quat_t *q_off, int ndet,
                     double *ctime, quat_t *q_bore, double **tod, int n,
                     vec3_t *smap, int nside) {
 
-  long npix = nside2npix(nside);
+  INIT_MASTER;
 
-#pragma omp parallel
+#pragma omp parallel // shared(sarr)
   {
+    INIT_PARALLELS;
 
-    // local map array
-    vec3_t *smaploc;
-    if (mem->num_threads > 1) {
-      smaploc = calloc(npix, sizeof(vec3_t));
-    } else {
-      smaploc = smap;
-    }
-
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-
-#pragma omp for nowait
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
-      qp_tod2map_sig_single(&memloc, q_off[idet], ctime, q_bore, tod[idet], n,
+      qp_tod2map_sig_single(memloc, q_off[idet], ctime, q_bore, tod[idet], n,
                             smaploc, nside);
     }
 
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-        for (int ipix=0; ipix<npix; ipix++)
-          for (int ii=0; ii<3; ii++)
-            smap[ipix][ii] += smaploc[ipix][ii];
-      }
-
-      free(smaploc);
-    }
+    END_PARALLELS;
   }
 }
 
@@ -519,46 +577,19 @@ void qp_tod2map_sigpnt(qp_memory_t *mem, quat_t *q_off, int ndet,
                        double *ctime, quat_t *q_bore, double **tod, int n,
                        vec3_t *smap, vec6_t *pmap, int nside) {
 
-  long npix = nside2npix(nside);
+  INIT_MASTER;
 
-#pragma omp parallel
+#pragma omp parallel // shared(sarr, parr)
   {
+    INIT_PARALLELSP;
 
-    // local map array
-    vec3_t *smaploc;
-    vec6_t *pmaploc;
-    if (mem->num_threads > 1) {
-      smaploc = calloc(npix, sizeof(vec3_t));
-      pmaploc = calloc(npix, sizeof(vec6_t));
-    } else {
-      smaploc = smap;
-      pmaploc = pmap;
-    }
-
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-
-#pragma omp for nowait
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
-      qp_tod2map_sigpnt_single(&memloc, q_off[idet], ctime, q_bore, tod[idet], n,
+      qp_tod2map_sigpnt_single(memloc, q_off[idet], ctime, q_bore, tod[idet], n,
                                smaploc, pmaploc, nside);
     }
 
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-        for (int ipix=0; ipix<npix; ipix++)
-          for (int ii=0; ii<6; ii++) {
-            if (ii<3)
-              smap[ipix][ii] += smaploc[ipix][ii];
-            pmap[ipix][ii] += pmaploc[ipix][ii];
-          }
-      }
-
-      free(smaploc);
-      free(pmaploc);
-    }
+    END_PARALLELSP;
   }
 }
 
@@ -566,39 +597,19 @@ void qp_tod2map_pnt_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
                           double *ctime, quat_t *q_bore, int n,
                           double *pmap, int nside) {
 
-  long npix = nside2npix(nside);
+  INIT_MASTER;
 
-#pragma omp parallel
+#pragma omp parallel // shared(parr)
   {
+    INIT_PARALLELP_NOPOL;
 
-    // local map array
-    double *pmaploc;
-    if (mem->num_threads > 1) {
-      pmaploc = calloc(npix, sizeof(double));
-    } else {
-      pmaploc = pmap;
-    }
-
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-
-#pragma omp for nowait
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
-      qp_tod2map_pnt_nopol_single(&memloc, q_off[idet], ctime, q_bore, n,
+      qp_tod2map_pnt_nopol_single(memloc, q_off[idet], ctime, q_bore, n,
                                   pmaploc, nside);
     }
 
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-        for (int ipix=0; ipix<npix; ipix++) {
-          pmap[ipix] += pmaploc[ipix];
-        }
-      }
-
-      free(pmaploc);
-    }
+    END_PARALLELP_NOPOL;
   }
 }
 
@@ -606,39 +617,19 @@ void qp_tod2map_sig_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
                           double *ctime, quat_t *q_bore, double **tod, int n,
                           double *smap, int nside) {
 
-  long npix = nside2npix(nside);
+  INIT_MASTER;
 
-#pragma omp parallel
+#pragma omp parallel // shared(sarr)
   {
+    INIT_PARALLELS_NOPOL;
 
-    // local map array
-    double *smaploc;
-    if (mem->num_threads > 1) {
-      smaploc = calloc(npix, sizeof(double));
-    } else {
-      smaploc = smap;
-    }
-
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-
-#pragma omp for nowait
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
-      qp_tod2map_sig_nopol_single(&memloc, q_off[idet], ctime, q_bore, tod[idet], n,
+      qp_tod2map_sig_nopol_single(memloc, q_off[idet], ctime, q_bore, tod[idet], n,
                                   smaploc, nside);
     }
 
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-        for (int ipix=0; ipix<npix; ipix++) {
-          smap[ipix] += smaploc[ipix];
-        }
-      }
-
-      free(smaploc);
-    }
+    END_PARALLELS_NOPOL;
   }
 }
 
@@ -646,44 +637,19 @@ void qp_tod2map_sigpnt_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
                              double *ctime, quat_t *q_bore, double **tod, int n,
                              double *smap, double *pmap, int nside) {
 
-  long npix = nside2npix(nside);
+  INIT_MASTER;
 
-#pragma omp parallel
+#pragma omp parallel // shared(sarr, parr)
   {
+    INIT_PARALLELSP_NOPOL;
 
-    // local map array
-    double *smaploc;
-    double *pmaploc;
-    if (mem->num_threads > 1) {
-      smaploc = calloc(npix, sizeof(double));
-      pmaploc = calloc(npix, sizeof(double));
-    } else {
-      smaploc = smap;
-      pmaploc = pmap;
-    }
-
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-
-#pragma omp for nowait
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
-      qp_tod2map_sigpnt_nopol_single(&memloc, q_off[idet], ctime, q_bore, tod[idet], n,
+      qp_tod2map_sigpnt_nopol_single(memloc, q_off[idet], ctime, q_bore, tod[idet], n,
                                      smaploc, pmaploc, nside);
     }
 
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-        for (int ipix=0; ipix<npix; ipix++) {
-          smap[ipix] += smaploc[ipix];
-          pmap[ipix] += pmaploc[ipix];
-        }
-      }
-
-      free(smaploc);
-      free(pmaploc);
-    }
+    END_PARALLELSP_NOPOL;
   }
 }
 
@@ -693,49 +659,29 @@ void qp_tod2map_sigpnt_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
 void qp_tod2map_pnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
                         double *ctime, quat_t *q_bore, quat_t *q_hwp, int n,
                         vec6_t *pmap, int nside) {
-  
-  long npix = nside2npix(nside);
 
-#pragma omp parallel
+  INIT_MASTER;
+
+#pragma omp parallel // shared(parr)
   {
-    
-    // local map array
-    vec6_t *pmaploc;
-    if (mem->num_threads > 1) {
-      pmaploc = calloc(npix,sizeof(vec6_t));
-    } else {
-      pmaploc = pmap;
-    }
-    
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-    
-#pragma omp for nowait
+    INIT_PARALLELP;
+
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
 #ifdef DEBUG
       printf("thread %d, det %d\n", omp_get_thread_num(), idet);
       printf("offset %f %f %f %f\n", q_off[idet][0], q_off[idet][1],
 	     q_off[idet][2], q_off[idet][3]);
 #endif
-      if (mem->pair_dets)
-	qp_tod2map_pnt_pair_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp, n,
+      if (memloc->pair_dets)
+	qp_tod2map_pnt_pair_hwp(memloc, q_off[idet], ctime, q_bore, q_hwp, n,
                                 pmaploc, nside);
       else
-	qp_tod2map_pnt_single_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp, n,
+	qp_tod2map_pnt_single_hwp(memloc, q_off[idet], ctime, q_bore, q_hwp, n,
                                   pmaploc, nside);
     }
-    
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-	for (int ipix=0; ipix<npix; ipix++)
-	  for (int ii=0; ii<6; ii++)
-	    pmap[ipix][ii] += pmaploc[ipix][ii];
-      }
-      
-      free(pmaploc);
-    }
+
+    END_PARALLELP;
   }
 }
 
@@ -747,39 +693,19 @@ void qp_tod2map_sig_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
                         double *ctime, quat_t *q_bore, quat_t *q_hwp,
                         double **tod, int n, vec3_t *smap, int nside) {
 
-  long npix = nside2npix(nside);
+  INIT_MASTER;
 
-#pragma omp parallel
+#pragma omp parallel // shared(sarr)
   {
+    INIT_PARALLELS;
 
-    // local map array
-    vec3_t *smaploc;
-    if (mem->num_threads > 1) {
-      smaploc = calloc(npix, sizeof(vec3_t));
-    } else {
-      smaploc = smap;
-    }
-
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-
-#pragma omp for nowait
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
-      qp_tod2map_sig_single_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp,
+      qp_tod2map_sig_single_hwp(memloc, q_off[idet], ctime, q_bore, q_hwp,
                                 tod[idet], n, smaploc, nside);
     }
 
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-        for (int ipix=0; ipix<npix; ipix++)
-          for (int ii=0; ii<3; ii++)
-            smap[ipix][ii] += smaploc[ipix][ii];
-      }
-
-      free(smaploc);
-    }
+    END_PARALLELS;
   }
 }
 
@@ -793,46 +719,19 @@ void qp_tod2map_sigpnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
                            double **tod, int n, vec3_t *smap, vec6_t *pmap,
                            int nside) {
 
-  long npix = nside2npix(nside);
+  INIT_MASTER;
 
-#pragma omp parallel
+#pragma omp parallel // shared(sarr, parr)
   {
+    INIT_PARALLELSP;
 
-    // local map array
-    vec3_t *smaploc;
-    vec6_t *pmaploc;
-    if (mem->num_threads > 1) {
-      smaploc = calloc(npix, sizeof(vec3_t));
-      pmaploc = calloc(npix, sizeof(vec6_t));
-    } else {
-      smaploc = smap;
-      pmaploc = pmap;
-    }
-
-    // local copy of memory
-    qp_memory_t memloc = *mem;
-
-#pragma omp for nowait
+#pragma omp for
     for (int idet=0; idet<ndet; idet++) {
-      qp_tod2map_sigpnt_single_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp,
+      qp_tod2map_sigpnt_single_hwp(memloc, q_off[idet], ctime, q_bore, q_hwp,
                                    tod[idet], n, smaploc, pmaploc, nside);
     }
 
-    if (mem->num_threads > 1) {
-      // reduce
-#pragma omp critical
-      {
-        for (int ipix=0; ipix<npix; ipix++)
-          for (int ii=0; ii<6; ii++) {
-            if (ii<3)
-              smap[ipix][ii] += smaploc[ipix][ii];
-            pmap[ipix][ii] += pmaploc[ipix][ii];
-          }
-      }
-
-      free(smaploc);
-      free(pmaploc);
-    }
+    END_PARALLELSP;
   }
 }
 
@@ -1061,13 +960,14 @@ void qp_map2tod(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_single(&memloc, q_off[idet], ctime, q_bore, smap, nside,
+      qp_map2tod_single(memloc, q_off[idet], ctime, q_bore, smap, nside,
                         tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1080,13 +980,14 @@ void qp_map2tod_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_single_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp,
+      qp_map2tod_single_hwp(memloc, q_off[idet], ctime, q_bore, q_hwp,
                             smap, nside, tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1098,13 +999,14 @@ void qp_map2tod_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_nopol_single(&memloc, q_off[idet], ctime, q_bore, smap, nside,
+      qp_map2tod_nopol_single(memloc, q_off[idet], ctime, q_bore, smap, nside,
                               tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1116,13 +1018,14 @@ void qp_map2tod_der1(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_der1_single(&memloc, q_off[idet], ctime, q_bore, smap,
+      qp_map2tod_der1_single(memloc, q_off[idet], ctime, q_bore, smap,
                              nside, tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1135,13 +1038,14 @@ void qp_map2tod_der1_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_der1_single_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp,
+      qp_map2tod_der1_single_hwp(memloc, q_off[idet], ctime, q_bore, q_hwp,
                                  smap, nside, tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1153,13 +1057,14 @@ void qp_map2tod_der1_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_der1_nopol_single(&memloc, q_off[idet], ctime, q_bore, smap,
+      qp_map2tod_der1_nopol_single(memloc, q_off[idet], ctime, q_bore, smap,
                                    nside, tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1171,13 +1076,14 @@ void qp_map2tod_der2(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_der2_single(&memloc, q_off[idet], ctime, q_bore, smap,
+      qp_map2tod_der2_single(memloc, q_off[idet], ctime, q_bore, smap,
                              nside, tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1190,13 +1096,14 @@ void qp_map2tod_der2_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_der2_single_hwp(&memloc, q_off[idet], ctime, q_bore, q_hwp,
+      qp_map2tod_der2_single_hwp(memloc, q_off[idet], ctime, q_bore, q_hwp,
                                  smap, nside, tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1208,13 +1115,14 @@ void qp_map2tod_der2_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
 #pragma omp parallel
   {
     // local copy of memory
-    qp_memory_t memloc = *mem;
+    qp_memory_t *memloc = qp_copy_memory(mem);
 
 #pragma omp for nowait
     for (int idet=0; idet<ndet; idet++) {
-      qp_map2tod_der2_nopol_single(&memloc, q_off[idet], ctime, q_bore, smap,
+      qp_map2tod_der2_nopol_single(memloc, q_off[idet], ctime, q_bore, smap,
                                    nside, tod[idet], n);
     }
+    qp_free_memory(memloc);
   }
 }
 
@@ -1233,5 +1141,23 @@ void qp_set_opt_num_threads(qp_memory_t *mem, int num_threads) {
 }
 
 int qp_get_opt_num_threads(qp_memory_t *mem) {
+#ifdef _OPENMP
+  mem->num_threads = omp_get_num_threads();
+#else
+  mem->num_threads = 1;
+#endif
   return mem->num_threads;
+}
+
+void qp_set_opt_thread_num(qp_memory_t *mem, int dummy) {
+#ifdef _OPENMP
+  mem->thread_num = omp_get_thread_num();
+#else
+  mem->thread_num = 0;
+#endif
+}
+
+int qp_get_opt_thread_num(qp_memory_t *mem) {
+  qp_set_opt_thread_num(mem, 0);
+  return mem->thread_num;
 }

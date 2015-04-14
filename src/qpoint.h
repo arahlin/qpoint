@@ -83,12 +83,13 @@ extern "C" {
     int pix_order;         // pixel ordering (1=nest, 0=ring)
     int fast_pix;          // use vec2pix instead of ang2pix in binners
     int num_threads;       // number of parallel threads
+    int thread_num;        // current thread number
   } qp_memory_t;
   
   /* parameter initialization */
   qp_memory_t * qp_init_memory(void);
   void qp_free_memory(qp_memory_t *mem);
-  void qp_copy_memory(qp_memory_t *memdest, qp_memory_t *memsrc);
+  qp_memory_t * qp_copy_memory(qp_memory_t *memsrc);
   
   /* common update rates */
   extern const int QP_DO_ALWAYS;
@@ -155,6 +156,7 @@ extern "C" {
   OPTIONFUNC(pix_order);
   OPTIONFUNC(fast_pix);
   OPTIONFUNC(num_threads);
+  OPTIONFUNC(thread_num);
   
   /* Set weather data */
   void qp_set_weather(qp_memory_t *mem,
