@@ -419,40 +419,39 @@ void qp_tod2map_pnt_pair_hwp(qp_memory_t *mem, quat_t q_off,
 
 /* boilerplate */
 
-void qp_reduce_smap(vec3_t *smap, vec3_t **sarr, int npix, int nth) {
-#pragma omp for
-  for (int ith=0; ith<nth; ith++)
-    for (int ipix=0; ipix<npix; ipix++)
-      for (int ii=0; ii<3; ii++)
-        smap[ipix][ii] += sarr[ith][ipix][ii];
+void qp_reduce_smap(vec3_t *smap, vec3_t *smaploc, int npix) {
+#pragma omp critical
+  for (int ipix=0; ipix<npix; ipix++)
+    for (int ii=0; ii<3; ii++)
+      if (smaploc[ipix][ii] != 0)
+        smap[ipix][ii] += smaploc[ipix][ii];
 }
 
-void qp_reduce_pmap(vec6_t *pmap, vec6_t **parr, int npix, int nth) {
-#pragma omp for
-  for (int ith=0; ith<nth; ith++)
-    for (int ipix=0; ipix<npix; ipix++)
-      for (int ii=0; ii<6; ii++)
-        pmap[ipix][ii] += parr[ith][ipix][ii];
+void qp_reduce_pmap(vec6_t *pmap, vec6_t *pmaploc, int npix) {
+#pragma omp critical
+  for (int ipix=0; ipix<npix; ipix++)
+    for (int ii=0; ii<6; ii++)
+      if (pmaploc[ipix][ii] != 0)
+        pmap[ipix][ii] += pmaploc[ipix][ii];
 }
 
-void qp_reduce_map_nopol(double *map, double **marr, int npix, int nth) {
-#pragma omp for
-  for (int ith=0; ith<nth; ith++)
-    for (int ipix=0; ipix<npix; ipix++)
-      map[ipix] += marr[ith][ipix];
+void qp_reduce_map_nopol(double *map, double *maploc, int npix) {
+#pragma omp critical
+  for (int ipix=0; ipix<npix; ipix++)
+    if (maploc[ipix] != 0)
+      map[ipix] += maploc[ipix];
 }
 
-#define INIT_MAP(type, x)                        \
-  if (nthreads > 1) {                            \
-    x##arr[thread] = calloc(npix, sizeof(type)); \
-  } else {                                       \
-    x##arr[thread] = x##map;                     \
-  }                                              \
-  type * x##maploc = x##arr[thread];
+#define INIT_MAP(type, x)                   \
+  type * x##maploc;                         \
+  if (nthreads > 1) {                       \
+    x##maploc = calloc(npix, sizeof(type)); \
+  } else {                                  \
+    x##maploc = x##map;                     \
+  }
 
 #define INIT_MAP1(type, x)                             \
   qp_memory_t *memloc = qp_copy_memory(mem);           \
-  const int thread = qp_get_opt_thread_num(memloc);    \
   const int nthreads = qp_get_opt_num_threads(memloc); \
   INIT_MAP(type, x)
 
@@ -460,34 +459,23 @@ void qp_reduce_map_nopol(double *map, double **marr, int npix, int nth) {
   INIT_MAP1(type1, x1);                 \
   INIT_MAP(type2, x2)
 
-#define INIT_PARALLELP \
-  INIT_MAP1(vec6_t, p)
+#define INIT_PARALLELP INIT_MAP1(vec6_t, p)
+#define INIT_PARALLELS INIT_MAP1(vec3_t, s)
+#define INIT_PARALLELSP INIT_MAP2(vec3_t, s, vec6_t, p)
+#define INIT_PARALLELP_NOPOL INIT_MAP1(double, p)
+#define INIT_PARALLELS_NOPOL INIT_MAP1(double, s)
+#define INIT_PARALLELSP_NOPOL INIT_MAP2(double, s, double, p)
 
-#define INIT_PARALLELS \
-  INIT_MAP1(vec3_t, s)
-
-#define INIT_PARALLELSP           \
-  INIT_MAP2(vec3_t, s, vec6_t, p)
-
-#define INIT_PARALLELP_NOPOL \
-  INIT_MAP1(double, p)
-
-#define INIT_PARALLELS_NOPOL \
-  INIT_MAP1(double, s)
-
-#define INIT_PARALLELSP_NOPOL     \
-  INIT_MAP2(double, s, double, p)
-
-#define END_MAP(x)                                      \
-  if (nthreads > 1) {                                   \
-    qp_reduce_##x##map(x##map, x##arr, npix, nthreads); \
-    free(x##maploc);                                    \
+#define END_MAP(x)                               \
+  if (nthreads > 1) {                            \
+    qp_reduce_##x##map(x##map, x##maploc, npix); \
+    free(x##maploc);                             \
   }
 
-#define END_MAP_NOPOL(x)                                 \
-  if (nthreads > 1) {                                    \
-    qp_reduce_map_nopol(x##map, x##arr, npix, nthreads); \
-    free(x##maploc);                                     \
+#define END_MAP_NOPOL(x)                          \
+  if (nthreads > 1) {                             \
+    qp_reduce_map_nopol(x##map, x##maploc, npix); \
+    free(x##maploc);                              \
   }
 
 #define END_PARALLEL1(x) \
@@ -498,9 +486,6 @@ void qp_reduce_map_nopol(double *map, double **marr, int npix, int nth) {
   END_MAP(x1);                \
   END_PARALLEL1(x2)
 
-#define END_PARALLELP    \
-  END_PARALLEL1(p)
-
 #define END_PARALLEL1N(x) \
   END_MAP_NOPOL(x); \
   qp_free_memory(memloc)
@@ -509,70 +494,31 @@ void qp_reduce_map_nopol(double *map, double **marr, int npix, int nth) {
   END_MAP_NOPOL(x1);           \
   END_PARALLEL1N(x2)
 
-#define END_PARALLELP_NOPOL \
-  END_PARALLEL1N(p)
+#define END_PARALLELP END_PARALLEL1(p)
+#define END_PARALLELS END_PARALLEL1(s)
+#define END_PARALLELSP END_PARALLEL2(s, p)
+#define END_PARALLELP_NOPOL END_PARALLEL1N(p)
+#define END_PARALLELS_NOPOL END_PARALLEL1N(s)
+#define END_PARALLELSP_NOPOL END_PARALLEL2N(s, p)
 
-#define END_PARALLELS    \
-  END_PARALLEL1(s)
+#define INIT_MASTER                                                    \
+  long npix = nside2npix(nside);                                       \
+  int num_threads = ndet < mem->num_threads ? ndet : mem->num_threads; \
+  omp_set_num_threads(num_threads)
 
-#define END_PARALLELS_NOPOL \
-  END_PARALLEL1N(s)
+#define INIT_MASTERP INIT_MASTER
+#define INIT_MASTERS INIT_MASTER
+#define INIT_MASTERSP INIT_MASTER
+#define INIT_MASTERP_NOPOL INIT_MASTER
+#define INIT_MASTERS_NOPOL INIT_MASTER
+#define INIT_MASTERSP_NOPOL INIT_MASTER
 
-#define END_PARALLELSP \
-  END_PARALLEL2(s, p)
-
-#define END_PARALLELSP_NOPOL \
-  END_PARALLEL2N(s, p)
-
-#define INIT_MASTER \
-  long npix = nside2npix(nside); \
-  omp_set_num_threads(mem->num_threads)
-
-#define INIT_ARR(type, x) \
-  type ** x##arr = malloc(mem->num_threads * sizeof(type *))
-
-#define INIT_MASTER1(type, x) \
-  INIT_MASTER;                \
-  INIT_ARR(type, x)
-
-#define INIT_MASTER2(type1, x1, type2, x2) \
-  INIT_MASTER1(type1, x1);                 \
-  INIT_ARR(type2, x2)
-
-#define INIT_MASTERP \
-  INIT_MASTER1(vec6_t, p)
-
-#define INIT_MASTERS \
-  INIT_MASTER1(vec3_t, s)
-
-#define INIT_MASTERSP \
-  INIT_MASTER2(vec6_t, p, vec3_t, s)
-
-#define INIT_MASTERP_NOPOL \
-  INIT_MASTER1(double, p)
-
-#define INIT_MASTERS_NOPOL \
-  INIT_MASTER1(double, s)
-
-#define INIT_MASTERSP_NOPOL \
-  INIT_MASTER2(double, p, double, s)
-
-#define END_ARR(x) \
-  free(x##arr)
-
-#define END_MASTERP \
-  END_ARR(p)
-
-#define END_MASTERS \
-  END_ARR(s)
-
-#define END_MASTERSP \
-  END_MASTERP;       \
-  END_MASTERS
-
-#define END_MASTERP_NOPOL END_MASTERP
-#define END_MASTERS_NOPOL END_MASTERS
-#define END_MASTERSP_NOPOL END_MASTERSP
+#define END_MASTERP
+#define END_MASTERS
+#define END_MASTERSP
+#define END_MASTERP_NOPOL
+#define END_MASTERS_NOPOL
+#define END_MASTERSP_NOPOL
 
 /* Compute pointing matrix map for given boresight timestream and many detector
    offsets. pmap a 6-x-npix array containing (hits, p01, p02, p11, p12, p22).
@@ -583,7 +529,7 @@ void qp_tod2map_pnt(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERP;
 
-#pragma omp parallel // shared(parr)
+#pragma omp parallel
   {
     INIT_PARALLELP;
 
@@ -616,7 +562,7 @@ void qp_tod2map_sig(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERS;
 
-#pragma omp parallel // shared(sarr)
+#pragma omp parallel
   {
     INIT_PARALLELS;
 
@@ -643,7 +589,7 @@ void qp_tod2map_sigpnt(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERSP;
 
-#pragma omp parallel // shared(sarr, parr)
+#pragma omp parallel
   {
     INIT_PARALLELSP;
 
@@ -665,7 +611,7 @@ void qp_tod2map_pnt_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERP_NOPOL;
 
-#pragma omp parallel // shared(parr)
+#pragma omp parallel
   {
     INIT_PARALLELP_NOPOL;
 
@@ -687,7 +633,7 @@ void qp_tod2map_sig_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERS_NOPOL;
 
-#pragma omp parallel // shared(sarr)
+#pragma omp parallel
   {
     INIT_PARALLELS_NOPOL;
 
@@ -709,11 +655,11 @@ void qp_tod2map_sigpnt_nopol(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERSP_NOPOL;
 
-#pragma omp parallel // shared(sarr, parr)
+#pragma omp parallel
   {
     INIT_PARALLELSP_NOPOL;
 
-#pragma omp for
+#pragma omp for schedule(static, 1)
     for (int idet=0; idet<ndet; idet++) {
       qp_tod2map_sigpnt_nopol_single(memloc, q_off[idet], ctime, q_bore, tod[idet], n,
                                      smaploc, pmaploc, nside);
@@ -734,7 +680,7 @@ void qp_tod2map_pnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERP;
 
-#pragma omp parallel // shared(parr)
+#pragma omp parallel
   {
     INIT_PARALLELP;
 
@@ -769,7 +715,7 @@ void qp_tod2map_sig_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERS;
 
-#pragma omp parallel // shared(sarr)
+#pragma omp parallel
   {
     INIT_PARALLELS;
 
@@ -797,7 +743,7 @@ void qp_tod2map_sigpnt_hwp(qp_memory_t *mem, quat_t *q_off, int ndet,
 
   INIT_MASTERSP;
 
-#pragma omp parallel // shared(sarr, parr)
+#pragma omp parallel
   {
     INIT_PARALLELSP;
 
