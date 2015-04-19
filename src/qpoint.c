@@ -265,6 +265,7 @@ void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
       clat = poly_cos(deg2rad(lat));
     else
       clat = cos(deg2rad(lat));
+    mem->beta_rot[0] = mem->beta_rot[2] = 0;
     mem->beta_rot[1] = -clat * D_ABER_RAD;
   }
   if (qp_check_apply(&mem->state_daber)) {

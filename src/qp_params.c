@@ -32,6 +32,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->pix_order = 0;
   mem->fast_pix = 0;
   mem->gal_init = 0;
+  mem->thread_num = 0;
   qp_set_opt_num_threads(mem, 0);
   mem->weather.height = 35000.;
   mem->weather.temperature = 0.;
@@ -46,6 +47,10 @@ qp_memory_t * qp_init_memory(void) {
   memset(mem->q_wobble,   0, 4);
   memset(mem->q_npb,      0, 4);
   memset(mem->q_erot,     0, 4);
+  memset(mem->q_ref,      0, 4);
+  memset(mem->q_gal,      0, 4);
+  memset(mem->q_gal_inv,  0, 4);
+  memset(mem->beta_rot,   0, 3);
   memset(mem->beta_earth, 0, 3);
   mem->bulletinA.entries = NULL;
   mem->initialized = 1;

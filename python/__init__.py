@@ -474,9 +474,7 @@ class QPoint(object):
         n = az.size
 
         # identity quaternion
-        q = self._check_output('q', q, shape=(n,4), fill=0)
-        if _np.all(q==0):
-            q[:,0] = 1
+        q = self._check_output('q', q, shape=(n,4), fill=[1,0,0,0])
 
         _libqp.qp_azel2bore(self._memory, az, el, pitch, roll, lon, lat,
                             ctime, q, n)
