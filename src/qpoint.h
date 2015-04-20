@@ -122,6 +122,10 @@ extern "C" {
   void qp_print_quat(const char *tag, quat_t q);
   void qp_print_state(const char *tag, qp_state_t *state);
   void qp_print_weather(qp_weather_t *w);
+  void qp_print_vec3_mp(int thread, const char *tag, vec3_t v);
+  void qp_print_quat_mp(int thread, const char *tag, quat_t q);
+  void qp_print_state_mp(int thread, const char *tag, qp_state_t *state);
+  void qp_print_weather_mp(int thread, qp_weather_t *w);
   void qp_print_memory(qp_memory_t *mem);
   
   /* per-correction functions */
