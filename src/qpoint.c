@@ -244,13 +244,13 @@ void qp_apply_refraction(qp_memory_t *mem, double ctime, double lat, quat_t q) {
     Quaternion_r2(q_delta, -deg2rad(delta));
     Quaternion_copy(mem->q_ref, q_delta);
 #ifdef DEBUG
-    qp_print_debug("ref", q_delta);
+    qp_print_quat("ref", q_delta);
 #endif
   }
   if (qp_check_apply(&mem->state_ref)) {
     Quaternion_mul_right(q, mem->q_ref);
 #ifdef DEBUG
-    qp_print_debug("state ref", q);
+    qp_print_quat("state ref", q);
 #endif
   }
 }
@@ -272,8 +272,8 @@ void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
     qp_aberration(q, (double *)mem->beta_rot, q_aber);
     Quaternion_mul_left(q_aber, q);
 #ifdef DEBUG
-    qp_print_debug("daber", q_aber);
-    qp_print_debug("state daber", q);
+    qp_print_quat("daber", q_aber);
+    qp_print_quat("state daber", q);
 #endif
   }
 }
@@ -290,8 +290,8 @@ void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q) {
     qp_aberration(q, mem->beta_earth, q_aber);
     Quaternion_mul_left(q_aber, q);
 #ifdef DEBUG
-    qp_print_debug("aaber", q_aber);
-    qp_print_debug("state aaber", q);
+    qp_print_quat("aaber", q_aber);
+    qp_print_quat("state aaber", q);
 #endif
   }
 }
@@ -306,21 +306,25 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   
   // deal with times
   ctime2jd(ctime, jd_utc);
+
+#ifdef DEBUG
+  qp_print_memory(mem);
+#endif
   
 #ifdef DEBUG
   printf("ctime %f, jd_utc %f %f\n", ctime, jd_utc[0], jd_utc[1]);
 #endif
   
 #ifdef DEBUG
-  qp_print_debug("state init", q);
+  qp_print_quat("state init", q);
 #endif
   
   // apply boresight rotation
   qp_azel_quat(az, el, pitch, roll, q_step);
   Quaternion_mul_left(q_step, q);
 #ifdef DEBUG
-  qp_print_debug("azel", q_step);
-  qp_print_debug("state azel", q);
+  qp_print_quat("azel", q_step);
+  qp_print_quat("state azel", q);
 #endif
 
   // apply refraction correction
@@ -338,13 +342,13 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   if (qp_check_update(&mem->state_lonlat, ctime)) {
     qp_lonlat_quat(lon, lat, mem->q_lonlat);
 #ifdef DEBUG
-    qp_print_debug("lonlat", mem->q_lonlat);
+    qp_print_quat("lonlat", mem->q_lonlat);
 #endif
   }
   if (qp_check_apply(&mem->state_lonlat)) {
     Quaternion_mul_left(mem->q_lonlat, q);
 #ifdef DEBUG
-    qp_print_debug("state lonlat", q);
+    qp_print_quat("state lonlat", q);
 #endif
   }
   
@@ -356,14 +360,14 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
     ctime2jdtt(ctime, jd_tt);
     qp_wobble_quat(jd_tt, x, y, mem->q_wobble);
 #ifdef DEBUG
-    qp_print_debug("wobble", mem->q_wobble);
+    qp_print_quat("wobble", mem->q_wobble);
 #endif
   } else if (qp_check_update(&mem->state_dut1, ctime))
     get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
   if (qp_check_apply(&mem->state_wobble)) {
     Quaternion_mul_left(mem->q_wobble, q);
 #ifdef DEBUG
-    qp_print_debug("state wobble", q);
+    qp_print_quat("state wobble", q);
 #endif
   }
   
@@ -373,13 +377,13 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
     jdutc2jdut1(jd_utc, mem->dut1, jd_ut1);
     qp_erot_quat(jd_ut1, mem->q_erot);
 #ifdef DEBUG
-    qp_print_debug("erot", mem->q_erot);
+    qp_print_quat("erot", mem->q_erot);
 #endif
   }
   if (qp_check_apply(&mem->state_erot)) {
     Quaternion_mul_left(mem->q_erot, q);
 #ifdef DEBUG
-    qp_print_debug("state erot", q);
+    qp_print_quat("state erot", q);
 #endif
   }
   
@@ -388,13 +392,13 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
     if (jd_tt[0] == 0) ctime2jdtt(ctime, jd_tt);
     qp_npb_quat(jd_tt, mem->q_npb, mem->accuracy);
 #ifdef DEBUG
-    qp_print_debug("npb", mem->q_npb);
+    qp_print_quat("npb", mem->q_npb);
 #endif
   }
   if (qp_check_apply(&mem->state_npb)) {
     Quaternion_mul_left(mem->q_npb, q);
 #ifdef DEBUG
-    qp_print_debug("state npb", q);
+    qp_print_quat("state npb", q);
 #endif
   }
   
@@ -404,7 +408,7 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
     qp_apply_annual_aberration(mem, ctime, q);
   
 #ifdef DEBUG
-  qp_print_debug("state final", q);
+  qp_print_quat("state final", q);
 #endif
 }
 
@@ -419,7 +423,7 @@ void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
 void qp_hwp_quat(double ang, quat_t q) {
   Quaternion_r3(q, -2.*deg2rad(ang));  // rotate psi by 2*theta!
 #ifdef DEBUG
-  qp_print_debug("hwp", q);
+  qp_print_quat("hwp", q);
 #endif
 }
 
@@ -433,7 +437,7 @@ void qp_det_offset(double delta_az, double delta_el, double delta_psi, quat_t q)
   Quaternion_r2_mul(deg2rad(delta_el), q);
   Quaternion_r1_mul(-deg2rad(delta_az), q);
 #ifdef DEBUG
-  qp_print_debug("offset", q);
+  qp_print_quat("offset", q);
 #endif
 }
 

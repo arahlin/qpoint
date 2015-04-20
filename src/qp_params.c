@@ -43,15 +43,15 @@ qp_memory_t * qp_init_memory(void) {
   mem->ref_tol = 1.0e-8;
   mem->ref_delta = 0.;
   mem->dut1 = 0.;
-  memset(mem->q_lonlat,   0, 4);
-  memset(mem->q_wobble,   0, 4);
-  memset(mem->q_npb,      0, 4);
-  memset(mem->q_erot,     0, 4);
-  memset(mem->q_ref,      0, 4);
-  memset(mem->q_gal,      0, 4);
-  memset(mem->q_gal_inv,  0, 4);
-  memset(mem->beta_rot,   0, 3);
-  memset(mem->beta_earth, 0, 3);
+  memset(mem->q_lonlat,   0, sizeof(quat_t));
+  memset(mem->q_wobble,   0, sizeof(quat_t));
+  memset(mem->q_npb,      0, sizeof(quat_t));
+  memset(mem->q_erot,     0, sizeof(quat_t));
+  memset(mem->q_ref,      0, sizeof(quat_t));
+  memset(mem->q_gal,      0, sizeof(quat_t));
+  memset(mem->q_gal_inv,  0, sizeof(quat_t));
+  memset(mem->beta_rot,   0, sizeof(vec3_t));
+  memset(mem->beta_earth, 0, sizeof(vec3_t));
   mem->bulletinA.entries = NULL;
   mem->initialized = 1;
   return mem;
@@ -91,9 +91,96 @@ RATEFUNCD(npb)
 RATEFUNCD(aaber)
 RATEFUNCD(ref)
 
-void qp_print_debug(const char *tag, quat_t q) {
+void qp_print_quat(const char *tag, quat_t q) {
   printf("%s quat: [%.6g, %.6g, %.6g, %.6g]\n",
 	 tag, q[0], q[1], q[2], q[3]);
+}
+
+void qp_print_vec3(const char *tag, vec3_t v) {
+  printf("%s vec3: [%.6g, %.6g, %.6g]\n",
+	 tag, v[0], v[1], v[2]);
+}
+
+void qp_print_state(const char *tag, qp_state_t *state) {
+  printf("%s state: rate %.6g, ctime %20.6f\n",
+         tag, state->update_rate, state->ctime_last);
+}
+
+void qp_print_weather(qp_weather_t *w) {
+  printf("Height [m]: %.6g\n", w->height);
+  printf("Temperature [C]: %.6g\n", w->temperature);
+  printf("Pressure [mbar]: %.6g\n", w->pressure);
+  printf("Humidity [%%]: %.6g\n", w->humidity * 100);
+  printf("Frequency [GHz]: %.6g\n", w->frequency);
+  printf("Lapse rate [K/m]: %.6g\n", w->lapse_rate);
+}
+
+void qp_print_quat_mp(int th, const char *tag, quat_t q) {
+  printf("[%d]  %s quat: [%.6g, %.6g, %.6g, %.6g]\n",
+	 th, tag, q[0], q[1], q[2], q[3]);
+}
+
+void qp_print_vec3_mp(int th, const char *tag, vec3_t v) {
+  printf("[%d]  %s vec3: [%.6g, %.6g, %.6g]\n",
+	 th, tag, v[0], v[1], v[2]);
+}
+
+void qp_print_state_mp(int th, const char *tag, qp_state_t *state) {
+  printf("[%d]  %s state: rate %.6g, ctime %20.6f\n",
+         th, tag, state->update_rate, state->ctime_last);
+}
+
+void qp_print_weather_mp(int th, qp_weather_t *w) {
+  printf("[%d]  Height [m]: %.6g\n", th, w->height);
+  printf("[%d]  Temperature [C]: %.6g\n", th, w->temperature);
+  printf("[%d]  Pressure [mbar]: %.6g\n", th, w->pressure);
+  printf("[%d]  Humidity [%%]: %.6g\n", th, w->humidity * 100);
+  printf("[%d]  Frequency [GHz]: %.6g\n", th, w->frequency);
+  printf("[%d]  Lapse rate [K/m]: %.6g\n", th, w->lapse_rate);
+}
+
+void qp_print_memory(qp_memory_t *mem) {
+  int thread = qp_get_opt_thread_num(mem);
+
+  printf("[%d]  ========== QPOINT MEMORY ==========\n", thread);
+  qp_print_state_mp(thread, "ref", &mem->state_ref);
+  qp_print_state_mp(thread, "daber", &mem->state_daber);
+  qp_print_state_mp(thread, "lonlat", &mem->state_lonlat);
+  qp_print_state_mp(thread, "wobble", &mem->state_wobble);
+  qp_print_state_mp(thread, "dut1", &mem->state_dut1);
+  qp_print_state_mp(thread, "erot", &mem->state_erot);
+  qp_print_state_mp(thread, "npb", &mem->state_npb);
+  qp_print_state_mp(thread, "aaber", &mem->state_aaber);
+
+  qp_print_weather_mp(thread, &mem->weather);
+
+  qp_print_quat_mp(thread, "ref", mem->q_ref);
+  qp_print_quat_mp(thread, "lonlat", mem->q_lonlat);
+  qp_print_quat_mp(thread, "wobble", mem->q_wobble);
+  qp_print_quat_mp(thread, "npb", mem->q_npb);
+  qp_print_quat_mp(thread, "erot", mem->q_erot);
+  qp_print_quat_mp(thread, "gal", mem->q_gal);
+  qp_print_quat_mp(thread, "gal_inv", mem->q_gal_inv);
+  qp_print_vec3_mp(thread, "beta earth", mem->beta_earth);
+  qp_print_vec3_mp(thread, "beta rot", mem->beta_rot);
+
+  printf("[%d]  ref_tol %.6g\n", thread, mem->ref_tol);
+  printf("[%d]  ref_delta %.6g\n", thread, mem->ref_delta);
+  printf("[%d]  dut1 %.6g\n", thread, mem->dut1);
+
+  printf("[%d]  accuracy: %s\n", thread, mem->accuracy ? "low" : "full");
+  printf("[%d]  mean aber: %s\n", thread, mem->mean_aber ? "yes" : "no");
+  printf("[%d]  fast math: %s\n", thread, mem->fast_math ? "yes" : "no");
+  printf("[%d]  polconv: %s\n", thread, mem->polconv ? "IAU" : "healpix");
+  printf("[%d]  pair dets: %s\n", thread, mem->pair_dets ? "yes" : "no");
+  printf("[%d]  fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
+  printf("[%d]  gal init: %s\n", thread, mem->gal_init ? "yes" : "no");
+
+  printf("[%d]  num threads: %d\n", thread, qp_get_opt_num_threads(mem));
+  printf("[%d]  thread num: %d\n", thread, qp_get_opt_thread_num(mem));
+  printf("[%d]  initialized: %s\n", thread, mem->initialized ? "yes" : "no");
+
+  printf("[%d]  ===================================\n", thread);
 }
 
 void qp_set_rates(qp_memory_t *mem,

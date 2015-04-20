@@ -117,8 +117,12 @@ extern "C" {
   /* check whether a correction needs to be applied */
   int qp_check_apply(qp_state_t *state);
   
-  /* print quaternion to screen */
-  void qp_print_debug(const char *tag, quat_t q);
+  /* print stuff */
+  void qp_print_vec3(const char *tag, vec3_t v);
+  void qp_print_quat(const char *tag, quat_t q);
+  void qp_print_state(const char *tag, qp_state_t *state);
+  void qp_print_weather(qp_weather_t *w);
+  void qp_print_memory(qp_memory_t *mem);
   
   /* per-correction functions */
 #define RATEFUNC(state)                                         \

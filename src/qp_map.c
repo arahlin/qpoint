@@ -442,6 +442,12 @@ void qp_reduce_map_nopol(double *map, double *maploc, int npix) {
       map[ipix] += maploc[ipix];
 }
 
+void qp_debug_mp(qp_memory_t *mem) {
+#ifdef DEBUG
+  qp_print_memory(mem);
+#endif
+}
+
 #define INIT_MAP(type, x)                   \
   type * x##maploc;                         \
   if (nthreads > 1) {                       \
@@ -453,6 +459,7 @@ void qp_reduce_map_nopol(double *map, double *maploc, int npix) {
 #define INIT_MAP1(type, x)                             \
   qp_memory_t *memloc = qp_copy_memory(mem);           \
   const int nthreads = qp_get_opt_num_threads(memloc); \
+  qp_debug_mp(memloc);                                 \
   INIT_MAP(type, x)
 
 #define INIT_MAP2(type1, x1, type2, x2) \
@@ -1172,15 +1179,17 @@ int qp_get_opt_num_threads(qp_memory_t *mem) {
   return mem->num_threads;
 }
 
-void qp_set_opt_thread_num(qp_memory_t *mem, int dummy) {
+void qp_set_opt_thread_num(qp_memory_t *mem, int thread) {
 #ifdef _OPENMP
   mem->thread_num = omp_get_thread_num();
 #else
-  mem->thread_num = 0;
+  mem->thread_num = thread;
 #endif
 }
 
 int qp_get_opt_thread_num(qp_memory_t *mem) {
+#ifdef _OPENMP
   qp_set_opt_thread_num(mem, 0);
+#endif
   return mem->thread_num;
 }
