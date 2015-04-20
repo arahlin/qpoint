@@ -922,11 +922,15 @@ class QPoint(object):
                         raise ValueError,'smap and pmap have incompatible shapes'
 
         if tuple_out is None:
-            ptuple_out = ptuple_in
-            stuple_out = stuple_in
+            if do_pnt:
+                ptuple_out = ptuple_in
+            if do_sig:
+                stuple_out = stuple_in
         else:
-            ptuple_out = tuple_out
-            stuple_out = tuple_out
+            if do_pnt:
+                ptuple_out = tuple_out
+            if do_sig:
+                stuple_out = tuple_out
 
         if pol is False:
             if do_pnt and do_sig:
