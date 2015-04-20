@@ -84,6 +84,8 @@ QP_DO_ALWAYS = ct.c_int.in_dll(libqp, "QP_DO_ALWAYS").value
 QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
 QP_DO_NEVER = ct.c_int.in_dll(libqp, "QP_DO_NEVER").value
 
+libqp.qp_print_memory.argtypes = (qp_memory_t_p,)
+
 libqp.qp_azel2radec.argtypes = (qp_memory_t_p, # params
                                 ct.c_double, ct.c_double, ct.c_double, # offset
                                 NDP(dtype=np.double), # az

@@ -126,17 +126,17 @@ void qp_print_vec3_mp(int th, const char *tag, vec3_t v) {
 }
 
 void qp_print_state_mp(int th, const char *tag, qp_state_t *state) {
-  printf("[%d]  %s state: rate %.6g, ctime %20.6f\n",
+  printf("[%d]  %s state: rate %.6g, ctime %-20.6f\n",
          th, tag, state->update_rate, state->ctime_last);
 }
 
 void qp_print_weather_mp(int th, qp_weather_t *w) {
-  printf("[%d]  Height [m]: %.6g\n", th, w->height);
-  printf("[%d]  Temperature [C]: %.6g\n", th, w->temperature);
-  printf("[%d]  Pressure [mbar]: %.6g\n", th, w->pressure);
-  printf("[%d]  Humidity [%%]: %.6g\n", th, w->humidity * 100);
-  printf("[%d]  Frequency [GHz]: %.6g\n", th, w->frequency);
-  printf("[%d]  Lapse rate [K/m]: %.6g\n", th, w->lapse_rate);
+  printf("[%d]  weather: height [m]: %.6g\n", th, w->height);
+  printf("[%d]  weather: temperature [C]: %.6g\n", th, w->temperature);
+  printf("[%d]  weather: pressure [mbar]: %.6g\n", th, w->pressure);
+  printf("[%d]  weather: humidity [%%]: %.6g\n", th, w->humidity * 100);
+  printf("[%d]  weather: frequency [GHz]: %.6g\n", th, w->frequency);
+  printf("[%d]  weather: lapse rate [K/m]: %.6g\n", th, w->lapse_rate);
 }
 
 void qp_print_memory(qp_memory_t *mem) {
@@ -144,39 +144,45 @@ void qp_print_memory(qp_memory_t *mem) {
 
   printf("[%d]  ========== QPOINT MEMORY ==========\n", thread);
   qp_print_state_mp(thread, "ref", &mem->state_ref);
-  qp_print_state_mp(thread, "daber", &mem->state_daber);
-  qp_print_state_mp(thread, "lonlat", &mem->state_lonlat);
-  qp_print_state_mp(thread, "wobble", &mem->state_wobble);
-  qp_print_state_mp(thread, "dut1", &mem->state_dut1);
-  qp_print_state_mp(thread, "erot", &mem->state_erot);
-  qp_print_state_mp(thread, "npb", &mem->state_npb);
-  qp_print_state_mp(thread, "aaber", &mem->state_aaber);
-
-  qp_print_weather_mp(thread, &mem->weather);
-
   qp_print_quat_mp(thread, "ref", mem->q_ref);
-  qp_print_quat_mp(thread, "lonlat", mem->q_lonlat);
-  qp_print_quat_mp(thread, "wobble", mem->q_wobble);
-  qp_print_quat_mp(thread, "npb", mem->q_npb);
-  qp_print_quat_mp(thread, "erot", mem->q_erot);
-  qp_print_quat_mp(thread, "gal", mem->q_gal);
-  qp_print_quat_mp(thread, "gal_inv", mem->q_gal_inv);
-  qp_print_vec3_mp(thread, "beta earth", mem->beta_earth);
-  qp_print_vec3_mp(thread, "beta rot", mem->beta_rot);
+  printf("[%d]  ref tol %.6g\n", thread, mem->ref_tol);
+  printf("[%d]  ref delta %.6g\n", thread, mem->ref_delta);
 
-  printf("[%d]  ref_tol %.6g\n", thread, mem->ref_tol);
-  printf("[%d]  ref_delta %.6g\n", thread, mem->ref_delta);
+  qp_print_state_mp(thread, "daber", &mem->state_daber);
+  qp_print_vec3_mp(thread, "daber beta rot", mem->beta_rot);
+
+  qp_print_state_mp(thread, "lonlat", &mem->state_lonlat);
+  qp_print_quat_mp(thread, "lonlat", mem->q_lonlat);
+
+  qp_print_state_mp(thread, "wobble", &mem->state_wobble);
+  qp_print_quat_mp(thread, "wobble", mem->q_wobble);
+
+  qp_print_state_mp(thread, "dut1", &mem->state_dut1);
   printf("[%d]  dut1 %.6g\n", thread, mem->dut1);
 
-  printf("[%d]  accuracy: %s\n", thread, mem->accuracy ? "low" : "full");
-  printf("[%d]  mean aber: %s\n", thread, mem->mean_aber ? "yes" : "no");
-  printf("[%d]  fast math: %s\n", thread, mem->fast_math ? "yes" : "no");
-  printf("[%d]  polconv: %s\n", thread, mem->polconv ? "IAU" : "healpix");
-  printf("[%d]  pair dets: %s\n", thread, mem->pair_dets ? "yes" : "no");
-  printf("[%d]  fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
-  printf("[%d]  gal init: %s\n", thread, mem->gal_init ? "yes" : "no");
+  qp_print_state_mp(thread, "erot", &mem->state_erot);
+  qp_print_quat_mp(thread, "erot", mem->q_erot);
 
-  printf("[%d]  num threads: %d\n", thread, qp_get_opt_num_threads(mem));
+  qp_print_state_mp(thread, "npb", &mem->state_npb);
+  qp_print_quat_mp(thread, "npb", mem->q_npb);
+
+  qp_print_state_mp(thread, "aaber", &mem->state_aaber);
+  qp_print_vec3_mp(thread, "aaber beta earth", mem->beta_earth);
+
+  printf("[%d]  gal init: %s\n", thread, mem->gal_init ? "yes" : "no");
+  qp_print_quat_mp(thread, "gal", mem->q_gal);
+  qp_print_quat_mp(thread, "gal inv", mem->q_gal_inv);
+
+  // qp_print_weather_mp(thread, &mem->weather);
+
+  printf("[%d]  opt: accuracy: %s\n", thread, mem->accuracy ? "low" : "full");
+  printf("[%d]  opt: mean aber: %s\n", thread, mem->mean_aber ? "yes" : "no");
+  printf("[%d]  opt: fast math: %s\n", thread, mem->fast_math ? "yes" : "no");
+  printf("[%d]  opt: polconv: %s\n", thread, mem->polconv ? "IAU" : "healpix");
+  printf("[%d]  opt: pair dets: %s\n", thread, mem->pair_dets ? "yes" : "no");
+  printf("[%d]  opt: fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
+
+  printf("[%d]  opt: num threads: %d\n", thread, qp_get_opt_num_threads(mem));
   printf("[%d]  thread num: %d\n", thread, qp_get_opt_thread_num(mem));
   printf("[%d]  initialized: %s\n", thread, mem->initialized ? "yes" : "no");
 

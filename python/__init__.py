@@ -31,7 +31,13 @@ class QPoint(object):
         
         # set any requested parameters
         self.set(**kwargs)
-        
+
+    def print_memory(self):
+        """
+        Print current memory state in C.
+        """
+        _libqp.qp_print_memory(self._memory)
+
     def __del__(self):
         """
         Free memory before deleting the object
