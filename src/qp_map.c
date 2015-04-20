@@ -137,6 +137,7 @@ void qp_rotate_map(qp_memory_t *mem, int nside,
 /* Compute pixel number and pol angle given nside and quaternion */
 void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
                  double *sin2psi, double *cos2psi) {
+#if 0
   if (mem->fast_pix) {
     vec3_t vec;
     Quaternion_to_matrix_col3(q, vec);
@@ -164,11 +165,11 @@ void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
     if (!mem->polconv) sing = -sing;
     *sin2psi = norm * sing;
     *cos2psi = norm * cosg - 1;
-  } else {
-    double ra, dec;
-    qp_quat2radec(mem, q, &ra, &dec, sin2psi, cos2psi);
-    *pix = qp_radec2pix(mem, ra, dec, nside);
   }
+#endif
+  double ra, dec;
+  qp_quat2radec(mem, q, &ra, &dec, sin2psi, cos2psi);
+  *pix = qp_radec2pix(mem, ra, dec, nside);
 }
 
 void qp_quat2pixn(qp_memory_t *mem, quat_t *q, int nside, long *pix,
