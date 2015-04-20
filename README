@@ -14,13 +14,18 @@ Installation:
 
 for C library:
 
-    make
-    sudo make install
+    make qpoint
+    sudo make install-qpoint
 
 for python bindings:
 
     make python
     sudo make install-python
+
+for both C and python:
+
+    make
+    sudo make install
 
 NB: if the above fails due to a missing chealpix or cfitsio library,
 try setting the following environment variables for both healpix and cfitsio:
