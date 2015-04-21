@@ -50,7 +50,7 @@ class QPoint(object):
         of parameter names.
         """
         if key not in self._all_funcs:
-            raise KeyError,'Unknown parameter %s' % key
+            raise KeyError,'Unknown parameter {}'.format(key)
         val = self._all_funcs[key]['check_set'](val)
         self._all_funcs[key]['set'](self._memory, val)
     
@@ -60,7 +60,7 @@ class QPoint(object):
         parameter names.
         """
         if key not in self._all_funcs:
-            raise KeyError,'Unknown parameter %s' % key
+            raise KeyError,'Unknown parameter {}'.format(key)
         val = self._all_funcs[key]['get'](self._memory)
         return self._all_funcs[key]['check_get'](val)
 
@@ -82,13 +82,14 @@ class QPoint(object):
         if isinstance(arg, tuple) and allow_tuple:
             arg = _np.vstack(arg)
         if not isinstance(arg, _np.ndarray):
-            raise TypeError,'input %s must be of type numpy.ndarray' % name
+            raise TypeError,'input {} must be of type numpy.ndarray'.format(name)
         if shape is not None:
             if arg.shape != shape:
                 if arg.T.shape == shape and allow_transpose:
                     arg = arg.T
                 else:
-                    raise ValueError,'input %s must have shape %s' % (name, shape)
+                    s = 'input {} of shape {} must have shape {}'
+                    raise ValueError(s.format(name, arg,shape, shape))
         istat = self._check_flags(arg)
         arg = _np.require(arg, dtype, list('AC' + 'W'*output))
         ostat = self._check_flags(arg)
@@ -1125,8 +1126,8 @@ class QPoint(object):
         
         req_columns = ['mjd','dut1','x','y']
         if not set(req_columns) <= set(columns):
-            raise KeyError,\
-                'Missing columns %s' % str(list(set(req_columns)-set(columns)))
+            raise KeyError(
+                'Missing columns {}'.format(list(set(req_columns)-set(columns))))
         kwargs['unpack'] = True
         data = _np.loadtxt(filename, **kwargs)
         mjd, x, y, dut1 = (data[columns.index(x)] for x in req_columns)
@@ -1135,8 +1136,8 @@ class QPoint(object):
         try:
             _libqp.set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
         except:
-            raise RuntimeError, \
-                'Error loading Bulletin A data from file %s' % filename
+            raise RuntimeError(
+                'Error loading Bulletin A data from file {}'.format(filename))
         
         return mjd, dut1, x, y
     
