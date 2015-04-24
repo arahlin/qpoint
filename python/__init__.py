@@ -98,6 +98,7 @@ class QPoint(object):
         return arg
 
     def _check_inputs(self, *args, **kwargs):
+        args = [arg if arg is not None else 0 for arg in args]
         return [self._check_input('input', _np.atleast_1d(x), **kwargs)
                 for x in _np.broadcast_arrays(*args)]
 
@@ -472,10 +473,6 @@ class QPoint(object):
         
         self.set(**kwargs)
 
-        if pitch is None:
-            pitch = 0
-        if roll is None:
-            roll = 0
         az, el, pitch, roll, lon, lat, ctime = \
             self._check_inputs(az, el, pitch, roll, lon, lat, ctime)
         n = az.size
@@ -525,8 +522,12 @@ class QPoint(object):
         self.set(**kwargs)
         
         q_off  = self._check_input('q_off', q_off)
+        q_bore = self._check_input('q_bore', q_bore)
+        if ctime is None:
+            if not self.get('mean_aber'):
+                raise ValueError,'ctime required if mean_aber is True'
+            ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
-        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         ra = self._check_output('ra', ra, shape=ctime.shape, dtype=_np.double)
         dec = self._check_output('dec', dec, shape=ctime.shape, dtype=_np.double)
         sin2psi = self._check_output('sin2psi', sin2psi, shape=ctime.shape,
@@ -597,10 +598,6 @@ class QPoint(object):
         
         self.set(**kwargs)
         
-        if pitch is None:
-            pitch = 0
-        if roll is None:
-            roll = 0
         az, el, pitch, roll, lon, lat, ctime = \
             self._check_inputs(az, el, pitch, roll, lon, lat, ctime)
 
@@ -807,8 +804,12 @@ class QPoint(object):
         self.set(**kwargs)
 
         q_off  = self._check_input('q_off', q_off)
+        q_bore = self._check_input('q_bore', q_bore)
+        if ctime is None:
+            if not self.get('mean_aber'):
+                raise ValueError,'ctime required if mean_aber is True'
+            ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
-        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         pix  = self._check_output('pix', shape=ctime.shape,
                                   dtype=_np.int, **kwargs)
         sin2psi = self._check_output('sin2psi', shape=ctime.shape,
@@ -882,8 +883,12 @@ class QPoint(object):
         q_off = self._check_input('q_off', q_off)
         ndet = q_off.size/4
         
+        q_bore = self._check_input('q_bore', q_bore)
+        if ctime is None:
+            if not self.get('mean_aber'):
+                raise ValueError,'ctime required if mean_aber is True'
+            ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
-        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         n = ctime.size
         
         do_pnt = not (pmap is False)
@@ -1047,8 +1052,12 @@ class QPoint(object):
         q_off = self._check_input('q_off', q_off)
         ndet = q_off.size/4
 
+        q_bore = self._check_input('q_bore', q_bore)
+        if ctime is None:
+            if not self.get('mean_aber'):
+                raise ValueError,'ctime required if mean_aber is True'
+            ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
-        q_bore = self._check_input('q_bore', q_bore, shape=ctime.shape+(4,))
         n = ctime.size
 
         map_in, _, _ = self._check_map(map_in)
