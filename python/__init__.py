@@ -525,7 +525,7 @@ class QPoint(object):
         q_bore = self._check_input('q_bore', q_bore)
         if ctime is None:
             if not self.get('mean_aber'):
-                raise ValueError,'ctime required if mean_aber is True'
+                raise ValueError,'ctime required if mean_aber is False'
             ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
         ra = self._check_output('ra', ra, shape=ctime.shape, dtype=_np.double)
@@ -807,7 +807,7 @@ class QPoint(object):
         q_bore = self._check_input('q_bore', q_bore)
         if ctime is None:
             if not self.get('mean_aber'):
-                raise ValueError,'ctime required if mean_aber is True'
+                raise ValueError,'ctime required if mean_aber is False'
             ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
         pix  = self._check_output('pix', shape=ctime.shape,
@@ -886,7 +886,7 @@ class QPoint(object):
         q_bore = self._check_input('q_bore', q_bore)
         if ctime is None:
             if not self.get('mean_aber'):
-                raise ValueError,'ctime required if mean_aber is True'
+                raise ValueError,'ctime required if mean_aber is False'
             ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
         n = ctime.size
@@ -1055,7 +1055,7 @@ class QPoint(object):
         q_bore = self._check_input('q_bore', q_bore)
         if ctime is None:
             if not self.get('mean_aber'):
-                raise ValueError,'ctime required if mean_aber is True'
+                raise ValueError,'ctime required if mean_aber is False'
             ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = self._check_input('ctime', ctime)
         n = ctime.size
