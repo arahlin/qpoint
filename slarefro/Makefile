@@ -33,11 +33,14 @@ $(HDRNAME): wrap.h
 	$(FC) -fPIC -g -c -o $@ $<
 
 install:
-	install -d $(PREFIX)/lib $(PREFIX)/include
+	if [ ! -d $(PREFIX)/lib ]; then install -d $(PREFIX)/lib; fi
+	if [ ! -d $(PREFIX)/include ]; then install -d $(PREFIX)/include; fi
 	install $(LIBNAME) $(PREFIX)/lib
 	install $(HDRNAME) $(PREFIX)/include
 
+uninstall:
+	cd $(PREFIX)/lib && rm -f $(LIBNAME)
+	cd $(PREFIX)/include && rm -f $(HDRNAME)
 
 clean:
 	-rm *.o $(LIBNAME) $(HDRNAME)
-

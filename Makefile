@@ -4,13 +4,17 @@ CC=gcc
 # need gfortran to build slarefro package
 ifeq ($(shell which gfortran), )
 SLAR =
-INSTALL_SLAR =
-UNINSTALL_SLAR =
 else
 SLAR = slarefro
-INSTALL_SLAR = install-slarefro
-UNINSTALL_SLAR = uninstall-slarefro
 endif
+
+ifneq ($(SLAR), )
+INSTALL_SLAR = install-$(SLAR)
+INSTALL_SLAR_USER = install-$(SLAR)-user
+UNINSTALL_SLAR = uninstall-$(SLAR)
+endif
+
+LOCALPREFIX=$(HOME)/.local
 
 default: all
 
@@ -44,6 +48,20 @@ install-qpoint: qpoint install-sofa $(INSTALL_SLAR)
 install: install-qpoint install-python
 
 install-all: install-qpoint install-python
+
+install-python-user: python
+	python setup.py install --user
+
+install-sofa-user: sofa
+	PREFIX=$(LOCALPREFIX) make -C sofa install
+
+install-slarefro-user: slarefro
+	PREFIX=$(LOCALPREFIX) make -C slarefro install
+
+install-qpoint-user: install-sofa-user $(INSTALL_SLAR_USER)
+	PREFIX=$(LOCALPREFIX) make -C src install
+
+install-user: install-qpoint-user install-python-user
 
 uninstall-sofa:
 	make -C sofa uninstall
