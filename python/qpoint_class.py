@@ -1,0 +1,820 @@
+import numpy as _np
+from _libqpoint import libqp as _libqp, QP_DO_ALWAYS, QP_DO_ONCE, QP_DO_NEVER
+
+class QPoint(object):
+
+    def __init__(self, **kwargs):
+        """
+        Initialize a QPoint memory instance for keeping track of pointing
+        corrections over time.
+
+        Any keyword arguments are passed to QPoint.set to update memory.
+        """
+
+        # initialize memory
+        self._memory = _libqp.qp_init_memory()
+
+        # collect all parameter functions
+        from _libqpoint import qp_funcs
+        self._funcs = qp_funcs
+        self._all_funcs = dict()
+        for k,v in qp_funcs.items():
+            self._all_funcs.update(**v)
+
+        # set any requested parameters
+        self.set(**kwargs)
+
+    def print_memory(self):
+        """
+        Print current memory state in C.
+        """
+        _libqp.qp_print_memory(self._memory)
+
+    def __del__(self):
+        """
+        Free memory before deleting the object
+        """
+        _libqp.qp_free_memory(self._memory)
+
+    def _set(self, key, val):
+        """
+        Set a single parameter to the given value.  See QPoint.set for a list
+        of parameter names.
+        """
+        if key not in self._all_funcs:
+            raise KeyError,'Unknown parameter {}'.format(key)
+        val = self._all_funcs[key]['check_set'](val)
+        self._all_funcs[key]['set'](self._memory, val)
+
+    def _get(self, key):
+        """
+        Get the value for a single parameter.  See QPoint.set for a list of
+        parameter names.
+        """
+        if key not in self._all_funcs:
+            raise KeyError,'Unknown parameter {}'.format(key)
+        val = self._all_funcs[key]['get'](self._memory)
+        return self._all_funcs[key]['check_get'](val)
+
+    def _check_flags(self, arg):
+        return (arg.flags['C_CONTIGUOUS'] |
+                arg.flags['OWNDATA'] << 1 |
+                arg.flags['WRITEABLE'] << 2 |
+                arg.flags['ALIGNED'] << 3)
+
+    def _check_input(self, name, arg, shape=None, dtype=_np.double, inplace=True,
+                     fill=0, allow_transpose=True, allow_tuple=True, output=False):
+        if arg is None:
+            if shape is None:
+                raise ValueError,'need shape to initialize input!'
+            if fill is None:
+                arg = _np.empty(shape, dtype=dtype)
+            else:
+                arg = fill * _np.ones(shape, dtype=dtype)
+        if isinstance(arg, tuple) and allow_tuple:
+            arg = _np.vstack(arg)
+        if not isinstance(arg, _np.ndarray):
+            raise TypeError,'input {} must be of type numpy.ndarray'.format(name)
+        if shape is not None:
+            if arg.shape != shape:
+                if arg.T.shape == shape and allow_transpose:
+                    arg = arg.T
+                else:
+                    s = 'input {} of shape {} must have shape {}'
+                    raise ValueError(s.format(name, arg,shape, shape))
+        istat = self._check_flags(arg)
+        arg = _np.require(arg, dtype, list('AC' + 'W'*output))
+        ostat = self._check_flags(arg)
+        if istat == ostat and inplace is False:
+            return arg.copy()
+        return arg
+
+    def _check_inputs(self, *args, **kwargs):
+        args = [arg if arg is not None else 0 for arg in args]
+        return [self._check_input('input', _np.atleast_1d(x), **kwargs)
+                for x in _np.broadcast_arrays(*args)]
+
+    def _check_output(self, name, arg=None, shape=None, dtype=_np.double,
+                      inplace=True, fill=None, allow_transpose=True,
+                      allow_tuple=True, **kwargs):
+        if arg is None:
+            arg = kwargs.pop(name, None)
+        return self._check_input(name, arg, shape, dtype, inplace, fill,
+                                 allow_transpose, allow_tuple, True)
+
+    def set(self, **kwargs):
+        """
+        Available keywords are:
+
+        * Correction rates:
+          NB: these can be 'never' (-999), 'once' (-1), 'always' (0) or seconds
+        rate_daber     Rate at which the diurnal aberration correction is
+                       applied (NB: this can only be applied always or never)
+        rate_lonlat    Rate at which observer's lon and lat are updated
+        rate_wobble    Rate at which the polar motion correction is updated
+                       (NB: these are not estimated for dates beyond a year
+                       from now)
+        rate_dut1      Rate at which the ut1-utc correction is updated
+                       (NB: this is not estimated for dates beyond a year from
+                       now)
+        rate_erot      Rate at which the earth's rotation angle is updated
+        rate_npb       Rate at which the nutation/precession/frame-bias terms
+                       are updated
+        rate_aaber     Rate at which the annual aberration correction
+                       (due to the earth's orbital velocity) is updated
+        rate_ref       Rate at which the refaction correction is updated
+                       (NB: this correction can also be updated manually -- see
+                       refraction)
+
+        * Options:
+        accuracy       If 'low', use a truncated form (2000b) for the NPB
+                       correction, which is much faster but less accurate.
+                       If 'high' (default), use the full 2006/2000a form.
+        mean_aber      If True, apply the aberration correction as an average
+                       for the entire field of view.  This is gives a 1-2
+                       arcsec deviation at the edges of the SPIDER field of
+                       view.
+        fast_math      If True, use polynomial approximations for trig
+                       functions
+        polconv        Specify the 'cosmo' or 'iau' polarization convention
+        pair_dets      If True, A/B detectors are paired in bore2map
+                       (factor of 2 speed up in computation, but assumes ideality)
+        pix_order      'nest' or 'ring' for healpix pixel ordering
+        fast_pix       If True, use vec2pix to get pixel number directly from
+                       the quaternion instead of ang2pix from ra/dec.
+        num_threads    Number of threads for openMP bore2map computation
+
+        * Weather:
+        height         height above sea level, meters
+        temperature    temperature, Celcius
+        pressure       pressure, mbar
+        humidity       relative humidity, fraction
+        frequency      observer frequency, GHz
+        lapse_rate     tropospheric lapse rate, K/m
+
+        * Parameters:
+        dut1           UT1 correction
+        ref_tol        Tolerance on refraction correction, in radians
+        ref_delta      Refraction correction
+        """
+
+        for k,v in kwargs.items():
+            try:
+                self._set(k ,v)
+            except KeyError:
+                continue
+
+    def get(self,*args):
+        """
+        Returns a dictionary of the requested state parameters.  If no
+        parameters are supplied, then all are returned.  If a single parameter
+        is supplied, then just that value is returned.  See QPoint.set for a
+        list of parameter names.
+
+        Can also select 'options', 'rates', 'weather', or 'params' to return
+        all of that subset of parameters.
+        """
+        state = dict()
+        if not len(args):
+            for k in self._funcs:
+                state[k] = dict()
+                for kk in self._funcs[k]:
+                    state[k][kk] = self._get(kk)
+            return state
+
+        for arg in args:
+            if arg in self._funcs:
+                state[arg] = dict()
+                for k in self._funcs[arg]:
+                    state[arg][k] = self._get(k)
+            else:
+                state[arg] = self._get(arg)
+        if len(args) == 1:
+            return state[args[0]]
+        return state
+
+    def reset_rates(self):
+        """
+        Reset update counters for each state.  Useful to force an updated
+        correction term at the beginning of each chunk.
+        """
+        _libqp.qp_reset_rates(self._memory)
+
+    def refraction(self, *args, **kwargs):
+        """
+        Update refraction parameters
+
+        Arguments (positional or keyword):
+
+        q            observer orientation in horizon coordinates
+        lat          latitude, degrees
+        height       height above sea level, meters
+        temperature  temperature, Celcius
+        pressure     pressure, mbar
+        humidity     humidity, fraction
+        frequency    array frequency, GHz
+        lapse_rate   tropospheric lapse rate, K/m
+        tolerance    tolerance on convergence, radians
+        delta        the refraction correction itself, in degrees
+
+        If both el and lat are given, then the refraction correction in degrees
+        is calculated, stored and returned after updating any other given
+        parameters. Otherwise, the correction is returned w/out recalculating.
+
+        Alternatively, if a single numerical argument, or the 'delta' keyword
+        argument is given, then the correction is stored with this value
+        instead of being recalculated.
+
+        Numpy-vectorized for el and lat arguments.  Note that this is not
+        an efficient vectorization, and only the last calculated value is
+        stored for use in the coordinate conversion functions.
+        """
+
+        if len(args) == 1 and len(kwargs) == 0:
+            v = args[0]
+            self._set('ref_delta', v)
+            return v
+
+        if 'delta' in kwargs:
+            v = kwargs.get('delta')
+            self._set('ref_delta', v)
+            return v
+
+        arg_names = ['q','lat'] + self._funcs['weather'].keys()
+        for idx,a in enumerate(args):
+            kwargs[arg_names[idx]] = a
+
+        for w in self._funcs['weather']:
+            if w in kwargs:
+                self._set(w, kwargs.get(w))
+
+        q = kwargs.get('q',None)
+        lat = kwargs.get('lat',None)
+        if q is not None and lat is not None:
+            def func(x0, x1, x2, x3, y):
+                q = _np.ascontiguousarray([x0,x1,x2,x3])
+                return _libqp.qp_update_ref(self._memory, q, y)
+            fvec = _np.vectorize(func,[_np.double])
+            if q.size / 4 > 1:
+                q = q.transpose()
+            delta = fvec(q[0], q[1], q[2], q[3], lat)
+            if delta.shape == ():
+                return delta[()]
+            return delta
+        return self._get('ref_delta')
+
+    def gmst(self, ctime, **kwargs):
+        """
+        Return Greenwich mean sidereal time for given ctimes and longitudes.
+        Vectorized.
+
+        Arguments:
+
+        ctime      unix time in seconds UTC
+
+        Keyword arguments:
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        gmst       Greenwich mean sidereal time of the observer
+        """
+
+        self.set(**kwargs)
+
+        ctime = self._check_input('ctime', _np.atleast_1d(ctime))
+
+        if ctime.size == 1:
+            return _libqp.qp_gmst(self._memory, ctime[0])
+
+        gmst = self._check_output('gmst', shape=ctime.shape)
+        _libqp.qp_gmstn(self._memory, ctime, gmst, ctime.size)
+        return gmst
+
+    def lmst(self, ctime, lon, **kwargs):
+        """
+        Return local mean sidereal time for given ctimes and longitudes.
+        Vectorized.
+
+        Arguments:
+
+        ctime      unix time in seconds UTC
+        lon        observer longitude (degrees)
+
+        Keyword arguments:
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        lmst       local mean sidereal time of the observer
+        """
+
+        self.set(**kwargs)
+
+        ctime, lon = self._check_inputs(ctime, lon)
+
+        if ctime.size == 1:
+            return _libqp.qp_lmst(self._memory, ctime[0], lon[0])
+
+        lmst = self._check_output('lmst', shape=ctime.shape)
+        _libqp.qp_lmstn(self._memory, ctime, lon, lmst, ctime.size)
+        return lmst
+
+    def dipole(self, ctime, ra, dec, **kwargs):
+        """
+        Return dipole amplitude in the given equatorial direction.
+        Vectorized.
+
+        Arguments:
+
+        ctime      unix time in seconds UTC
+        ra         right ascension on the sky
+        dec        declination on the sky
+
+        Keyword arguments:
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        dipole     dipole amplitude in K
+        """
+
+        self.set(**kwargs)
+
+        ctime, ra, dec = self._check_inputs(ctime, ra, dec)
+
+        if ctime.size == 1:
+            return _libqp.qp_dipole(self._memory, ctime[0], ra[0], dec[0])
+
+        dipole = self._check_output('dipole', shape=ctime.shape)
+        _libqp.qp_dipolen(self._memory, ctime, ra, dec, dipole, ctime.size)
+        return dipole
+
+    def det_offset(self, delta_az, delta_el, delta_psi):
+        """
+        Return quaternion corresponding to the requested detector offset.
+        Vectorized.
+
+        Arguments:
+
+        delta_az   azimuthal offset of the detector (degrees)
+        delta_el   elevation offset of the detector (degrees)
+        delta_psi  polarization offset of the detector (degrees)
+
+        Outputs:
+
+        q          detector offset quaternion for each detector
+        """
+
+        delta_az, delta_el, delta_psi = \
+            self._check_inputs(delta_az, delta_el, delta_psi)
+        ndet = delta_az.size
+
+        for x in (delta_el, delta_psi):
+            if x.shape != delta_az.shape:
+                raise ValueError, "input offset vectors must have the same shape"
+
+        if ndet == 1:
+            quat = self._check_output('quat', shape=(4,))
+            _libqp.qp_det_offset(delta_az[0], delta_el[0], delta_psi[0], quat)
+        else:
+            quat = self._check_output('quat', shape=(ndet,4))
+            _libqp.qp_det_offsetn(delta_az, delta_el, delta_psi, quat, ndet)
+
+        return quat
+
+    def hwp_quat(self, theta):
+        """
+        Return quaternion corresponding to rotation by 2*theta,
+        where theta is the physical waveplate angle.
+        Vectorized.
+
+        Arguments:
+
+        theta      hwp physical angle (degrees)
+
+        Outputs:
+
+        q          quaternion for each hwp angle
+        """
+        theta = self._check_input('theta', _np.atleast_1d(theta))
+        if theta.size == 1:
+            quat = self._check_output('quat', shape=(4,))
+            _libqp.qp_hwp_quat(theta[0], quat)
+        else:
+            quat = self._check_output('quat', shape=(theta.size,4))
+            _libqp.qp_hwp_quatn(theta, quat, theta.size)
+        return quat
+
+    def azel2bore(self, az, el, pitch, roll, lon, lat, ctime, q=None,
+                  **kwargs):
+        """
+        Estimate the quaternion for the boresight orientation on the sky given
+        the attitude (az/el/pitch/roll), location on the earth (lon/lat) and
+        ctime. Input vectors must be numpy-array-like and of the same shape.
+
+        Arguments:
+
+        az         boresight azimuth (degrees)
+        el         boresight elevation (degrees)
+        pitch      boresight pitch (degrees); can be None
+        roll       boresight pitch (degrees); can be None
+        lon        observer longitude (degrees)
+        lat        observer latitude (degrees)
+        ctime      unix time in seconds UTC
+        q          output quaternion array initialized by user
+
+        Keywork arguments:
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Output:
+
+        q          Nx4 numpy array of quaternions for each supplied timestamp.
+        """
+
+        self.set(**kwargs)
+
+        az, el, pitch, roll, lon, lat, ctime = \
+            self._check_inputs(az, el, pitch, roll, lon, lat, ctime)
+        n = az.size
+
+        # identity quaternion
+        q = self._check_output('q', q, shape=(n,4), fill=[1,0,0,0])
+
+        _libqp.qp_azel2bore(self._memory, az, el, pitch, roll, lon, lat,
+                            ctime, q, n)
+
+        return q
+
+    def bore2radec(self, q_off, ctime, q_bore, q_hwp=None, sindec=False,
+                   ra=None, dec=None, sin2psi=None, cos2psi=None, **kwargs):
+        """
+        Calculate the orientation on the sky for a detector offset from the
+        boresight.  Detector offsets are defined assuming the boresight is
+        pointed toward the horizon, and that the boresight polarization axis is
+        along the vertical.
+
+        Arguments:
+
+        q_off      Detector offset quaternion for a single detector,
+                   calculated using det_offset
+        ctime      array of unix times in seconds UTC
+        q_bore     Nx4 array of quaternions encoding the boresight orientation
+                   on the sky (as output by azel2radec)
+
+        Keyword arguments:
+
+        q_hwp      HWP angle quaternions calculated using hwp_quat
+                   must be same shape as q_bore
+        sindec     If True, return sin(dec) instead of dec in degrees
+                   (default False)
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        ra         detector right ascension (degrees)
+        dec/sindec detector declination (degrees) or sin(dec)
+        sin2psi    detector polarization orientation
+        cos2psi    detector polarization orientation
+        """
+
+        self.set(**kwargs)
+
+        q_off  = self._check_input('q_off', q_off)
+        q_bore = self._check_input('q_bore', q_bore)
+        if ctime is None:
+            if not self.get('mean_aber'):
+                raise ValueError,'ctime required if mean_aber is False'
+            ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
+        ctime  = self._check_input('ctime', ctime)
+        ra = self._check_output('ra', ra, shape=ctime.shape, dtype=_np.double)
+        dec = self._check_output('dec', dec, shape=ctime.shape, dtype=_np.double)
+        sin2psi = self._check_output('sin2psi', sin2psi, shape=ctime.shape,
+                                     dtype=_np.double)
+        cos2psi = self._check_output('cos2psi', cos2psi, shape=ctime.shape,
+                                     dtype=_np.double)
+        n = ctime.size
+
+        if q_hwp is None:
+            if sindec:
+                _libqp.qp_bore2rasindec(self._memory, q_off, ctime, q_bore,
+                                        ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_bore2radec(self._memory, q_off, ctime, q_bore,
+                                     ra, dec, sin2psi, cos2psi, n)
+        else:
+            q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
+            if sindec:
+                _libqp.qp_bore2rasindec_hwp(self._memory, q_off, ctime, q_bore,
+                                            q_hwp, ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_bore2radec_hwp(self._memory, q_off, ctime, q_bore,
+                                         q_hwp, ra, dec, sin2psi, cos2psi, n)
+
+        return ra, dec, sin2psi, cos2psi
+
+    def azel2radec(self, delta_az, delta_el, delta_psi,
+                   az, el, pitch, roll, lon, lat, ctime,
+                   hwp=None, sindec=False, ra=None, dec=None,
+                   sin2psi=None, cos2psi=None, **kwargs):
+        """
+        Estimate the orientation on the sky for a detector offset from
+        boresight, given the boresight attitude (az/el/pitch/roll), location on
+        the earth (lon/lat) and UTC time.  Input vectors must be
+        numpy-array-like and of the same shape. Detector offsets are defined
+        assuming the boresight is pointed toward the horizon, and that the
+        boresight polarization axis is along the horizontal.
+
+        Arguments:
+
+        delta_az   azimuthal offset of the detector (degrees)
+        delta_el   elevation offset of the detector (degrees)
+        delta_psi  polarization offset of the detector (degrees)
+        az         boresight azimuth (degrees)
+        el         boresight elevation (degrees)
+        pitch      boresight pitch (degrees); can be None
+        roll       boresight roll (degrees); can be None
+        lon        observer longitude (degrees)
+        lat        observer latitude (degrees)
+        ctime      unix time in seconds UTC
+
+        Keyword arguments:
+
+        hwp        HWP angles (degrees)
+        sindec     If True, return sin(dec) instead of dec in degrees
+                   (default False)
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        ra         detector right ascension (degrees)
+        dec/sindec detector declination (degrees)
+        sin2psi    detector polarization orientation
+        cos2psi    detector polarization orientation
+        """
+
+        self.set(**kwargs)
+
+        az, el, pitch, roll, lon, lat, ctime = \
+            self._check_inputs(az, el, pitch, roll, lon, lat, ctime)
+
+        ra = self._check_output('ra', ra, shape=az.shape, dtype=_np.double)
+        dec = self._check_output('dec', dec, shape=az.shape, dtype=_np.double)
+        sin2psi = self._check_output('sin2psi', sin2psi, shape=az.shape,
+                                     dtype=_np.double)
+        cos2psi = self._check_output('cos2psi', cos2psi, shape=az.shape,
+                                     dtype=_np.double)
+        n = az.size
+
+        if hwp is None:
+            if sindec:
+                _libqp.qp_azel2rasindec(self._memory, delta_az, delta_el, delta_psi,
+                                        az, el, pitch, roll, lon, lat, ctime,
+                                        ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_azel2radec(self._memory, delta_az, delta_el, delta_psi,
+                                     az, el, pitch, roll, lon, lat, ctime,
+                                     ra, dec, sin2psi, cos2psi, n)
+        else:
+            hwp = self._check_input('hwp', hwp, shape=az.shape)
+
+            if sindec:
+                _libqp.qp_azel2rasindec_hwp(self._memory, delta_az, delta_el, delta_psi,
+                                            az, el, pitch, roll, lon, lat, ctime, hwp,
+                                            ra, dec, sin2psi, cos2psi, n)
+            else:
+                _libqp.qp_azel2radec_hwp(self._memory, delta_az, delta_el, delta_psi,
+                                         az, el, pitch, roll, lon, lat, ctime, hwp,
+                                         ra, dec, sin2psi, cos2psi, n)
+
+        return ra, dec, sin2psi, cos2psi
+
+    def radecpa2quat(self, ra, dec, pa, **kwargs):
+        """
+        Calculate quaternion for input ra/dec/pa.
+        """
+        self.set(**kwargs)
+
+        ra, dec, pa = self._check_inputs(ra, dec, pa)
+        n = ra.size
+        quat = self._check_output('quat', shape=ra.shape+(4,), dtype=_np.double,
+                                  **kwargs)
+        _libqp.qp_radecpa2quatn(self._memory, ra, dec, pa, quat, n)
+        if ra.size == 1:
+            return quat[0]
+        return quat
+
+    def quat2radecpa(self, quat, **kwargs):
+        """
+        Calculate ra/dec/pa for input quaternion(s).
+        """
+        self.set(**kwargs)
+
+        quat = self._check_input('quat', _np.atleast_2d(quat))
+        n = quat.shape[0]
+        ra = self._check_output('ra', shape=(n,), dtype=_np.double, **kwargs)
+        dec = self._check_output('dec', shape=(n,), dtype=_np.double, **kwargs)
+        pa = self._check_output('pa', shape=(n,), dtype=_np.double, **kwargs)
+
+        _libqp.qp_quat2radecpan(self._memory, quat, ra, dec, pa, n)
+        if n == 1:
+            return ra[0], dec[0], pa[0]
+        return ra, dec, pa
+
+    def radec2pix(self, ra, dec, nside=256, **kwargs):
+        """
+        Calculate healpix pixel number for given ra/dec and nside
+        """
+
+        self.set(**kwargs)
+
+        ra, dec = self._check_inputs(ra, dec)
+
+        if ra.size == 1:
+            return _libqp.qp_radec2pix(self._memory, ra[0], dec[0], nside)
+
+        pix = self._check_output('pix', shape=ra.shape, dtype=_np.int, **kwargs)
+        _libqp.qp_radec2pixn(self._memory, ra, dec, nside, pix, ra.size)
+        return pix
+
+    def radec2gal(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+        """
+        Rotate celestial coordinates to galactic coordinates.
+        """
+
+        self.set(**kwargs)
+
+        ra, dec, sin2psi, cos2psi = \
+            self._check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
+        n = ra.size
+
+        _libqp.qp_radec2galn(self._memory, ra, dec, sin2psi, cos2psi, n)
+
+        if n == 1:
+            return ra[0], dec[0], sin2psi[0], cos2psi[0]
+        return ra, dec, sin2psi, cos2psi
+
+    def gal2radec(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+        """
+        Rotate celestial coordinates to galactic coordinates.
+        """
+
+        self.set(**kwargs)
+
+        ra, dec, sin2psi, cos2psi = \
+            self._check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
+        n = ra.size
+
+        _libqp.qp_gal2radecn(self._memory, ra, dec, sin2psi, cos2psi, n)
+
+        if n == 1:
+            return ra[0], dec[0], sin2psi[0], cos2psi[0]
+        return ra, dec, sin2psi, cos2psi
+
+    def quat2pix(self, quat, nside=256, pol=True, **kwargs):
+        """
+        Calculate healpix pixel number and polarization angle given
+        quaternion and nside
+        """
+
+        self.set(**kwargs)
+
+        quat = self._check_input('quat', _np.atleast_2d(quat))
+
+        n = quat.shape[0]
+        shape = (n,)
+        pix = self._check_output('pix', shape=shape, dtype=_np.int, **kwargs)
+        sin2psi = self._check_output('sin2psi', shape=shape, **kwargs)
+        cos2psi = self._check_output('cos2psi', shape=shape, **kwargs)
+        _libqp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
+
+        if n == 1:
+            pix, sin2psi, cos2psi = pix[0], sin2psi[0], cos2psi[0]
+        if pol:
+            return pix, sin2psi, cos2psi
+        return pix
+
+    def bore2pix(self, q_off, ctime, q_bore, q_hwp=None, nside=256, pol=True,
+                 **kwargs):
+        """
+        Calculate the orientation on the sky for a detector offset from the
+        boresight.  Detector offsets are defined assuming the boresight is
+        pointed toward the horizon, and that the boresight polarization axis is
+        along the vertical.
+
+        Arguments:
+
+        q_off      Detector offset quaternion for a single detector,
+                   calculated using det_offset
+        ctime      array of unix times in seconds UTC
+        q_bore     Nx4 array of quaternions encoding the boresight orientation
+                   on the sky (as output by azel2radec)
+
+        Keyword arguments:
+
+        q_hwp      HWP angle quaternions calculated using hwp_quat
+                   must be same shape as q_bore
+        nside      map dimension
+        pol        if False, return only the pixel timestream
+
+        Any keywords accepted by the QPoint.set function can also be passed
+        here, and will be processed prior to calculation.
+
+        Outputs:
+
+        pix        detector pixel number
+        sin2psi    detector polarization orientation (if pol is True)
+        cos2psi    detector polarization orientation (if pol is True)
+        """
+
+        self.set(**kwargs)
+
+        q_off  = self._check_input('q_off', q_off)
+        q_bore = self._check_input('q_bore', q_bore)
+        if ctime is None:
+            if not self.get('mean_aber'):
+                raise ValueError,'ctime required if mean_aber is False'
+            ctime = _np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
+        ctime  = self._check_input('ctime', ctime)
+        pix  = self._check_output('pix', shape=ctime.shape,
+                                  dtype=_np.int, **kwargs)
+        sin2psi = self._check_output('sin2psi', shape=ctime.shape,
+                                     **kwargs)
+        cos2psi = self._check_output('cos2psi', shape=ctime.shape,
+                                     **kwargs)
+        n = ctime.size
+
+        if q_hwp is None:
+            _libqp.qp_bore2pix(self._memory, q_off, ctime, q_bore,
+                               nside, pix, sin2psi, cos2psi, n)
+        else:
+            q_hwp = self._check_input('q_hwp', q_hwp, shape=q_bore.shape)
+
+            _libqp.qp_bore2pix_hwp(self._memory, q_off, ctime, q_bore,
+                                   q_hwp, nside, pix, sin2psi, cos2psi, n)
+
+        if pol is True:
+            return pix, sin2psi, cos2psi
+        return pix
+
+    def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
+        """
+        Load IERS Bulletin A from file and store in memory.  The file must be
+        readable using numpy.loadtxt with unpack=True, and is assumed to be sorted
+        by mjd.
+
+        Keyword arguments:
+
+        columns    list of columns as they appear in the file.
+                   A KeyError is raise if the list does not contain
+                   each of ['mjd', 'dut1', 'x', 'y']
+
+        Any other keyword arguments are passed to the numpy.loadtxt function
+
+        Output:
+
+        mjd, dut1, x, y
+        """
+
+        req_columns = ['mjd','dut1','x','y']
+        if not set(req_columns) <= set(columns):
+            raise KeyError(
+                'Missing columns {}'.format(list(set(req_columns)-set(columns))))
+        kwargs['unpack'] = True
+        data = _np.loadtxt(filename, **kwargs)
+        mjd, x, y, dut1 = (data[columns.index(x)] for x in req_columns)
+        mjd_min, mjd_max = int(mjd[0]), int(mjd[-1])
+
+        try:
+            _libqp.set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
+        except:
+            raise RuntimeError(
+                'Error loading Bulletin A data from file {}'.format(filename))
+
+        return mjd, dut1, x, y
+
+    def get_bulletin_a(self, mjd):
+        """
+        Return dut1/x/y for given mjd. Numpy-vectorized.
+        """
+
+        from _libqpoint import get_bulletin_a
+        def func(x): return get_bulletin_a(self._memory, x)
+        fvec = _np.vectorize(func, [_np.double]*3)
+
+        out = fvec(mjd)
+        if out[0].shape == ():
+            return tuple(x[()] for x in out)
+        return out
