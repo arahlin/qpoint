@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <float.h>
 #include "sofa.h"
@@ -25,22 +24,14 @@ double jd2ctime(double jd[2]) {
 
 void ctime2jdtt(double ctime, double jd_tt[2]) {
   double jd_utc[2], jd_tai[2];
-  int stat;
   
   ctime2jd(ctime, jd_utc);
-  stat = iauUtctai(jd_utc[0], jd_utc[1], &jd_tai[0], &jd_tai[1]);
-  assert(stat == 0);
-  stat = iauTaitt(jd_tai[0], jd_tai[1], &jd_tt[0], &jd_tt[1]);
-  assert(stat == 0);
-  _unused(stat);
+  iauUtctai(jd_utc[0], jd_utc[1], &jd_tai[0], &jd_tai[1]);
+  iauTaitt(jd_tai[0], jd_tai[1], &jd_tt[0], &jd_tt[1]);
 }
 
 void jdutc2jdut1(double jd_utc[2], double dut1, double jd_ut1[2]) {
-  int stat;
-  
-  stat = iauUtcut1(jd_utc[0], jd_utc[1], dut1, &jd_ut1[0], &jd_ut1[1]);
-  assert(stat == 0);
-  _unused(stat);
+  iauUtcut1(jd_utc[0], jd_utc[1], dut1, &jd_ut1[0], &jd_ut1[1]);
 }
 
 double ctime2gmst(double ctime, double dut1, int accuracy) {

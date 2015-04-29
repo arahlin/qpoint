@@ -3,7 +3,6 @@
   2012 Mike Nolta <mike@nolta.net>
  */
 
-#include <assert.h>
 #include <math.h>
 #include "quaternion.h"
 
@@ -57,17 +56,19 @@ Quaternion_norm(const Quaternion q)
   return sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
 }
 
-void
+int
 Quaternion_rot(Quaternion q, double angle, const double v[3])
 {
   double angle_2 = 0.5*angle;
   double s = sin(angle_2);
   double norm = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-  assert(norm > 0.);
+  if (norm <= 0.)
+    return 1;
   q[0] = cos(angle_2);
   q[1] = s*v[0]/norm;
   q[2] = s*v[1]/norm;
   q[3] = s*v[2]/norm;
+  return 0;
 }
 
 void

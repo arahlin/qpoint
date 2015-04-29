@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +27,6 @@ qp_memory_t * qp_init_memory(void) {
   mem->mean_aber = 0;
   mem->fast_math = 0;
   mem->polconv = 0;
-  mem->pair_dets = 0;
   mem->pix_order = 0;
   mem->fast_pix = 0;
   mem->gal_init = 0;
@@ -53,7 +51,9 @@ qp_memory_t * qp_init_memory(void) {
   memset(mem->beta_rot,   0, sizeof(vec3_t));
   memset(mem->beta_earth, 0, sizeof(vec3_t));
   mem->bulletinA.entries = NULL;
-  mem->initialized = 1;
+  mem->error_code = 0;
+  mem->error_string = NULL;
+  mem->init = 1;
   return mem;
 }
 
@@ -179,12 +179,11 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  opt: mean aber: %s\n", thread, mem->mean_aber ? "yes" : "no");
   printf("[%d]  opt: fast math: %s\n", thread, mem->fast_math ? "yes" : "no");
   printf("[%d]  opt: polconv: %s\n", thread, mem->polconv ? "IAU" : "healpix");
-  printf("[%d]  opt: pair dets: %s\n", thread, mem->pair_dets ? "yes" : "no");
   printf("[%d]  opt: fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
 
   printf("[%d]  opt: num threads: %d\n", thread, qp_get_opt_num_threads(mem));
   printf("[%d]  thread num: %d\n", thread, qp_get_opt_thread_num(mem));
-  printf("[%d]  initialized: %s\n", thread, mem->initialized ? "yes" : "no");
+  printf("[%d]  initialized: %s\n", thread, mem->init ? "yes" : "no");
 
   printf("[%d]  ===================================\n", thread);
 }
@@ -276,7 +275,6 @@ OPTIONFUNCDR(accuracy, npb)
 OPTIONFUNCDR(mean_aber, aaber)
 OPTIONFUNCD(fast_math)
 OPTIONFUNCD(polconv)
-OPTIONFUNCD(pair_dets)
 OPTIONFUNCD(pix_order)
 OPTIONFUNCD(fast_pix)
 
@@ -285,7 +283,6 @@ void qp_set_options(qp_memory_t *mem,
 		    int mean_aber,
 		    int fast_math,
 		    int polconv,
-		    int pair_dets,
 		    int pix_order,
                     int fast_pix,
 		    int num_threads) {
@@ -293,7 +290,6 @@ void qp_set_options(qp_memory_t *mem,
   qp_set_opt_mean_aber  (mem, mean_aber);
   qp_set_opt_fast_math  (mem, fast_math);
   qp_set_opt_polconv    (mem, polconv);
-  qp_set_opt_pair_dets  (mem, pair_dets);
   qp_set_opt_pix_order  (mem, pix_order);
   qp_set_opt_fast_pix   (mem, fast_pix);
   qp_set_opt_num_threads(mem, num_threads);

@@ -7,6 +7,7 @@ libsofa_file = 'sofa/libsofa_c.a'
 if not os.path.exists(libsofa_file):
     os.system('make -C sofa')
 
+src = [x for x in glob.glob('src/*.c')]
 incl_dirs = ['src','sofa']
 extra_obj = [libsofa_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC','-fopenmp']
@@ -51,7 +52,7 @@ else:
 
 # this isn't technically an extension...
 # hack to make a shared library to install with the package
-ext_qp = Extension('qpoint.libqpoint',[x for x in glob.glob('src/*.c')],
+ext_qp = Extension('qpoint.libqpoint', src,
                    include_dirs=incl_dirs,
                    extra_compile_args=extra_args,
                    libraries=libs,

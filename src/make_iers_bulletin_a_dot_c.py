@@ -22,7 +22,6 @@ header = """
  2012 Mike Nolta <mike@nolta.net>
  */
 
-#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,7 +92,8 @@ int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
 
   int n_mjd = B->mjd_max - B->mjd_min + 1;
   B->entries = malloc(n_mjd*sizeof(*(B->entries)));
-  assert(B->entries != NULL);
+  if (B->entries == NULL)
+    return 1;
 
   for (int k=0; k<n_mjd; k++) {
     B->entries[k].x = x[k];
@@ -116,7 +116,8 @@ int copy_iers_bulletin_a(qp_memory_t *memdest, qp_memory_t *memsrc) {
       bdest->entries = NULL;
     }
     bdest->entries = malloc(n_mjd*sizeof(*(bdest->entries)));
-    assert(bdest->entries != NULL);
+    if (bdest->entries == NULL)
+      return 1;
     memcpy(bdest->entries, bsrc->entries, n_mjd*sizeof(*(bsrc->entries)));
   }
 

@@ -4,7 +4,34 @@ import ctypes as ct
 import numpy as np
 import os
 
-# structures
+libqp = np.ctypeslib.load_library('libqpoint',os.path.dirname(__file__))
+
+# **********************************************************************
+# Types
+# **********************************************************************
+
+NDP = np.ctypeslib.ndpointer
+
+quat_t = NDP(np.double, ndim=1, shape=(4,), flags=['A','C'])
+quat_t_p = NDP(np.double, ndim=2, flags=['A','C'])
+vec3_t = NDP(np.double, ndim=1, shape=(3,), flags=['A','C'])
+vec3_t_p = NDP(np.double, ndim=2, flags=['A','C'])
+
+wquat_t = NDP(np.double, ndim=1, shape=(4,), flags=['A','C','W'])
+wquat_t_p = NDP(np.double, ndim=2, flags=['A','C','W'])
+wvec3_t = NDP(np.double, ndim=1, shape=(3,), flags=['A','C','W'])
+wvec3_t_p = NDP(np.double, ndim=2, flags=['A','C','W'])
+
+arr = NDP(np.double, ndim=1, flags=['A','C'])
+arrf = NDP(np.uint8, ndim=1, flags=['A','C'])
+warr = NDP(np.double, ndim=1, flags=['A','C','W'])
+warri = NDP(np.int, ndim=1, flags=['A','C','W'])
+
+arr2 = NDP(np.uintp, ndim=1, flags=['A','C'])
+
+QP_DO_ALWAYS = ct.c_int.in_dll(libqp, "QP_DO_ALWAYS").value
+QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
+QP_DO_NEVER = ct.c_int.in_dll(libqp, "QP_DO_NEVER").value
 
 class qp_state_t(ct.Structure):
     _fields_ = [
@@ -38,7 +65,8 @@ class qp_bulletina_t(ct.Structure):
 
 class qp_memory_t(ct.Structure):
     _fields_ = [
-        ('initialized', ct.c_int),
+        ('init', ct.c_int),
+
         ('state_daber', qp_state_t),
         ('state_lonlat', qp_state_t),
         ('state_wobble', qp_state_t),
@@ -47,9 +75,11 @@ class qp_memory_t(ct.Structure):
         ('state_npb', qp_state_t),
         ('state_aaber', qp_state_t),
         ('state_ref', qp_state_t),
+
         ('weather', qp_weather_t),
         ('ref_tol', ct.c_double),
         ('ref_delta', ct.c_double),
+        ('q_ref', ct.c_double * 4),
         ('dut1', ct.c_double),
         ('q_lonlat', ct.c_double * 4),
         ('q_wobble', ct.c_double * 4),
@@ -59,489 +89,310 @@ class qp_memory_t(ct.Structure):
         ('q_gal_inv', ct.c_double * 4),
         ('gal_init', ct.c_int),
         ('beta_earth', ct.c_double * 3),
+        ('beta_rot', ct.c_double * 3),
         ('bulletinA', qp_bulletina_t),
+
         ('accuracy', ct.c_int),
         ('mean_aber', ct.c_int),
         ('fast_math', ct.c_int),
         ('polconv', ct.c_int),
-        ('pair_dets', ct.c_int),
         ('pix_order', ct.c_int),
         ('fast_pix', ct.c_int),
         ('num_threads', ct.c_int),
         ('thread_num', ct.c_int),
         ]
 
-# library functions
-
-libqp = np.ctypeslib.load_library('libqpoint',os.path.dirname(__file__))
-NDP = np.ctypeslib.ndpointer
 qp_memory_t_p = ct.POINTER(qp_memory_t)
 
-libqp.qp_init_memory.restype = qp_memory_t_p
-libqp.qp_free_memory.argtypes = (qp_memory_t_p,)
+QP_STRUCT_INIT = 1
+QP_STRUCT_MALLOC = 2
+QP_ARR_INIT_PTR = 4
+QP_ARR_MALLOC_1D = 8
+QP_ARR_MALLOC_2D = 16
 
-QP_DO_ALWAYS = ct.c_int.in_dll(libqp, "QP_DO_ALWAYS").value
-QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
-QP_DO_NEVER = ct.c_int.in_dll(libqp, "QP_DO_NEVER").value
+class qp_det_t(ct.Structure):
+    _fields_ = [
+        ('init', ct.c_int),
+        ('q_off', ct.c_double * 4),
+        ('weight', ct.c_double),
+        ('pol_eff', ct.c_double),
+        ('n', ct.c_size_t),
+        ('tod_init', ct.c_int),
+        ('tod', ct.POINTER(ct.c_double)),
+        ('flag_init', ct.c_int),
+        ('flag', ct.POINTER(ct.c_uint8)),
+        ]
+qp_det_t_p = ct.POINTER(qp_det_t)
 
-libqp.qp_print_memory.argtypes = (qp_memory_t_p,)
+class qp_detarr_t(ct.Structure):
+    _fields_ = [
+        ('init', ct.c_int),
+        ('n', ct.c_size_t),
+        ('arr_init', ct.c_int),
+        ('arr', qp_det_t_p)
+        ]
+qp_detarr_t_p = ct.POINTER(qp_detarr_t)
 
-libqp.qp_azel2radec.argtypes = (qp_memory_t_p, # params
-                                ct.c_double, ct.c_double, ct.c_double, # offset
-                                NDP(dtype=np.double), # az
-                                NDP(dtype=np.double), # el
-                                NDP(dtype=np.double), # pitch
-                                NDP(dtype=np.double), # roll
-                                NDP(dtype=np.double), # lon
-                                NDP(dtype=np.double), # lat
-                                NDP(dtype=np.double), # ctime
-                                NDP(dtype=np.double), # ra
-                                NDP(dtype=np.double), # dec
-                                NDP(dtype=np.double), # sin2psi
-                                NDP(dtype=np.double), # cos2psi
-                                ct.c_int) # n
+class qp_point_t(ct.Structure):
+    _fields_ = [
+        ('init', ct.c_int),
+        ('n', ct.c_size_t),
+        ('q_bore_init', ct.c_int),
+        ('q_bore', ct.POINTER(ct.c_double * 4)),
+        ('ctime_init', ct.c_int),
+        ('ctime', ct.POINTER(ct.c_double)),
+        ('q_hwp_init', ct.c_int),
+        ('q_hwp', ct.POINTER(ct.c_double * 4))
+        ]
+qp_point_t_p = ct.POINTER(qp_point_t)
 
-libqp.qp_azel2radec_hwp.argtypes = (qp_memory_t_p, # params
-                                    ct.c_double, ct.c_double, ct.c_double, # offset
-                                    NDP(dtype=np.double), # az
-                                    NDP(dtype=np.double), # el
-                                    NDP(dtype=np.double), # pitch
-                                    NDP(dtype=np.double), # roll
-                                    NDP(dtype=np.double), # lon
-                                    NDP(dtype=np.double), # lat
-                                    NDP(dtype=np.double), # ctime
-                                    NDP(dtype=np.double), # hwp
-                                    NDP(dtype=np.double), # ra
-                                    NDP(dtype=np.double), # dec
-                                    NDP(dtype=np.double), # sin2psi
-                                    NDP(dtype=np.double), # cos2psi
-                                    ct.c_int) # n
+qp_vec_mode = ct.c_uint
+QP_VEC_NONE = 0
+QP_VEC_TEMP = 1
+QP_VEC_POL = 2
+QP_VEC_D1 = 3
+QP_VEC_D1_POL = 4
+QP_VEC_D2 = 5
+QP_VEC_D2_POL = 6
+vec_modes = {1  : QP_VEC_TEMP,
+             3  : {True  : QP_VEC_POL,
+                   False : QP_VEC_D1},
+             6  : QP_VEC_D2,
+             9  : QP_VEC_D1_POL,
+             18 : QP_VEC_D2_POL}
 
-libqp.qp_azel2rasindec.argtypes = (qp_memory_t_p, # params
-                                   ct.c_double, ct.c_double, ct.c_double, # offset
-                                   NDP(dtype=np.double), # az
-                                   NDP(dtype=np.double), # el
-                                   NDP(dtype=np.double), # pitch
-                                   NDP(dtype=np.double), # roll
-                                   NDP(dtype=np.double), # lon
-                                   NDP(dtype=np.double), # lat
-                                   NDP(dtype=np.double), # ctime
-                                   NDP(dtype=np.double), # ra
-                                   NDP(dtype=np.double), # sindec
-                                   NDP(dtype=np.double), # sin2psi
-                                   NDP(dtype=np.double), # cos2psi
-                                   ct.c_int) # n
+qp_proj_mode = ct.c_uint
+QP_PROJ_NONE = 0
+QP_PROJ_TEMP = 1
+QP_PROJ_POL = 2
+proj_modes = {1 : QP_PROJ_TEMP,
+              6 : QP_PROJ_POL}
 
-libqp.qp_azel2rasindec_hwp.argtypes = (qp_memory_t_p, # params
-                                       ct.c_double, ct.c_double, ct.c_double, # offset
-                                       NDP(dtype=np.double), # az
-                                       NDP(dtype=np.double), # el
-                                       NDP(dtype=np.double), # pitch
-                                       NDP(dtype=np.double), # roll
-                                       NDP(dtype=np.double), # lon
-                                       NDP(dtype=np.double), # lat
-                                       NDP(dtype=np.double), # ctime
-                                       NDP(dtype=np.double), # hwp
-                                       NDP(dtype=np.double), # ra
-                                       NDP(dtype=np.double), # sindec
-                                       NDP(dtype=np.double), # sin2psi
-                                       NDP(dtype=np.double), # cos2psi
-                                       ct.c_int) # n
+class qp_map_t(ct.Structure):
+    _fields_ = [
+        ('init', ct.c_int),
+        ('nside', ct.c_size_t),
+        ('npix', ct.c_size_t),
+        ('num_vec', ct.c_size_t),
+        ('vec_mode', qp_vec_mode),
+        ('vec1d_init', ct.c_int),
+        ('vec1d', ct.POINTER(ct.c_double)),
+        ('vec_init', ct.c_int),
+        ('vec', ct.POINTER(ct.POINTER(ct.c_double))),
+        ('num_proj', ct.c_size_t),
+        ('proj_mode', qp_proj_mode),
+        ('proj1d_init', ct.c_int),
+        ('proj1d', ct.POINTER(ct.c_double)),
+        ('proj_init', ct.c_int),
+        ('proj', ct.POINTER(ct.POINTER(ct.c_double)))
+        ]
+qp_map_t_p = ct.POINTER(qp_map_t)
 
-libqp.qp_azel2bore.argtypes = (qp_memory_t_p, # params
-                               NDP(dtype=np.double), # az
-                               NDP(dtype=np.double), # el
-                               NDP(dtype=np.double), # pitch
-                               NDP(dtype=np.double), # roll
-                               NDP(dtype=np.double), # lon
-                               NDP(dtype=np.double), # lat
-                               NDP(dtype=np.double), # ctime
-                               NDP(dtype=np.double), # q
-                               ct.c_int) # n
+def pointer_2d(d):
+    return (d.__array_interface__['data'][0] +
+            np.arange(d.shape[0]) * d.strides[0]).astype(np.uintp)
 
-libqp.qp_det_offset.argtypes = (ct.c_double, ct.c_double, ct.c_double, # offset
-                               NDP(dtype=np.double)) # quat
+def as_ctypes(d):
+    return np.ctypeslib.as_ctypes(d)
 
-libqp.qp_det_offsetn.argtypes = (NDP(dtype=np.double), # delta_az
-                                NDP(dtype=np.double), # delta_el
-                                NDP(dtype=np.double), # delta_psi
-                                NDP(dtype=np.double), # quat
-                                ct.c_int) # n
+def setargs(fname, arg=None, res=None):
+    func = getattr(libqp, fname)
+    if arg is not None and not isinstance(arg, (tuple, list)):
+        arg = (arg,)
+    func.argtypes = arg
+    func.restype = res
 
-libqp.qp_hwp_quat.argtypes = (ct.c_double, # ang
-                              NDP(dtype=np.double)) # quat
+# **********************************************************************
+# Functions
+# **********************************************************************
 
-libqp.qp_hwp_quatn.argtypes = (NDP(dtype=np.double), # ang
-                               NDP(dtype=np.double), # quat
-                               ct.c_int) # n
+setargs('qp_init_memory', res=qp_memory_t_p)
+setargs('qp_free_memory', arg=qp_memory_t_p)
+setargs('qp_print_memory', arg=qp_memory_t_p)
 
-libqp.qp_gmst.argtypes = (qp_memory_t_p, # params
-                          ct.c_double) # ctime
-libqp.qp_gmst.restype = ct.c_double # gmst
+setargs('qp_get_error_code', arg=qp_memory_t_p, res=ct.c_int)
+setargs('qp_get_error_string', arg=qp_memory_t_p, res=ct.c_char_p)
 
-libqp.qp_gmstn.argtypes = (qp_memory_t_p, # params
-                           NDP(dtype=np.double), # ctime
-                           NDP(dtype=np.double), # gmst
-                           ct.c_int) # n
+setargs('qp_azel2radec',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
+             warr, warr, warr, warr, ct.c_int))
+setargs('qp_azel2radec_hwp',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t/hwp
+             warr, warr, warr, warr, ct.c_int))
+setargs('qp_azel2rasindec',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
+             warr, warr, warr, warr, ct.c_int))
+setargs('qp_azel2rasindec_hwp',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t/hwp
+             warr, warr, warr, warr, ct.c_int))
+setargs('qp_azel2bore',
+        arg=(qp_memory_t_p, # params
+             arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
+             wquat_t_p, ct.c_int))
 
-libqp.qp_lmst.argtypes = (qp_memory_t_p, # params
-                          ct.c_double, # ctime
-                          ct.c_double) # lon
-libqp.qp_lmst.restype = ct.c_double # lmst
+setargs('qp_det_offsetn', arg=(arr, arr, arr, wquat_t_p, ct.c_int))
+setargs('qp_hwp_quatn', arg=(arr, wquat_t_p, ct.c_int))
+setargs('qp_gmstn', arg=(qp_memory_t_p, arr, warr, ct.c_int))
+setargs('qp_lmstn', arg=(qp_memory_t_p, arr, arr, warr, ct.c_int))
+setargs('qp_dipolen', arg=(qp_memory_t_p, arr, arr, arr, warr, ct.c_int))
 
-libqp.qp_lmstn.argtypes = (qp_memory_t_p, # params
-                           NDP(dtype=np.double), # ctime
-                           NDP(dtype=np.double), # lon
-                           NDP(dtype=np.double), # lmst
-                           ct.c_int) # n
+setargs('qp_bore2radec',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p,
+             warr, warr, warr, warr, ct.c_int))
+setargs('qp_bore2radec_hwp',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p,
+             warr, warr, warr, warr, ct.c_int))
+setargs('qp_bore2rasindec',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p,
+             warr, warr, warr, warr, ct.c_int))
+setargs('qp_bore2rasindec_hwp',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p,
+             warr, warr, warr, warr, ct.c_int))
 
-libqp.qp_dipole.argtypes = (qp_memory_t_p, # params
-                            ct.c_double, # ctime
-                            ct.c_double, # ra
-                            ct.c_double) # dec
-libqp.qp_dipole.restype = ct.c_double # dipole
+setargs('qp_radecpa2quatn',
+        arg=(qp_memory_t_p, arr, arr, arr, wquat_t_p, ct.c_int))
+setargs('qp_quat2radecpan',
+        arg=(qp_memory_t_p, quat_t_p, warr, warr, warr, ct.c_int))
 
-libqp.qp_dipolen.argtypes = (qp_memory_t_p, # params
-                             NDP(dtype=np.double), # ctime
-                             NDP(dtype=np.double), # ra
-                             NDP(dtype=np.double), # dec
-                             NDP(dtype=np.double), # dipole
-                             ct.c_int) # n
+setargs('qp_radec2pixn',
+        arg=(qp_memory_t_p, arr, arr, ct.c_int, warri, ct.c_int))
 
-libqp.qp_bore2radec.argtypes = (qp_memory_t_p, # params
-                                NDP(dtype=np.double), # offset
-                                NDP(dtype=np.double), # ctime
-                                NDP(dtype=np.double), # q
-                                NDP(dtype=np.double), # ra
-                                NDP(dtype=np.double), # dec
-                                NDP(dtype=np.double), # sin2psi
-                                NDP(dtype=np.double), # cos2psi
-                                ct.c_int) # n
+setargs('qp_radec2galn',
+        arg=(qp_memory_t_p, warr, warr, warr, warr, ct.c_int))
+setargs('qp_gal2radecn',
+        arg=(qp_memory_t_p, warr, warr, warr, warr, ct.c_int))
+setargs('qp_rotate_map',
+        arg=(qp_memory_t_p, ct.c_int, arr2, ct.c_char,
+             arr2, ct.c_char))
 
-libqp.qp_bore2radec_hwp.argtypes = (qp_memory_t_p, # params
-                                    NDP(dtype=np.double), # offset
-                                    NDP(dtype=np.double), # ctime
-                                    NDP(dtype=np.double), # q_bore
-                                    NDP(dtype=np.double), # q_hwp
-                                    NDP(dtype=np.double), # ra
-                                    NDP(dtype=np.double), # dec
-                                    NDP(dtype=np.double), # sin2psi
-                                    NDP(dtype=np.double), # cos2psi
-                                    ct.c_int) # n
+setargs('qp_quat2pixn',
+        arg=(qp_memory_t_p, quat_t_p, ct.c_int, warri, warr, warr, ct.c_int))
+setargs('qp_bore2pix',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, ct.c_int,
+             warri, warr, warr, ct.c_int))
+setargs('qp_bore2pix_hwp',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p, ct.c_int,
+             warri, warr, warr, ct.c_int))
 
-libqp.qp_bore2rasindec.argtypes = (qp_memory_t_p, # params
-                                   NDP(dtype=np.double), # offset
-                                   NDP(dtype=np.double), # ctime
-                                   NDP(dtype=np.double), # q
-                                   NDP(dtype=np.double), # ra
-                                   NDP(dtype=np.double), # sindec
-                                   NDP(dtype=np.double), # sin2psi
-                                   NDP(dtype=np.double), # cos2psi
-                                   ct.c_int) # n
-
-libqp.qp_bore2rasindec_hwp.argtypes = (qp_memory_t_p, # params
-                                       NDP(dtype=np.double), # offset
-                                       NDP(dtype=np.double), # ctime
-                                       NDP(dtype=np.double), # q_bore
-                                       NDP(dtype=np.double), # q_hwp
-                                       NDP(dtype=np.double), # ra
-                                       NDP(dtype=np.double), # sindec
-                                       NDP(dtype=np.double), # sin2psi
-                                       NDP(dtype=np.double), # cos2psi
-                                       ct.c_int) # n
-
-libqp.qp_radecpa2quatn.argtypes = (qp_memory_t_p, # params
-                                   NDP(dtype=np.double), # ra
-                                   NDP(dtype=np.double), # dec
-                                   NDP(dtype=np.double), # pa
-                                   NDP(dtype=np.double), # q
-                                   ct.c_int) # n
-
-libqp.qp_quat2radecpan.argtypes = (qp_memory_t_p, # params
-                                   NDP(dtype=np.double), # q
-                                   NDP(dtype=np.double), # ra
-                                   NDP(dtype=np.double), # dec
-                                   NDP(dtype=np.double), # pa
-                                   ct.c_int) # n
-
-libqp.qp_radec2pix.argtypes = (qp_memory_t_p, # params
-                               ct.c_double, # ra
-                               ct.c_double, # dec
-                               ct.c_int) # nside
-libqp.qp_radec2pix.restype = ct.c_int
-
-libqp.qp_radec2pixn.argtypes = (qp_memory_t_p, # params
-                                NDP(dtype=np.double), # ra
-                                NDP(dtype=np.double), # dec
-                                ct.c_int, # nside
-                                NDP(dtype=np.int), # pix
-                                ct.c_int) # n
-
-libqp.qp_radec2galn.argtypes = (qp_memory_t_p, # params
-                                NDP(dtype=np.double), # ra
-                                NDP(dtype=np.double), # dec
-                                NDP(dtype=np.double), # sin2psi
-                                NDP(dtype=np.double), # cos2psi
-                                ct.c_int) # n
-
-libqp.qp_gal2radecn.argtypes = (qp_memory_t_p, # params
-                                NDP(dtype=np.double), # ra
-                                NDP(dtype=np.double), # dec
-                                NDP(dtype=np.double), # sin2psi
-                                NDP(dtype=np.double), # cos2psi
-                                ct.c_int) # n
-
-libqp.qp_rotate_map.argtypes = (qp_memory_t_p, # params
-                                ct.c_int, # nside
-                                NDP(dtype=np.double), # map_in
-                                ct.c_char, # coord_in
-                                NDP(dtype=np.double), # map_out
-                                ct.c_char) # coord_out
-
-libqp.qp_quat2pixn.argtypes = (qp_memory_t_p, # params
-                               NDP(dtype=np.double), # quat
-                               ct.c_int, # nside
-                               NDP(dtype=np.int), # pix
-                               NDP(dtype=np.double), # sin2psi
-                               NDP(dtype=np.double), # cos2psi
-                               ct.c_int) # n
-
-libqp.qp_bore2pix.argtypes = (qp_memory_t_p, # params
-                              NDP(dtype=np.double), # q_off
-                              NDP(dtype=np.double), # ctime
-                              NDP(dtype=np.double), # q_bore
-                              ct.c_int, # nside
-                              NDP(dtype=np.int), # pix
-                              NDP(dtype=np.double), # sin2psi
-                              NDP(dtype=np.double), # cos2psi
-                              ct.c_int) # n
-
-libqp.qp_tod2map_pnt.argtypes = (qp_memory_t_p, # params
-                                 NDP(dtype=np.double), # offsets
-                                 ct.c_int, # ndet
-                                 NDP(dtype=np.double), # ctime
-                                 NDP(dtype=np.double), # q_bore
-                                 ct.c_int, # n
-                                 NDP(dtype=np.double), # pmap
-                                 ct.c_int) # nside
-
-libqp.qp_tod2map_pnt_nopol.argtypes = (qp_memory_t_p, # params
-                                       NDP(dtype=np.double), # offsets
-                                       ct.c_int, # ndet
-                                       NDP(dtype=np.double), # ctime
-                                       NDP(dtype=np.double), # q_bore
-                                       ct.c_int, # n
-                                       NDP(dtype=np.double), # pmap
-                                       ct.c_int) # nside
-
-libqp.qp_tod2map_pnt_hwp.argtypes = (qp_memory_t_p, # params
-                                     NDP(dtype=np.double), # offsets
-                                     ct.c_int, # ndet
-                                     NDP(dtype=np.double), # ctime
-                                     NDP(dtype=np.double), # q_bore
-                                     NDP(dtype=np.double), # q_hwp
-                                     ct.c_int, # n
-                                     NDP(dtype=np.double), # pmap
-                                     ct.c_int) # nside
-
-libqp.qp_tod2map_sig.argtypes = (qp_memory_t_p, # params
-                                 NDP(dtype=np.double), # offsets
-                                 ct.c_int, # ndet
-                                 NDP(dtype=np.double), # ctime
-                                 NDP(dtype=np.double), # q_bore
-                                 NDP(dtype=np.uintp), # tod
-                                 ct.c_int, # n
-                                 NDP(dtype=np.double), # smap
-                                 ct.c_int) # nside
-
-libqp.qp_tod2map_sig_nopol.argtypes = (qp_memory_t_p, # params
-                                       NDP(dtype=np.double), # offsets
-                                       ct.c_int, # ndet
-                                       NDP(dtype=np.double), # ctime
-                                       NDP(dtype=np.double), # q_bore
-                                       NDP(dtype=np.uintp), # tod
-                                       ct.c_int, # n
-                                       NDP(dtype=np.double), # smap
-                                       ct.c_int) # nside
-
-libqp.qp_tod2map_sig_hwp.argtypes = (qp_memory_t_p, # params
-                                     NDP(dtype=np.double), # offsets
-                                     ct.c_int, # ndet
-                                     NDP(dtype=np.double), # ctime
-                                     NDP(dtype=np.double), # q_bore
-                                     NDP(dtype=np.double), # q_hwp
-                                     NDP(dtype=np.uintp), # tod
-                                     ct.c_int, # n
-                                     NDP(dtype=np.double), # smap
-                                     ct.c_int) # nside
-
-libqp.qp_tod2map_sigpnt.argtypes = (qp_memory_t_p, # params
-                                    NDP(dtype=np.double), # offsets
-                                    ct.c_int, # ndet
-                                    NDP(dtype=np.double), # ctime
-                                    NDP(dtype=np.double), # q_bore
-                                    NDP(dtype=np.uintp), # tod
-                                    ct.c_int, # n
-                                    NDP(dtype=np.double), # smap
-                                    NDP(dtype=np.double), # pmap
-                                    ct.c_int) # nside
-
-libqp.qp_tod2map_sigpnt_nopol.argtypes = (qp_memory_t_p, # params
-                                          NDP(dtype=np.double), # offsets
-                                          ct.c_int, # ndet
-                                          NDP(dtype=np.double), # ctime
-                                          NDP(dtype=np.double), # q_bore
-                                          NDP(dtype=np.uintp), # tod
-                                          ct.c_int, # n
-                                          NDP(dtype=np.double), # smap
-                                          NDP(dtype=np.double), # pmap
-                                          ct.c_int) # nside
-
-libqp.qp_tod2map_sigpnt_hwp.argtypes = (qp_memory_t_p, # params
-                                        NDP(dtype=np.double), # offsets
-                                        ct.c_int, # ndet
-                                        NDP(dtype=np.double), # ctime
-                                        NDP(dtype=np.double), # q_bore
-                                        NDP(dtype=np.double), # q_hwp
-                                        NDP(dtype=np.uintp), # tod
-                                        ct.c_int, # n
-                                        NDP(dtype=np.double), # smap
-                                        NDP(dtype=np.double), # pmap
-                                        ct.c_int) # nside
-
-libqp.qp_map2tod.argtypes = (qp_memory_t_p, # params
-                             NDP(dtype=np.double), # offsets
-                             ct.c_int, # ndet
-                             NDP(dtype=np.double), # ctime
-                             NDP(dtype=np.double), # q_bore
-                             NDP(dtype=np.double), # smap
-                             ct.c_int, # nside
-                             NDP(dtype=np.uintp), # tod
-                             ct.c_int) # n
-
-libqp.qp_map2tod_nopol.argtypes = (qp_memory_t_p, # params
-                                   NDP(dtype=np.double), # offsets
-                                   ct.c_int, # ndet
-                                   NDP(dtype=np.double), # ctime
-                                   NDP(dtype=np.double), # q_bore
-                                   NDP(dtype=np.double), # smap
-                                   ct.c_int, # nside
-                                   NDP(dtype=np.uintp), # tod
-                                   ct.c_int) # n
-
-libqp.qp_map2tod_hwp.argtypes = (qp_memory_t_p, # params
-                                 NDP(dtype=np.double), # offsets
-                                 ct.c_int, # ndet
-                                 NDP(dtype=np.double), # ctime
-                                 NDP(dtype=np.double), # q_bore
-                                 NDP(dtype=np.double), # q_hwp
-                                 NDP(dtype=np.double), # smap
-                                 ct.c_int, # nside
-                                 NDP(dtype=np.uintp), # tod
-                                 ct.c_int) # n
-
-libqp.qp_map2tod_der1.argtypes = (qp_memory_t_p, # params
-                                  NDP(dtype=np.double), # offsets
-                                  ct.c_int, # ndet
-                                  NDP(dtype=np.double), # ctime
-                                  NDP(dtype=np.double), # q_bore
-                                  NDP(dtype=np.double), # smap
-                                  ct.c_int, # nside
-                                  NDP(dtype=np.uintp), # tod
-                                  ct.c_int) # n
-
-libqp.qp_map2tod_der1_nopol.argtypes = (qp_memory_t_p, # params
-                                        NDP(dtype=np.double), # offsets
-                                        ct.c_int, # ndet
-                                        NDP(dtype=np.double), # ctime
-                                        NDP(dtype=np.double), # q_bore
-                                        NDP(dtype=np.double), # smap
-                                        ct.c_int, # nside
-                                        NDP(dtype=np.uintp), # tod
-                                        ct.c_int) # n
-
-libqp.qp_map2tod_der1_hwp.argtypes = (qp_memory_t_p, # params
-                                      NDP(dtype=np.double), # offsets
-                                      ct.c_int, # ndet
-                                      NDP(dtype=np.double), # ctime
-                                      NDP(dtype=np.double), # q_bore
-                                      NDP(dtype=np.double), # q_hwp
-                                      NDP(dtype=np.double), # smap
-                                      ct.c_int, # nside
-                                      NDP(dtype=np.uintp), # tod
-                                      ct.c_int) # n
-
-libqp.qp_map2tod_der2.argtypes = (qp_memory_t_p, # params
-                                  NDP(dtype=np.double), # offsets
-                                  ct.c_int, # ndet
-                                  NDP(dtype=np.double), # ctime
-                                  NDP(dtype=np.double), # q_bore
-                                  NDP(dtype=np.double), # smap
-                                  ct.c_int, # nside
-                                  NDP(dtype=np.uintp), # tod
-                                  ct.c_int) # n
-
-libqp.qp_map2tod_der2_nopol.argtypes = (qp_memory_t_p, # params
-                                        NDP(dtype=np.double), # offsets
-                                        ct.c_int, # ndet
-                                        NDP(dtype=np.double), # ctime
-                                        NDP(dtype=np.double), # q_bore
-                                        NDP(dtype=np.double), # smap
-                                        ct.c_int, # nside
-                                        NDP(dtype=np.uintp), # tod
-                                        ct.c_int) # n
-
-libqp.qp_map2tod_der2_hwp.argtypes = (qp_memory_t_p, # params
-                                      NDP(dtype=np.double), # offsets
-                                      ct.c_int, # ndet
-                                      NDP(dtype=np.double), # ctime
-                                      NDP(dtype=np.double), # q_bore
-                                      NDP(dtype=np.double), # q_hwp
-                                      NDP(dtype=np.double), # smap
-                                      ct.c_int, # nside
-                                      NDP(dtype=np.uintp), # tod
-                                      ct.c_int) # n
-
-libqp.set_iers_bulletin_a.argtypes = (qp_memory_t_p,
-                                      ct.c_int, ct.c_int, # mjd_min, mjd_max
-                                      NDP(dtype=np.double), # dut1
-                                      NDP(dtype=np.double), # x
-                                      NDP(dtype=np.double)) # y
-libqp.set_iers_bulletin_a.restype = ct.c_int
-
-libqp.get_iers_bulletin_a.argtypes = (qp_memory_t_p,
-                                      ct.c_double, # mjd
-                                      ct.POINTER(ct.c_double), # dut1
-                                      ct.POINTER(ct.c_double), # x
-                                      ct.POINTER(ct.c_double)) # y
-libqp.get_iers_bulletin_a.restype = ct.c_int
+setargs('set_iers_bulletin_a',
+        arg=(qp_memory_t_p, ct.c_int, ct.c_int, arr, arr, arr),
+        res=ct.c_int)
+setargs('get_iers_bulletin_a',
+        arg=(qp_memory_t_p, ct.c_double, ct.POINTER(ct.c_double),
+             ct.POINTER(ct.c_double), ct.POINTER(ct.c_double)),
+        res=ct.c_int)
 
 def get_bulletin_a(mem, mjd):
     dut1 = ct.c_double()
     x = ct.c_double()
     y = ct.c_double()
-    
+
     libqp.get_iers_bulletin_a(mem, mjd, ct.byref(dut1),
                               ct.byref(x), ct.byref(y))
     return dut1.value, x.value, y.value
 
-libqp.qp_refraction.argtypes = (ct.c_double, # elevation angle
-                                ct.c_double, # height
-                                ct.c_double, # temperature
-                                ct.c_double, # pressure
-                                ct.c_double, # humidity
-                                ct.c_double, # frequency
-                                ct.c_double, # latitude
-                                ct.c_double, # lapse_rate
-                                 ct.c_double) # tolerance
-libqp.qp_refraction.restype = ct.c_double
+setargs('qp_refraction', arg=(ct.c_double,) * 9, res=ct.c_double)
+setargs('qp_update_ref', arg=(qp_memory_t_p, quat_t, ct.c_double),
+        res=ct.c_double)
 
-libqp.qp_update_ref.argtypes = (qp_memory_t_p, # params
-                                NDP(dtype=np.double), # q
-                                ct.c_double) # lat
-libqp.qp_update_ref.restype = ct.c_double
+def get_vec_mode(map_in=None, pol=True):
+    if map_in is False:
+        return QP_VEC_NONE
+    if map_in is None:
+        return QP_VEC_POL if pol else QP_VEC_TEMP
+    n = len(map_in)
+    if n not in vec_modes:
+        raise ValueError, 'Unrecognized map'
+    mode = vec_modes[n]
+    if isinstance(mode, dict):
+        mode = mode[bool(pol)]
+    return mode
 
-# parameters and options
+def get_proj_mode(proj_in=None, pol=True):
+    if proj_in is False:
+        return QP_PROJ_NONE
+    if proj_in is None:
+        return QP_PROJ_POL if pol else QP_PROJ_TEMP
+    n = len(proj_in)
+    if n not in proj_modes:
+        raise ValueError, 'Unrecognized proj'
+    mode = proj_modes[n]
+    if isinstance(mode, dict):
+        mode = mode[bool(pol)]
+    return mode
+
+# **********************************************************************
+# Mapping functions
+# **********************************************************************
+
+# initialize detectors
+setargs('qp_init_det', arg=(quat_t, ct.c_double, ct.c_double),
+        res=qp_det_t_p)
+setargs('qp_default_det', res=qp_det_t_p)
+setargs('qp_init_det_tod', arg=(qp_det_t_p, ct.c_size_t))
+setargs('qp_init_det_tod_from_array',
+        arg=(qp_det_t_p, arr, ct.c_size_t, ct.c_int))
+setargs('qp_init_det_flag', arg=(qp_det_t_p, ct.c_size_t))
+setargs('qp_init_det_flag_from_array',
+        arg=(qp_det_t_p, arrf, ct.c_size_t, ct.c_int))
+setargs('qp_free_det', arg=qp_det_t_p)
+setargs('qp_init_detarr', arg=(quat_t_p, arr, arr, ct.c_size_t),
+        res=qp_detarr_t_p)
+setargs('qp_init_detarr_tod', arg=(qp_detarr_t_p, ct.c_size_t));
+setargs('qp_init_detarr_tod_from_array_1d',
+        arg=(qp_detarr_t_p, arr, ct.c_size_t, ct.c_int));
+setargs('qp_init_detarr_flag', arg=(qp_detarr_t_p, ct.c_size_t));
+setargs('qp_init_detarr_flag_from_array_1d',
+        arg=(qp_detarr_t_p, arr, ct.c_size_t, ct.c_int));
+setargs('qp_free_detarr', arg=qp_detarr_t_p);
+
+# initialize pointing
+setargs('qp_init_point', arg=(ct.c_size_t, ct.c_int, ct.c_int),
+        res=qp_point_t_p)
+setargs('qp_init_point_from_arrays',
+        arg=(quat_t_p, arr, quat_t_p, ct.c_size_t, ct.c_int),
+        res=qp_point_t_p)
+setargs('qp_free_point', arg=qp_point_t_p)
+
+# initialize maps
+setargs('qp_init_map', arg=(ct.c_size_t, qp_vec_mode, qp_proj_mode),
+        res=qp_map_t_p)
+setargs('qp_init_map_from_arrays_1d',
+        arg=(arr, arr, ct.c_size_t, qp_vec_mode, qp_proj_mode, ct.c_int),
+        res=qp_map_t_p)
+setargs('qp_init_map_from_map',
+        arg=(qp_map_t_p, ct.c_int, ct.c_int), res=qp_map_t_p)
+setargs('qp_free_map', arg=qp_map_t_p)
+setargs('qp_reshape_map', arg=qp_map_t_p, res=ct.c_int)
+
+# tod -> map
+setargs('qp_add_map', arg=(qp_map_t_p, qp_map_t_p), res=ct.c_int)
+setargs('qp_tod2map1',
+        arg=(qp_memory_t_p, qp_det_t_p, qp_point_t_p, qp_map_t_p),
+        res=ct.c_int)
+setargs('qp_tod2map',
+        arg=(qp_memory_t_p, qp_detarr_t_p, qp_point_t_p, qp_map_t_p),
+        res=ct.c_int)
+
+# map -> tod
+setargs('qp_map2tod1',
+        arg=(qp_memory_t_p, qp_det_t_p, qp_point_t_p, qp_map_t_p),
+        res=ct.c_int)
+setargs('qp_map2tod',
+        arg=(qp_memory_t_p, qp_detarr_t_p, qp_point_t_p, qp_map_t_p),
+        res=ct.c_int)
+
+# **********************************************************************
+# Parameters
+# **********************************************************************
 
 def check_set_float(val):
     if not np.isscalar(val):
@@ -559,10 +410,12 @@ def check_pass(val):
 def set_rfunc(state):
     f = libqp['qp_set_rate_%s'%state]
     f.argtypes = (qp_memory_t_p,ct.c_double)
+    f.restype = None
     return f
 def reset_rfunc(state):
     f = libqp['qp_reset_rate_%s'%state]
     f.argtypes = (qp_memory_t_p,)
+    f.restype = None
     return f
 def get_rfunc(state):
     f = libqp['qp_get_rate_%s'%state]
@@ -594,6 +447,7 @@ for s in states:
 def set_wfunc(par):
     f = libqp['qp_set_weather_%s'%par]
     f.argtypes = (qp_memory_t_p,ct.c_double)
+    f.restype = None
     return f
 
 def get_wfunc(par):
@@ -615,6 +469,7 @@ for w in weather_params:
 def set_ofunc(option):
     f = libqp['qp_set_opt_%s'%option]
     f.argtypes = (qp_memory_t_p,ct.c_int)
+    f.restype = None
     return f
 
 def get_ofunc(option):
@@ -685,20 +540,6 @@ def check_get_polconv(pol):
         return 'iau'
     return 'healpix'
 
-def check_set_pair_dets(pair):
-    if pair is None:
-        return 0
-    if pair in [1,True]:
-        return 1
-    if pair in [0,False]:
-        return 0
-    return 0
-
-def check_get_pair_dets(pair):
-    if pair == 1:
-        return True
-    return False
-
 def check_set_pix_order(order):
     if order is None:
         return 0
@@ -746,7 +587,7 @@ def check_set_thread_num(tn):
 def check_get_thread_num(tn):
     return tn
 
-options = ['accuracy','mean_aber','fast_math','polconv','pair_dets',
+options = ['accuracy','mean_aber','fast_math','polconv',
            'pix_order','fast_pix','num_threads','thread_num']
 option_funcs = dict()
 for p in options:
@@ -759,6 +600,7 @@ for p in options:
 def set_pfunc(par):
     f = libqp['qp_set_%s'%par]
     f.argtypes = (qp_memory_t_p,ct.c_double)
+    f.restype = None
     return f
 
 def get_pfunc(par):
@@ -781,3 +623,58 @@ qp_funcs['rates'] = state_funcs
 qp_funcs['options'] = option_funcs
 qp_funcs['weather'] = weather_funcs
 qp_funcs['params'] = double_funcs
+
+# **********************************************************************
+# Argument checking
+# **********************************************************************
+
+def check_flags(arg):
+    return (arg.flags['C_CONTIGUOUS'] |
+            arg.flags['OWNDATA'] << 1 |
+            arg.flags['WRITEABLE'] << 2 |
+            arg.flags['ALIGNED'] << 3)
+
+def check_input(name, arg, shape=None, dtype=np.double, inplace=True,
+                fill=0, allow_transpose=True, allow_tuple=True, output=False):
+    if arg is None:
+        if shape is None:
+            raise ValueError,'need shape to initialize input!'
+        if fill is None:
+            arg = np.empty(shape, dtype=dtype)
+        else:
+            arg = fill * np.ones(shape, dtype=dtype)
+    if isinstance(arg, tuple) and allow_tuple:
+        arg = np.vstack(arg)
+    if np.isscalar(arg):
+        arg = np.array(arg)
+    if not isinstance(arg, np.ndarray):
+        raise TypeError,'input {} must be of type numpy.ndarray'.format(name)
+    if shape is not None:
+        if arg.shape != shape:
+            if arg.T.shape == shape and allow_transpose:
+                arg = arg.T
+            else:
+                try:
+                    _, arg = np.broadcast_arrays(np.empty(shape), arg)
+                except ValueError:
+                    s = 'input {} of shape {} must have shape {}'
+                    raise ValueError(s.format(name, arg,shape, shape))
+    istat = check_flags(arg)
+    arg = np.require(arg, dtype, list('AC' + 'W'*output))
+    ostat = check_flags(arg)
+    if istat == ostat and inplace is False:
+        return arg.copy()
+    return arg
+
+def check_inputs(*args, **kwargs):
+    args = [arg if arg is not None else 0 for arg in args]
+    return [check_input('input', np.atleast_1d(x), **kwargs)
+            for x in np.broadcast_arrays(*args)]
+
+def check_output(name, arg=None, shape=None, dtype=np.double,
+                 inplace=True, fill=None, allow_transpose=True,
+                  allow_tuple=True, **kwargs):
+    if arg is None:
+        arg = kwargs.pop(name, None)
+    return check_input(name, arg, shape, dtype, inplace, fill,
+                       allow_transpose, allow_tuple, True)

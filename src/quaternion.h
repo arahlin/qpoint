@@ -84,7 +84,7 @@ extern "C" {
   }
 
   // q = (rotate by angle around arbitrary vector v)
-  void Quaternion_rot(Quaternion q, double angle, const double v[3]);
+  int Quaternion_rot(Quaternion q, double angle, const double v[3]);
 
   // q = R_i(angle)
   void Quaternion_r1(Quaternion q, double angle);
