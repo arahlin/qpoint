@@ -30,7 +30,7 @@ qp_det_t * qp_init_det(quat_t q_off, double weight, double pol_eff) {
   return det;
 }
 
-qp_det_t * qp_default_det() {
+qp_det_t * qp_default_det(void) {
   quat_t q = {1, 0, 0, 0};
   return qp_init_det(q, 1.0, 1.0);
 }

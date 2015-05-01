@@ -13,7 +13,7 @@ char * qp_get_error_string(qp_memory_t *mem) {
 void qp_set_error(qp_memory_t *mem, int error_code,
                   const char *error_string) {
   mem->error_code = error_code;
-  mem->error_string = error_string;
+  mem->error_string = (char *)error_string;
 }
 
 // set error if condition is non-zero

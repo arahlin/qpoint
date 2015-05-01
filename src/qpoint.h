@@ -580,7 +580,7 @@ extern "C" {
 
   /* initialize detectors */
   qp_det_t * qp_init_det(quat_t q_off, double weight, double pol_eff);
-  qp_det_t * qp_default_det();
+  qp_det_t * qp_default_det(void);
   void qp_init_det_tod(qp_det_t *det, size_t n);
   void qp_init_det_tod_from_array(qp_det_t *det, double *tod, size_t n, int copy);
   void qp_init_det_flag(qp_det_t *det, size_t n);
