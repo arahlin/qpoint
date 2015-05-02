@@ -107,9 +107,7 @@ class QMap(QPoint):
                        dT2dp2, dQ2dp2, dU2dp2)
         """
 
-        source = self._source.contents
-
-        if source.init:
+        if self._source.contents.init:
             if reset:
                 self.reset_source()
             else:
@@ -122,6 +120,7 @@ class QMap(QPoint):
         self.depo['source_map'] = smap
 
         # initialize
+        source = self._source.contents
         source.nside = nside
         source.npix = hp.nside2npix(nside)
         source.num_vec = len(source_map)
@@ -180,9 +179,7 @@ class QMap(QPoint):
             initialized.
         """
 
-        dest = self._dest.contents
-
-        if dest.init:
+        if self._dest.contents.init:
             if reset:
                 self.reset_dest()
             else:
@@ -228,6 +225,7 @@ class QMap(QPoint):
         self.depo['proj'] = proj
 
         # initialize
+        dest = self._dest.contents
         dest.nside = nside
         dest.npix = npix
         if vec is not False:
@@ -283,6 +281,7 @@ class QMap(QPoint):
         if q_bore is not None:
             if point.init:
                 self.reset_point()
+            point = self._point.contents
             q_bore = lib.check_input('q_bore', q_bore)
             n = q_bore.size / 4
             point.n = n
@@ -474,7 +473,7 @@ class QMap(QPoint):
         dest = self._dest.contents
         return_map = True
         vec_mode = dest.vec_mode
-        if tod is None:
+        if tod is None or tod is False:
             return_map = False
             dest.vec_mode = 0
         return_proj = True
