@@ -62,6 +62,12 @@ class QMap(QPoint):
         """
         super(QMap, self).__init__(**kwargs)
 
+        self.depo = dict()
+        """
+        Dictionary of source and output maps, timetreams and pointing data.
+        Pointers to these arrays in memory are passed to the C library.
+        """
+
         self.reset()
 
         self.init_dest(nside=nside, pol=pol)
