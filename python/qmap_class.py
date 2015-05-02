@@ -246,6 +246,7 @@ class QMap(QPoint):
         self.depo['proj'] = proj
 
         # initialize
+        ret = ()
         dest = self._dest.contents
         dest.nside = nside
         dest.npix = npix
@@ -254,11 +255,13 @@ class QMap(QPoint):
             dest.vec_mode = lib.get_vec_mode(vec, pol)
             dest.vec1d = lib.as_ctypes(vec.ravel())
             dest.vec1d_init = lib.QP_ARR_INIT_PTR
+            ret += (vec,)
         if proj is not False:
             dest.num_proj = len(proj)
             dest.proj_mode = lib.get_proj_mode(proj, pol)
             dest.proj1d = lib.as_ctypes(proj.ravel())
             dest.proj1d_init = lib.QP_ARR_INIT_PTR
+            ret += (proj,)
         dest.vec = None
         dest.vec_init = 0
         dest.proj = None
@@ -267,6 +270,11 @@ class QMap(QPoint):
 
         if qp.qp_reshape_map(self._dest):
             raise RuntimeError, qp.qp_get_error_string(self._memory)
+
+        # return
+        if len(ret) == 1:
+            return ret[0]
+        return ret
 
     def reset_dest(self):
         """
