@@ -705,7 +705,7 @@ void qp_pixel_offset(qp_memory_t *mem, int nside, long pix,
 
 #define DATUM(n) map->vec[n][ipix]
 #define POLDATUM(n) \
-  DATUM(n) + det->pol_eff * (DATUM(n+1) * cpp + DATUM(n+2) * spp)
+  (DATUM(n) + det->pol_eff * (DATUM(n+1) * cpp + DATUM(n+2) * spp))
 
 int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_map_t *map) {
