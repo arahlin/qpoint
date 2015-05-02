@@ -255,13 +255,13 @@ class QMap(QPoint):
             dest.vec_mode = lib.get_vec_mode(vec, pol)
             dest.vec1d = lib.as_ctypes(vec.ravel())
             dest.vec1d_init = lib.QP_ARR_INIT_PTR
-            ret += (vec,)
+            ret += (vec.squeeze(),)
         if proj is not False:
             dest.num_proj = len(proj)
             dest.proj_mode = lib.get_proj_mode(proj, pol)
             dest.proj1d = lib.as_ctypes(proj.ravel())
             dest.proj1d_init = lib.QP_ARR_INIT_PTR
-            ret += (proj,)
+            ret += (proj.squeeze(),)
         dest.vec = None
         dest.vec_init = 0
         dest.proj = None
@@ -525,8 +525,8 @@ class QMap(QPoint):
         self.reset_detarr()
 
         # return
-        ret = ((self.depo['vec'],) * return_vec +
-               (self.depo['proj'],) * return_proj)
+        ret = ((self.depo['vec'].squeeze(),) * return_vec +
+               (self.depo['proj'].squeeze(),) * return_proj)
         if len(ret) == 1:
             return ret[0]
         return ret
