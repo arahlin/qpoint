@@ -568,7 +568,8 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
     return mem->error_code;
 
   if (map->vec1d_init && !map->vec_init)
-    if (qp_reshape_map(map))
+    if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
+                       "qp_tod2map1: reshape error"))
       return mem->error_code;
 
   for (int ii = 0; ii < pnt->n; ii++) {
@@ -642,7 +643,8 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
   int err = 0;
 
   if (map->vec1d_init && !map->vec_init)
-    if (qp_reshape_map(map))
+    if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
+                       "qp_tod2map: reshape error"))
       return mem->error_code;
 
 #ifdef DEBUG
@@ -667,20 +669,27 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 
 #pragma omp for
     for (int idet = 0; idet < dets->n; idet++) {
-      errloc = qp_tod2map1(memloc, dets->arr + idet, pnt, maploc);
+      if (!errloc && !err)
+        errloc = qp_tod2map1(memloc, dets->arr + idet, pnt, maploc);
     }
 
     if (nthreads > 1) {
+      if (!errloc && !err) {
 #pragma omp critical
-      {
-        if (!errloc)
-          errloc = qp_add_map(memloc, map, maploc);
+        errloc = qp_add_map(memloc, map, maploc);
       }
       qp_free_map(maploc);
     }
 
+    if (errloc) {
+#pragma omp atomic
+      err += errloc;
 #pragma omp critical
-    err += errloc;
+      {
+        mem->error_code = memloc->error_code;
+        mem->error_string = memloc->error_string;
+      }
+    }
 
     qp_free_memory(memloc);
   }
@@ -703,7 +712,7 @@ void qp_pixel_offset(qp_memory_t *mem, int nside, long pix,
   if (*dphi > M_PI) *dphi -= M_TWOPI;
 }
 
-#define DATUM(n) map->vec[n][ipix]
+#define DATUM(n) (map->vec[n][ipix])
 #define POLDATUM(n) \
   (DATUM(n) + det->pol_eff * (DATUM(n+1) * cpp + DATUM(n+2) * spp))
 
@@ -734,7 +743,8 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
   quat_t q;
 
   if (map->vec1d_init && !map->vec_init)
-    if (qp_reshape_map(map))
+    if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
+                       "qp_map2tod1: reshape error"))
       return mem->error_code;
 
   for (int ii = 0; ii < pnt->n; ii++) {
@@ -808,7 +818,8 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
   int err = 0;
 
   if (map->vec1d_init && !map->vec_init)
-    if (qp_reshape_map(map))
+    if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
+                       "qp_map2tod: reshape error"))
       return mem->error_code;
 
 #ifdef DEBUG
@@ -826,13 +837,19 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 
 #pragma omp for nowait
     for (int idet = 0; idet < dets->n; idet++) {
-      if (errloc)
-        continue;
-      errloc = qp_map2tod1(memloc, dets->arr + idet, pnt, map);
+      if (!errloc && !err)
+        errloc = qp_map2tod1(memloc, dets->arr + idet, pnt, map);
     }
 
+    if (errloc) {
+#pragma omp atomic
+      err += errloc;
 #pragma omp critical
-    err += errloc;
+      {
+        mem->error_code = memloc->error_code;
+        mem->error_string = memloc->error_string;
+      }
+    }
 
     qp_free_memory(memloc);
   }
