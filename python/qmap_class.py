@@ -179,6 +179,9 @@ class QMap(QPoint):
             initialized.
         """
 
+        if vec is False and proj is False:
+            raise ValueError('one of vec or proj must not be False')
+
         if self._dest.contents.init:
             if reset:
                 self.reset_dest()
@@ -213,10 +216,22 @@ class QMap(QPoint):
         elif proj is not False:
             proji = proj
             proj, pnside = check_map(proji)
-            if len(proj) != [1,6][pol]:
-                raise ValueError('proj has incompatible shape')
-            if pnside != nside:
-                raise ValueError('proj has incompatible nside')
+
+            if vec is not False:
+                if len(proj) != [1,6][pol]:
+                    raise ValueError('proj has incompatible shape')
+                if pnside != nside:
+                    raise ValueError('proj has incompatible nside')
+            else:
+                if len(proj) == 1:
+                    pol = False
+                elif len(proj) == 6:
+                    pol = True
+                else:
+                    raise ValueError('proj has incompatible shape')
+                nside = pnside
+                npix = hp.nside2npix(nside)
+
             if copy and np.may_share_memory(proji, proj):
                 proj = proj.copy()
 
