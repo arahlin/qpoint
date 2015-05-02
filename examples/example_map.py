@@ -1,6 +1,8 @@
 import qpoint as qp
 import numpy as np
 import healpy as hp
+from spider_analysis.map import synfast, cartview
+import pylab
 
 # initialize, maybe change a few options from their defaults
 Q = qp.QMap(nside=256, pol=True, accuracy='low',
@@ -32,17 +34,23 @@ Q.init_point(q_bore=q_bore, q_hwp=q_hwp)
 
 cls = np.loadtxt('wmap7_r0p03_lensed_uK_ext.txt', unpack=True)
 ell, cls = cls[0], cls[1:]
-map_in = np.vstack(hp.synfast(cls, nside=1024, pol=True, new=True))
+map_in = np.vstack(synfast(cls, nside=512, pol=True, new=True, deriv=0))
 print map_in.mean(), map_in.sum()
 
 # initialize source map
 Q.init_source(map_in, pol=True)
 
-# several detector offsets in degrees
-delta_az_list = [-2,-1.0,-1.0,0,0,1.0,1.0,2];
-delta_el_list = [2,-1.0,1.0,0,0,-1.0,1.0,-2];
-delta_psi_list = [22.5,22.5,22.5,22.5,-22.5,-22.5,-22.5,-22.5];
-q_off_list = Q.det_offset(delta_az_list, delta_el_list, delta_psi_list)
+# detector offsets
+d_psi0 = [0, 45.2, 90.5, 135]
+n = len(d_psi0)
+d_az = [0]*n + [1]*n + [2]*n + [-1]*n + [-2]*n
+d_el = [0]*n + [-1]*n + [-2]*n + [1]*n + [2]*n
+d_psi = d_psi0*5
+d_az, d_el = (d_az + d_az[n:],
+              d_el + d_az[n:])
+d_psi += d_psi[n:]
+
+q_off_list = Q.det_offset(d_az, d_el, d_psi)
 
 # run
 print 'generate tod'
@@ -51,10 +59,10 @@ print tod.mean(), tod.sum()
 
 # initialize and calculate hits and data maps
 print 'bin to map'
-smap, pmap = Q.from_tod(q_off_list, tod=tod)
+vec, proj = Q.from_tod(q_off_list, tod=tod)
 print 'map stats'
-print smap.mean(), smap.sum()
-print pmap.mean(), pmap.sum()
+print vec.mean(), vec.sum()
+print proj.mean(), proj.sum()
 
 print 'add to map'
 
@@ -64,30 +72,31 @@ tod2 = 10 * np.random.randn(*tod.shape)
 # update map, but don't double-count the hits map
 Q.from_tod(q_off_list, tod=tod2, count_hits=False)
 print 'map stats'
-print smap.mean(), smap.sum()
-print pmap.mean(), pmap.sum()
+print vec.mean(), vec.sum()
+print proj.mean(), proj.sum()
+
+print 'solving'
+
+# solve
+cond = Q.proj_cond()
+print cond.min(), cond.max()
+map_out = Q.solve_map_cho()
+print map_out.min(), map_out.max()
 
 print 'plotting'
 
-# extract columns
-hits, p01, p02, p11, p12, p22 = pmap
-m1, m2, m3 = smap
-
-# better cartview
-from spider_analysis.map.tools import cartview
-
+# plot stuff
 opt = dict(lonra=[-170, -70], latra=[-50, -20], coord='C', cbar='h', cbar_size='8%')
 lopt = dict(min=-300, max=300, **opt)
 
-# plot stuff
-
 cartview(map_in[0], title='input map', unit='Temperature [uK]', **lopt)
-cartview(hits, title='hits', **opt)
+cartview(proj[0], title='hits', **opt)
+cartview(cond, title='condition number', **opt)
+cartview(map_out[0], title='solved map', unit='Temperature[uK]', **lopt)
 
-mm = m1.copy()
-mm[hits.astype(bool)] /= hits[hits.astype(bool)]
-mm[~hits.astype(bool)] = np.nan
-cartview(mm, title='normalized output map', unit='Temperature [uK]', **lopt)
+# difference map
+md = map_out[0] - hp.ud_grade(map_in[0], 256)
+md[map_out[0]==0] = np.inf
+cartview(md, title='difference', unit='Temperature [uK]', min=-20, max=20, **opt)
 
-import pylab
 pylab.show()

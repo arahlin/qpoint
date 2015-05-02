@@ -6,17 +6,31 @@ import ctypes as ct
 import _libqpoint as lib
 from _libqpoint import libqp as qp
 
-__all__ = ['QMap']
+__all__ = ['QMap', 'check_map', 'check_proj']
 
-def check_map(map_in):
+def check_map(map_in, copy=False):
     """
     Return a properly transposed and memory-aligned map and its nside.
     """
-    map_in = np.atleast_2d(map_in)
-    if np.argmax(map_in.shape) == 0:
-        map_in = map_in.T
-    nside = hp.get_nside(map_in)
-    return lib.check_input('map', map_in), nside
+    map_out = np.atleast_2d(map_in)
+    if np.argmax(map_out.shape) == 0:
+        map_out = map_out.T
+    nside = hp.get_nside(map_out)
+    map_out = lib.check_input('map', map_out)
+    if copy and np.may_share_memory(map_in, map_out):
+        map_out = map_out.copy()
+    return map_out, nside
+
+def check_proj(proj_in, copy=False):
+    """
+    Return a properly transposed and memory-aligned projection map,
+    its nside, and the map dimension.
+    """
+    proj_out, nside = check_map(proj_in, copy=copy)
+    nmap = int(np.roots([1, 1, - 2 * len(proj_out)]).max())
+    if (nmap * (nmap + 1) /2 != len(proj_out)):
+        raise ValueError, 'proj has incompatible shape'
+    return proj_out, nside, nmap
 
 class QMap(QPoint):
     """
@@ -168,13 +182,15 @@ class QMap(QPoint):
             map dimension
         pol : bool, optional
             If True, a polarized map will be created.
-        vec : array_like or bool, optional
+        vec : array_like or bool, optional, shape (N, npix)
             If supplied, nside and pol are determined from this map, and
             the vector (binned signal) map is initialized from this.
-            If False, mapping from timestreams is disabled.
-        proj : array_like or bool, optional
-            If supplied, the projection matrix map is initialized from this.
-            If False, accumulation of the projection matrix is disabled.
+            If False, accumulation of this map from timestreams is disabled.
+        proj : array_like or bool, optional, shape (N*(N+1)/2, npix)
+            Array of upper-triangular elements of the projection matrix
+            for each pixel.  If not supplied, a blank map of the appropriate
+            shape is created. If False, accumulation of the projection matrix
+            is disabled.
         copy : bool, optional
             If True and vec/proj are supplied, make copies of these inputs
             to avoid in-place operations.
@@ -202,8 +218,7 @@ class QMap(QPoint):
             else:
                 vec = np.zeros((1, npix), dtype=np.double)
         elif vec is not False:
-            veci = vec
-            vec, nside = check_map(veci)
+            vec, nside = check_map(vec, copy=copy)
             npix = hp.nside2npix(nside)
             if len(vec) == 1:
                 pol = False
@@ -211,8 +226,6 @@ class QMap(QPoint):
                 pol = True
             else:
                 raise ValueError('vec has incompatible shape')
-            if copy and np.may_share_memory(veci, vec):
-                vec = vec.copy()
 
         if proj is None:
             if pol:
@@ -220,10 +233,11 @@ class QMap(QPoint):
             else:
                 proj = np.zeros((1, npix), dtype=np.double)
         elif proj is not False:
-            proji = proj
-            proj, pnside = check_map(proji)
+            proj, pnside, pnmap = check_proj(proj, copy=copy)
 
             if vec is not False:
+                if pnmap != len(vec):
+                    raise ValueError('proj has incompatible shape')
                 if len(proj) != [1,6][pol]:
                     raise ValueError('proj has incompatible shape')
                 if pnside != nside:
@@ -237,9 +251,6 @@ class QMap(QPoint):
                     raise ValueError('proj has incompatible shape')
                 nside = pnside
                 npix = hp.nside2npix(nside)
-
-            if copy and np.may_share_memory(proji, proj):
-                proj = proj.copy()
 
         # store arrays for later retrieval
         self.depo['vec'] = vec
@@ -525,8 +536,11 @@ class QMap(QPoint):
         self.reset_detarr()
 
         # return
-        ret = ((self.depo['vec'].squeeze(),) * return_vec +
-               (self.depo['proj'].squeeze(),) * return_proj)
+        ret = ()
+        if return_vec:
+            ret += (self.depo['vec'].squeeze(),)
+        if return_proj:
+            ret += (self.depo['proj'].squeeze(),)
         if len(ret) == 1:
             return ret[0]
         return ret
@@ -570,3 +584,157 @@ class QMap(QPoint):
 
         # return
         return tod
+
+    def proj_cond(self, proj=None, mode=None):
+        """
+        Hits-normalized projection matrix condition number for
+        each pixel.
+
+        Arguments
+        ---------
+        proj : array_like
+            Projection matrix, of shape (N*(N+1)/2, npix)
+        mode : {None, 1, -1, 2, -2, inf, -inf, 'fro'}, optional
+            condition number order.  See `numpy.linalg.cond`.
+            Default: None (2-norm from SVD)
+
+        Returns
+        -------
+        cond : array_like
+            Condition number of each pixel.
+        """
+
+        # check inputs
+        if proj is None:
+            proj = self.depo['proj']
+        if proj is None or proj is False:
+            raise ValueError, 'missing proj'
+        proj, _, nmap = check_proj(proj, copy=True)
+        nproj = len(proj)
+
+        # normalize
+        m = proj[0].astype(bool)
+        proj[:, m] /= proj[0, m]
+        proj[:, ~m] = np.inf
+
+        # return if unpolarized
+        if nmap == 1:
+            return proj[0]
+
+        # projection matrix indices
+        idx = np.zeros((nmap, nmap), dtype=int)
+        rtri, ctri = np.triu_indices(nmap)
+        idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
+
+        # calculate for each pixel
+        def func(x):
+            if not np.isfinite(x[0]):
+                return np.inf
+            return np.linalg.cond(x[idx], p=mode)
+        cond = np.apply_along_axis(func, 0, proj)
+        return cond
+
+    def solve_map_cho(self, vec=None, proj=None, mask=None, copy=True,
+                   return_proj=False, return_mask=False):
+        """
+        Solve for a map, given the binned map and the projection matrix
+        for each pixel, using Cholesky decomposition.  This method
+        uses the scipy.linalg.cho_factor and scipy.linalg.cho_solve
+        functions internally.
+
+        Arguments
+        ---------
+        vec : array_like, optional
+            A map or list of N maps.  Default to `depo['vec']`.
+        proj : array_like, optional
+            An array of upper-triangular projection matrices for each pixel,
+            of shape (N*(N+1)/2, npix).  Default to `depo['proj']`.
+        mask : array_like, optional
+            A mask of shape (npix,), evaluates to True where pixels are valid.
+            The input mask in converted to a boolean array if supplied.
+        copy : bool, optional
+            if False, do the computation in-place so that the input maps are
+            modified.  Otherwise, a copy is created prior to solving.
+            Default: False.
+        return_proj : bool, optional
+            if True, return the Cholesky-decomposed projection matrix.
+            if False, and inplace is True, the input projection matrix
+            is not modified.
+        return_mask : bool, optional
+            if True, return the mask array, updated with any pixels
+            that could not be solved.
+
+        Returns
+        -------
+        map : array_like
+            A solved map or set of maps, in shape (N, npix).
+        proj_out : array_like
+            The upper triangular elements of the decomposed projection matrix,
+            if requested, in shape (N*(N+1)/2, npix).
+        mask : array_like
+            1-d array, True for valid pixels, if `return_mask` is True
+        """
+
+        # ensure properly shaped arrays
+        if vec is None:
+            vec = self.depo['vec']
+        if vec is None or vec is False:
+            raise ValueError,' missing vec'
+        vec, nside = check_map(vec, copy=copy)
+
+        if proj is None:
+            proj = self.depo['proj']
+        if proj is None or proj is False:
+            raise ValueError, 'missing proj'
+        pcopy = True if not return_proj else copy
+        proj, pnside, nmap = check_proj(proj, copy=pcopy)
+
+        if pnside != nside or nmap != len(vec):
+            raise ValueError('vec and proj have incompatible shapes')
+        nproj = len(proj)
+
+        npix = hp.nside2npix(nside)
+
+        # deal with mask
+        if mask is None:
+            mask = np.ones(npix, dtype=bool)
+        else:
+            mcopy = True if not return_mask else copy
+            mask, mnside = check_map(mask, copy=mcopy)
+            if mnside != nside:
+                raise ValueError('mask has incompatible shape')
+            mask = mask.squeeze().astype(bool)
+
+        # if unpolarized, just divide
+        if len(vec) == 1:
+            vec[mask] /= proj[mask]
+            if return_proj:
+                return vec, proj
+            return vec
+
+        # projection matrix indices
+        idx = np.zeros((nmap, nmap), dtype=int)
+        rtri, ctri = np.triu_indices(nmap)
+        idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
+
+        # solve
+        from scipy.linalg import cho_factor, cho_solve
+        for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
+            if not m:
+                proj[:, ii] = 0
+                vec[:, ii] = 0
+                continue
+            try:
+                vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
+            except:
+                mask[ii] = False
+                proj[:, ii] = 0
+                vec[:, ii] = 0
+            else:
+                proj[:, ii] = A[rtri, ctri]
+
+        # return
+        ret = ((vec,) + (proj,) * return_proj + (mask,) * return_mask)
+        if len(ret) == 1:
+            return ret[0]
+        return ret
