@@ -195,7 +195,7 @@ extern "C" {
      Exception handling
      ********************************************************************** */
 
-  enum {
+  typedef enum {
     QP_ERROR = 1,
     QP_ERROR_INIT,
     QP_ERROR_POINT,
