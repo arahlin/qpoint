@@ -328,8 +328,6 @@ class QMap(QPoint):
             point.ctime_init = 0
             point.ctime = None
         elif ctime is not None:
-            if not point.init:
-                raise RuntimeError, 'point not initialized'
             ctime = lib.check_input('ctime', ctime, shape=(n,))
             self.depo['ctime'] = ctime
             point.ctime_init = lib.QP_ARR_INIT_PTR
@@ -339,8 +337,6 @@ class QMap(QPoint):
             point.q_hwp_init = 0
             point.q_hwp = None
         elif q_hwp is not None:
-            if not point.init:
-                raise RuntimeError, 'point not initialized'
             q_hwp = lib.check_input('q_hwp', q_hwp, shape=(n, 4))
             self.depo['q_hwp'] = q_hwp
             point.q_hwp_init = lib.QP_ARR_INIT_PTR
@@ -498,19 +494,23 @@ class QMap(QPoint):
         self.init_detarr(q_off, weight=weight, pol_eff=pol_eff,
                          tod=tod, flag=flag)
 
-        # check and cache modes
-        dest = self._dest.contents
-        return_map = True
-        vec_mode = dest.vec_mode
-        if tod is None or tod is False:
-            return_map = False
-            dest.vec_mode = 0
+        # check modes
+        return_vec = True
+        if tod is None or tod is False or self.depo['vec'] is False:
+            return_vec = False
         return_proj = True
-        proj_mode = dest.proj_mode
-        if not count_hits:
-            if tod is None:
-                raise ValueError, 'must supply either tod or count_hits'
+        if not count_hits or self.depo['proj'] is False:
+            if return_vec is False:
+                raise RuntimeError, 'Nothing to do'
             return_proj = False
+
+        # cache modes
+        dest = self._dest.contents
+        vec_mode = dest.vec_mode
+        if return_vec is False:
+            dest.vec_mode = 0
+        proj_mode = dest.proj_mode
+        if return_proj is False:
             dest.proj_mode = 0
 
         # run
@@ -525,7 +525,7 @@ class QMap(QPoint):
         self.reset_detarr()
 
         # return
-        ret = ((self.depo['vec'],) * return_map +
+        ret = ((self.depo['vec'],) * return_vec +
                (self.depo['proj'],) * return_proj)
         if len(ret) == 1:
             return ret[0]
