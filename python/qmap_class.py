@@ -170,6 +170,18 @@ class QMap(QPoint):
         self.depo.pop('source_map', None)
         self._source = ct.pointer(lib.qp_map_t())
 
+    def source_is_pol(self):
+        """
+        Return True if the source map is polarized, otherwise False.
+        Raise an error if source map is not initialized.
+        """
+        if not hasattr(self, '_source') or not self._source.contents.init:
+            raise RuntimeError, 'source map not initialized'
+
+        if self._source.contents.vec_mode in [2,4,6]:
+            return True
+        return False
+
     def init_dest(self, nside=256, pol=True, vec=None, proj=None, copy=False,
                   reset=False):
         """
@@ -297,6 +309,18 @@ class QMap(QPoint):
         self.depo.pop('vec', None)
         self.depo.pop('proj', None)
         self._dest = ct.pointer(lib.qp_map_t())
+
+    def dest_is_pol(self):
+        """
+        Return True if the destination map is polarized, otherwise False.
+        Raise an error if destination map is not initialized.
+        """
+        if not hasattr(self, '_dest') or not self._dest.contents.init:
+            raise RuntimeError, 'dest map not initialized'
+
+        if 2 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
+            return True
+        return False
 
     def init_point(self, q_bore=None, ctime=None, q_hwp=None):
         """
