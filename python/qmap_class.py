@@ -364,7 +364,7 @@ class QMap(QPoint):
         self.depo.pop('q_hwp', None)
         self._point = ct.pointer(lib.qp_point_t())
 
-    def init_detarr(self, q_off, weight=None, pol_eff=None, tod=None, flag=None,
+    def init_detarr(self, q_off, weight=None, poleff=None, tod=None, flag=None,
                     write=False):
         """
         Initialize the detector listing structure.  Detector properties and
@@ -377,7 +377,7 @@ class QMap(QPoint):
         weight : array_like, optional
             Per-channel mapmaking weights, of shape (ndet,) or a constant.
             Default : 1.
-        pol_eff : array_like, optional
+        poleff : array_like, optional
             Per-channel polarization efficiencies, of shape(ndet,) or a constant.
             Default: 1.
         tod : array_like, optional
@@ -400,7 +400,7 @@ class QMap(QPoint):
         q_off = lib.check_input('q_off', q_off)
         n = q_off.size / 4
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
-        pol_eff = lib.check_input('pol_eff', pol_eff, shape=(n,), fill=1)
+        poleff = lib.check_input('poleff', poleff, shape=(n,), fill=1)
 
         ns = self._point.contents.n
         shape = (n, ns)
@@ -417,11 +417,11 @@ class QMap(QPoint):
 
         # populate array
         dets = (lib.qp_det_t * n)()
-        for idx, (q, w, p) in enumerate(zip(q_off, weight, pol_eff)):
+        for idx, (q, w, p) in enumerate(zip(q_off, weight, poleff)):
             dets[idx].init = lib.QP_STRUCT_INIT
             dets[idx].q_off = lib.as_ctypes(q)
             dets[idx].weight = w
-            dets[idx].pol_eff = p
+            dets[idx].poleff = p
             if tod is not None:
                 dets[idx].n = ns
                 dets[idx].tod_init = lib.QP_ARR_INIT_PTR
@@ -467,7 +467,7 @@ class QMap(QPoint):
             self.depo.pop(k)
 
     def from_tod(self, q_off, tod=None, count_hits=True, weight=None,
-                 pol_eff=None, flag=None, **kwargs):
+                 poleff=None, flag=None, **kwargs):
         """
         Calculate signal and hits maps for given detectors.
 
@@ -483,7 +483,7 @@ class QMap(QPoint):
         weight : array_like, optional
           array of channel weights, of shape (ndet,).  Defaults to 1 if not
           supplied.
-        pol_eff : array_like, optional
+        poleff : array_like, optional
           array of polarization efficiencies, of shape (ndet,).  Defaults to 1
           if not supplied.
         flag : array_like, optional
@@ -502,7 +502,7 @@ class QMap(QPoint):
         self.set(**kwargs)
 
         # initialize detectors
-        self.init_detarr(q_off, weight=weight, pol_eff=pol_eff,
+        self.init_detarr(q_off, weight=weight, poleff=poleff,
                          tod=tod, flag=flag)
 
         # check modes
@@ -545,7 +545,7 @@ class QMap(QPoint):
             return ret[0]
         return ret
 
-    def to_tod(self, q_off, pol_eff=None, tod=None, **kwargs):
+    def to_tod(self, q_off, poleff=None, tod=None, **kwargs):
         """
         Calculate signal TOD from source map for multiple channels.
 
@@ -553,7 +553,7 @@ class QMap(QPoint):
         ---------
         q_off : array_like
           quaternion offset array, of shape (ndet, 4)
-        pol_eff : array_like, optional
+        poleff : array_like, optional
           array of polarization efficiencies, of shape (ndet,).  Defaults to 1
           if not supplied.
         tod : array_like, optional
@@ -572,7 +572,7 @@ class QMap(QPoint):
         self.set(**kwargs)
 
         # initialize detectors
-        self.init_detarr(q_off, pol_eff=pol_eff, tod=tod, write=True)
+        self.init_detarr(q_off, poleff=poleff, tod=tod, write=True)
 
         # run
         if qp.qp_map2tod(self._memory, self._detarr, self._point, self._source):
