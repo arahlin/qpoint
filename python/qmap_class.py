@@ -573,7 +573,7 @@ class QMap(QPoint):
             return ret[0]
         return ret
 
-    def to_tod(self, q_off, poleff=None, tod=None, **kwargs):
+    def to_tod(self, q_off, poleff=None, tod=None, flag=None, **kwargs):
         """
         Calculate signal TOD from source map for multiple channels.
 
@@ -600,7 +600,8 @@ class QMap(QPoint):
         self.set(**kwargs)
 
         # initialize detectors
-        self.init_detarr(q_off, poleff=poleff, tod=tod, write=True)
+        self.init_detarr(q_off, poleff=poleff, tod=tod, flag=flag,
+                         write=True)
 
         # run
         if qp.qp_map2tod(self._memory, self._detarr, self._point, self._source):

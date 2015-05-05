@@ -748,6 +748,8 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
       return mem->error_code;
 
   for (int ii = 0; ii < pnt->n; ii++) {
+    if (det->flag_init && det->flag[ii])
+      continue;
     ctime = pnt->ctime_init ? pnt->ctime[ii] : 0;
     if (pnt->q_hwp_init)
       qp_bore2det_hwp(mem, det->q_off, ctime, pnt->q_bore[ii],
