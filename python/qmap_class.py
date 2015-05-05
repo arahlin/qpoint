@@ -421,13 +421,16 @@ class QMap(QPoint):
         self.reset_detarr()
 
         # check inputs
-        q_off = lib.check_input('q_off', q_off)
+        q_off = lib.check_input('q_off', np.atleast_2d(q_off))
         n = q_off.size / 4
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
         poleff = lib.check_input('poleff', poleff, shape=(n,), fill=1)
 
         ns = self._point.contents.n
         shape = (n, ns)
+
+        if tod is not None:
+            tod = np.atleast_2d(tod)
 
         if write:
             tod = lib.check_output('tod', tod, shape=shape, fill=0)
@@ -436,7 +439,8 @@ class QMap(QPoint):
             tod = lib.check_input('tod', tod, shape=shape)
             self.depo['tod'] = tod
         if flag is not None:
-            flag = lib.check_input('flag', flag, dtype=np.uint8, shape=shape)
+            flag = lib.check_input('flag', np.atleast_2d(flag),
+                                   dtype=np.uint8, shape=shape)
             self.depo['flag'] = flag
 
         # populate array
