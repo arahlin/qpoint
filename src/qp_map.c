@@ -11,12 +11,12 @@
 #include <omp.h>
 #endif
 
-qp_det_t * qp_init_det(quat_t q_off, double weight, double pol_eff) {
+qp_det_t * qp_init_det(quat_t q_off, double weight, double poleff) {
   qp_det_t *det = malloc(sizeof(*det));
 
   memcpy(det->q_off, q_off, sizeof(quat_t));
   det->weight = weight;
-  det->pol_eff = pol_eff;
+  det->poleff = poleff;
 
   det->n = 0;
 
@@ -80,7 +80,7 @@ void qp_free_det(qp_det_t *det) {
     free(det);
 }
 
-qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *pol_eff,
+qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *poleff,
                              size_t n) {
   qp_detarr_t *dets = malloc(sizeof(*dets));
   qp_det_t *det;
@@ -93,7 +93,7 @@ qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *pol_eff,
     det = dets->arr + ii;
     memcpy(det->q_off, q_off[ii], sizeof(quat_t));
     det->weight = weight[ii];
-    det->pol_eff = pol_eff[ii];
+    det->poleff = poleff[ii];
     det->n = 0;
     det->tod_init = 0;
     det->tod = NULL;
@@ -548,8 +548,8 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
   long ipix;
   quat_t q;
   double w = det->weight;
-  double wg = w * det->pol_eff;
-  double wg2 = wg * det->pol_eff;
+  double wg = w * det->poleff;
+  double wg2 = wg * det->poleff;
 
   if (qp_check_error(mem, !mem->init, QP_ERROR_INIT,
                      "qp_tod2map1: mem not initialized."))
@@ -714,7 +714,7 @@ void qp_pixel_offset(qp_memory_t *mem, int nside, long pix,
 
 #define DATUM(n) (map->vec[n][ipix])
 #define POLDATUM(n) \
-  (DATUM(n) + det->pol_eff * (DATUM(n+1) * cpp + DATUM(n+2) * spp))
+  (DATUM(n) + det->poleff * (DATUM(n+1) * cpp + DATUM(n+2) * spp))
 
 int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_map_t *map) {

@@ -508,7 +508,7 @@ extern "C" {
     int init;        // initialized?
     quat_t q_off;    // offset quaternion
     double weight;   // det weight
-    double pol_eff;  // polarization efficiency
+    double poleff;   // polarization efficiency
 
     size_t n;        // samples
 
@@ -579,14 +579,14 @@ extern "C" {
   } qp_map_t;
 
   /* initialize detectors */
-  qp_det_t * qp_init_det(quat_t q_off, double weight, double pol_eff);
+  qp_det_t * qp_init_det(quat_t q_off, double weight, double poleff);
   qp_det_t * qp_default_det(void);
   void qp_init_det_tod(qp_det_t *det, size_t n);
   void qp_init_det_tod_from_array(qp_det_t *det, double *tod, size_t n, int copy);
   void qp_init_det_flag(qp_det_t *det, size_t n);
   void qp_init_det_flag_from_array(qp_det_t *det, uint8_t *flag, size_t n, int copy);
   void qp_free_det(qp_det_t *det);
-  qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *pol_eff,
+  qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *poleff,
                                size_t n);
   void qp_init_detarr_tod(qp_detarr_t *dets, size_t n);
   void qp_init_detarr_tod_from_array(qp_detarr_t *dets, double **tod,

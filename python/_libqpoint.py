@@ -115,7 +115,7 @@ class qp_det_t(ct.Structure):
         ('init', ct.c_int),
         ('q_off', ct.c_double * 4),
         ('weight', ct.c_double),
-        ('pol_eff', ct.c_double),
+        ('poleff', ct.c_double),
         ('n', ct.c_size_t),
         ('tod_init', ct.c_int),
         ('tod', ct.POINTER(ct.c_double)),
