@@ -92,6 +92,16 @@ class QMap(QPoint):
         if q_bore is not None:
             self.init_point(q_bore, ctime=ctime, q_hwp=q_hwp)
 
+    def source_is_init(self):
+        """
+        Return True if the source map is initialized, otherwise False.
+        """
+        if not hasattr(self, '_source'):
+            return False
+        if not self._source.contents.init:
+            return False
+        return True
+
     def init_source(self, source_map, pol=True, reset=False):
         """
         Initialize the source map structure.  Timestreams are
@@ -127,7 +137,7 @@ class QMap(QPoint):
                        dT2dp2, dQ2dp2, dU2dp2)
         """
 
-        if self._source.contents.init:
+        if self.source_is_init():
             if reset:
                 self.reset_source()
             else:
@@ -175,12 +185,22 @@ class QMap(QPoint):
         Return True if the source map is polarized, otherwise False.
         Raise an error if source map is not initialized.
         """
-        if not hasattr(self, '_source') or not self._source.contents.init:
+        if not self.source_is_init():
             raise RuntimeError, 'source map not initialized'
 
         if self._source.contents.vec_mode in [2,4,6]:
             return True
         return False
+
+    def dest_is_init(self):
+        """
+        Return True if the dest map is initialized, otherwise False.
+        """
+        if not hasattr(self, '_dest'):
+            return False
+        if not self._dest.contents.init:
+            return False
+        return True
 
     def init_dest(self, nside=256, pol=True, vec=None, proj=None, copy=False,
                   reset=False):
@@ -216,7 +236,7 @@ class QMap(QPoint):
         if vec is False and proj is False:
             raise ValueError('one of vec or proj must not be False')
 
-        if self._dest.contents.init:
+        if self.dest_is_init():
             if reset:
                 self.reset_dest()
             else:
@@ -315,12 +335,22 @@ class QMap(QPoint):
         Return True if the destination map is polarized, otherwise False.
         Raise an error if destination map is not initialized.
         """
-        if not hasattr(self, '_dest') or not self._dest.contents.init:
+        if not self.dest_is_init():
             raise RuntimeError, 'dest map not initialized'
 
         if 2 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
             return True
         return False
+
+    def point_is_init(self):
+        """
+        Return True if the point map is initialized, otherwise False.
+        """
+        if not hasattr(self, '_point'):
+            return False
+        if not self._point.contents.init:
+            return False
+        return True
 
     def init_point(self, q_bore=None, ctime=None, q_hwp=None):
         """
@@ -339,6 +369,9 @@ class QMap(QPoint):
              Waveplate quaternion.  If not None, the quaternion is
              updated to this. Shape must be (nsamp, 4)
         """
+
+        if not hasattr(self, '_point'):
+            self.reset_point()
 
         point = self._point.contents
 
