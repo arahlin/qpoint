@@ -24,7 +24,7 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_aaber , 100);
   qp_init_state(&mem->state_ref   , QP_DO_NEVER);
   mem->accuracy = 0;
-  mem->mean_aber = 0;
+  mem->mean_aber = 1;
   mem->fast_math = 0;
   mem->polconv = 0;
   mem->pix_order = 0;
