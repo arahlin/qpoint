@@ -94,6 +94,8 @@ class QPoint(object):
                        functions
         polconv        Specify the 'cosmo' or 'iau' polarization convention
         pix_order      'nest' or 'ring' for healpix pixel ordering
+        interp_pix     If True, interpolate between pixels in scanning the
+                       source map.
         fast_pix       If True, use vec2pix to get pixel number directly from
                        the quaternion instead of ang2pix from ra/dec.
         num_threads    Number of threads for openMP bore2map computation
@@ -749,6 +751,27 @@ class QPoint(object):
         if pol is True:
             return pix, sin2psi, cos2psi
         return pix
+
+    def get_interp_val(self, map_in, ra, dec, **kwargs):
+        """
+        TODO
+        """
+
+        ra, dec = lib.check_inputs(ra, dec)
+        n = ra.size
+
+        from qmap_class import check_map
+        map_in, nside = check_map(map_in)
+
+        val = lib.check_output('value', shape=(len(map_in), n))
+
+        for m, v in zip(map_in, val):
+            qp.qp_get_interp_valn(self._memory, nside, m, ra, dec, v, n)
+
+        v = v.squeeze()
+        if not v.shape:
+            return v[()]
+        return v
 
     def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
         """

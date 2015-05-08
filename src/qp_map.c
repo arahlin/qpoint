@@ -274,6 +274,8 @@ qp_map_t * qp_init_map(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_mod
 
   map->nside = nside;
   map->npix = nside2npix(nside);
+  map->pixinfo_init = 0;
+  map->pixinfo = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
 
@@ -325,6 +327,8 @@ qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
 
   map->nside = nside;
   map->npix = nside2npix(nside);
+  map->pixinfo_init = 0;
+  map->pixinfo = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
   map->vec_mode = vec_mode;
@@ -372,6 +376,8 @@ qp_map_t * qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside,
 
   map->nside = nside;
   map->npix = nside2npix(nside);
+  map->pixinfo_init = 0;
+  map->pixinfo = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
   map->vec_mode = vec_mode;
@@ -408,6 +414,8 @@ qp_map_t * qp_init_map_1d(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_
 
   map->nside = nside;
   map->npix = nside2npix(nside);
+  map->pixinfo_init = 0;
+  map->pixinfo = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
 
@@ -484,6 +492,14 @@ int qp_reshape_map(qp_map_t *map) {
   return 0;
 }
 
+int qp_init_map_pixinfo(qp_map_t *map) {
+  if (!map->init)
+    return QP_ERROR_INIT;
+  map->pixinfo = qp_init_pixinfo(map->nside);
+  map->pixinfo_init = map->pixinfo->init;
+  return 0;
+}
+
 void qp_free_map(qp_map_t *map) {
   if (map->vec1d_init & QP_ARR_MALLOC_1D)
     free(map->vec1d);
@@ -500,6 +516,9 @@ void qp_free_map(qp_map_t *map) {
       free(map->proj[ii]);
   if (map->proj_init & QP_ARR_MALLOC_1D)
     free(map->proj);
+
+  if (map->pixinfo_init)
+    qp_free_pixinfo(map->pixinfo);
 
   if (map->init & QP_STRUCT_MALLOC)
     free(map);
@@ -697,24 +716,16 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
   return err;
 }
 
-void qp_pixel_offset(qp_memory_t *mem, int nside, long pix,
-                     double ra, double dec, double *dtheta,
-                     double *dphi) {
-  if (mem->pix_order == QP_ORDER_NEST)
-    pix2ang_nest(nside, pix, dtheta, dphi);
-  else
-    pix2ang_ring(nside, pix, dtheta, dphi);
-  *dtheta = M_PI_2 - deg2rad(dec) - *dtheta;
-  if (*dtheta < -M_PI_2) *dtheta += M_PI;
-  if (*dtheta > M_PI_2) *dtheta -= M_PI;
-  *dphi = deg2rad(ra) - *dphi;
-  if (*dphi < -M_PI) *dphi += M_TWOPI;
-  if (*dphi > M_PI) *dphi -= M_TWOPI;
-}
-
 #define DATUM(n) (map->vec[n][ipix])
 #define POLDATUM(n) \
   (DATUM(n) + det->poleff * (DATUM(n+1) * cpp + DATUM(n+2) * spp))
+#define IDATUM(n) \
+  (map->vec[n][pix[0]] * weight[0] + \
+   map->vec[n][pix[1]] * weight[1] + \
+   map->vec[n][pix[2]] * weight[2] + \
+   map->vec[n][pix[3]] * weight[3])
+#define IPOLDATUM(n) \
+  (IDATUM(n) + det->poleff * (IDATUM(n+1) * cpp + IDATUM(n+2) * spp))
 
 int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_map_t *map) {
@@ -741,10 +752,20 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
   double ra, dec, spp, cpp, ctime, dtheta, dphi;
   long ipix;
   quat_t q;
+  long pix[4];
+  double weight[4];
+  int do_interp = (mem->interp_pix &&               \
+                   (map->vec_mode == QP_VEC_TEMP || \
+                    map->vec_mode == QP_VEC_POL));
 
   if (map->vec1d_init && !map->vec_init)
     if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
                        "qp_map2tod1: reshape error"))
+      return mem->error_code;
+
+  if (do_interp && !map->pixinfo_init)
+    if (qp_check_error(mem, qp_init_map_pixinfo(map), QP_ERROR_INIT,
+                       "qp_map2tod1: pixinfo init error"))
       return mem->error_code;
 
   for (int ii = 0; ii < pnt->n; ii++) {
@@ -757,10 +778,12 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
     else
       qp_bore2det(mem, det->q_off, ctime, pnt->q_bore[ii], q);
 
-    if (map->vec_mode >= QP_VEC_D1) {
+    if ((map->vec_mode >= QP_VEC_D1) || do_interp) {
       qp_quat2radec(mem, q, &ra, &dec, &spp, &cpp);
       ipix = qp_radec2pix(mem, ra, dec, map->nside);
       qp_pixel_offset(mem, map->nside, ipix, ra, dec, &dtheta, &dphi);
+      if (do_interp)
+        qp_get_interpol(mem, map->pixinfo, ra, dec, pix, weight);
     } else {
       qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
     }
@@ -775,7 +798,10 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
         det->tod[ii] += dphi * POLDATUM(6) + dtheta * POLDATUM(3);
         /* fall through */
       case QP_VEC_POL:
-        det->tod[ii] += POLDATUM(0);
+        if (mem->interp_pix)
+          det->tod[ii] += IPOLDATUM(0);
+        else
+          det->tod[ii] += POLDATUM(0);
         break;
       case QP_VEC_D2:
         det->tod[ii] += dphi * dphi * DATUM(5) + dtheta * dphi * DATUM(4)
@@ -785,7 +811,10 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
         det->tod[ii] += dphi * DATUM(2) + dtheta * DATUM(1);
         /* fall through */
       case QP_VEC_TEMP:
-        det->tod[ii] += DATUM(0);
+        if (mem->interp_pix)
+          det->tod[ii] += IDATUM(0);
+        else
+          det->tod[ii] += DATUM(0);
         break;
       default:
         break;

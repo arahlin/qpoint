@@ -97,6 +97,7 @@ class qp_memory_t(ct.Structure):
         ('fast_math', ct.c_int),
         ('polconv', ct.c_int),
         ('pix_order', ct.c_int),
+        ('interp_pix', ct.c_int),
         ('fast_pix', ct.c_int),
         ('num_threads', ct.c_int),
         ('thread_num', ct.c_int),
@@ -173,6 +174,8 @@ class qp_map_t(ct.Structure):
         ('init', ct.c_int),
         ('nside', ct.c_size_t),
         ('npix', ct.c_size_t),
+        ('pixinfo_init', ct.c_int),
+        ('pixinfo', ct.c_void_p),
         ('num_vec', ct.c_size_t),
         ('vec_mode', qp_vec_mode),
         ('vec1d_init', ct.c_int),
@@ -281,6 +284,9 @@ setargs('qp_bore2pix',
 setargs('qp_bore2pix_hwp',
         arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p, ct.c_int,
              warri, warr, warr, ct.c_int))
+
+setargs('qp_get_interp_valn',
+        arg=(qp_memory_t_p, ct.c_int, arr, arr, arr, warr, ct.c_int))
 
 setargs('set_iers_bulletin_a',
         arg=(qp_memory_t_p, ct.c_int, ct.c_int, arr, arr, arr),
@@ -478,98 +484,71 @@ def get_ofunc(option):
     f.restype = ct.c_int
     return f
 
-def check_set_accuracy(acc):
-    if acc is None:
-        return 0
-    if acc in [0,1]:
-        return acc
-    if isinstance(acc,basestring):
-        if acc.lower() in ['high']:
-            return 0
-        if acc.lower() in ['low']:
-            return 1
-    return 0
+opts = {'accuracy': {0: 'high',
+                     1: 'low'},
+        'polconv': {0: ['healpix', 'cosmo'],
+                    1: 'iau'},
+        'pix_order': {0: 'ring',
+                      1: ['nest', 'nested']}}
+defaults = {'accuracy': 0,
+            'polconv': 0,
+            'pix_order': 0}
 
-def check_get_accuracy(ac):
-    if ac == 1:
-        return 'low'
-    return 'high'
+def check_set_dict(opt):
+    def func(val):
+        if val is None:
+            return defaults[opt]
+        if isinstance(val, basestring):
+            val = val.lower()
+        for k,v in opts[opt].items():
+            if isinstance(v, list):
+                if val in v:
+                    return k
+            else:
+                if val == v:
+                    return k
+            if val == k:
+                return k
+        return defaults[opt]
+    return func
 
-def check_set_mean_aber(ab):
-    if ab is None:
-        return 0
-    if ab in [False, 0]:
-        return 0
-    if ab in [True, 1]:
-        return 1
-    return 0
+def check_get_dict(opt):
+    def func(val):
+        for k,v in opts[opt].items():
+            if val == k:
+                if isinstance(v, list):
+                    return v[0]
+                return v
+        raise ValueError(
+            'unrecognized value {} for option {}'.format(val, opt))
+    return func
 
-def check_get_mean_aber(ab):
-    if ab == 1:
-        return True
-    return False
+check_set_accuracy = check_set_dict('accuracy')
+check_get_accuracy = check_get_dict('accuracy')
 
-def check_set_fast_math(fast):
-    if fast is None:
-        return 0
-    if fast in [True,1]:
-        return 1
-    if fast in [False,0]:
-        return 0
-    return 0
+check_set_polconv = check_set_dict('polconv')
+check_get_polconv = check_get_dict('polconv')
 
-def check_get_fast_math(fast):
-    if fast == 1:
-        return True
-    return False
+check_set_pix_order = check_set_dict('pix_order')
+check_get_pix_order = check_get_dict('pix_order')
 
-def check_set_polconv(pol):
-    if pol is None:
-        return 0
-    if isinstance(pol,basestring):
-        if pol.lower() in ['cosmo','healpix']:
-            return 0
-        if pol.lower() in ['iau']:
-            return 1
-    if pol in [0,1]:
-        return pol
-    return 0
+def check_get_bool(val):
+    return bool(val)
 
-def check_get_polconv(pol):
-    if pol == 1:
-        return 'iau'
-    return 'healpix'
+def check_set_bool(val):
+    return int(bool(val))
 
-def check_set_pix_order(order):
-    if order is None:
-        return 0
-    if isinstance(order,basestring):
-        if order.lower() in ['ring']:
-            return 0
-        if order.lower() in ['nest','nested']:
-            return 1
-    if order in [0,1]:
-        return order
-    return 0
+check_set_mean_aber = check_set_bool
+check_get_mean_aber = check_get_bool
 
-def check_get_pix_order(order):
-    if order == 1:
-        return 'nest'
-    return 'ring'
+check_set_fast_math = check_set_bool
+check_get_fast_math = check_get_bool
 
-def check_set_fast_pix(fast):
-    if fast is None:
-        return 0
-    if fast in [True,1]:
-        return 1
-    if fast in [False,0]:
-        return 0
-    return 0
+check_set_fast_pix = check_set_bool
+check_get_fast_pix = check_get_bool
 
-def check_get_fast_pix(fast):
-    if fast == 1:
-        return True
-    return False
+check_set_interp_pix = check_set_bool
+check_get_interp_pix = check_get_bool
 
 def check_set_num_threads(nt):
     if nt is None:
@@ -587,8 +566,8 @@ def check_set_thread_num(tn):
 def check_get_thread_num(tn):
     return tn
 
-options = ['accuracy','mean_aber','fast_math','polconv',
-           'pix_order','fast_pix','num_threads','thread_num']
+options = ['accuracy','mean_aber','fast_math','polconv','pix_order',
+           'interp_pix','fast_pix','num_threads','thread_num']
 option_funcs = dict()
 for p in options:
     option_funcs[p] = dict()

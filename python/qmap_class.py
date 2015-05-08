@@ -153,6 +153,8 @@ class QMap(QPoint):
         source = self._source.contents
         source.nside = nside
         source.npix = hp.nside2npix(nside)
+        source.pixinfo_init = 0
+        source.pixinfo = None
         source.num_vec = len(source_map)
         source.vec_mode = lib.get_vec_mode(smap, pol)
         source.vec1d = lib.as_ctypes(smap.ravel())
@@ -293,6 +295,8 @@ class QMap(QPoint):
         dest = self._dest.contents
         dest.nside = nside
         dest.npix = npix
+        dest.pixinfo_init = 0
+        dest.pixinfo = None
         if vec is not False:
             dest.num_vec = len(vec)
             dest.vec_mode = lib.get_vec_mode(vec, pol)

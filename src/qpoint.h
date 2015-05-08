@@ -82,6 +82,7 @@ extern "C" {
     int fast_math;         // 0=regular trig, 1=polynomial trig approximations
     int polconv;           // polarization convention (0=healpix,1=IAU)
     int pix_order;         // pixel ordering (1=nest, 0=ring)
+    int interp_pix;        // interpolate between pixels in map2tod (1=yes, 0=no)
     int fast_pix;          // use vec2pix instead of ang2pix in binners
     int num_threads;       // number of parallel threads
     int thread_num;        // current thread number
@@ -154,6 +155,7 @@ extern "C" {
 		      int fast_math,
 		      int polconv,
 		      int pix_order,
+                      int interp_pix,
                       int fast_pix,
 		      int num_threads);
 
@@ -165,6 +167,7 @@ extern "C" {
   OPTIONFUNC(fast_math);
   OPTIONFUNC(polconv);
   OPTIONFUNC(pix_order);
+  OPTIONFUNC(interp_pix);
   OPTIONFUNC(fast_pix);
   OPTIONFUNC(num_threads);
   OPTIONFUNC(thread_num);
@@ -559,9 +562,33 @@ extern "C" {
   } qp_proj_mode;
 
   typedef struct {
+    int init;
+    long idx;
+    long startpix;
+    long ringpix;
+    double theta;
+    int shifted;
+  } qp_ring_t;
+
+  typedef struct {
+    int init;
+    int nside;
+    long npix;
+    long npface;
+    long ncap;
+    double fact1;
+    double fact2;
+    int rings_init;
+    qp_ring_t *rings;
+  } qp_pixinfo_t;
+
+  typedef struct {
     int init;                // initialized?
     size_t nside;            // map nside
     size_t npix;             // map npix
+
+    int pixinfo_init;        // pix info initialized?
+    qp_pixinfo_t *pixinfo;   // pixel info structure
 
     size_t num_vec;          // number of map columns
     qp_vec_mode vec_mode;    // map mode
@@ -603,6 +630,9 @@ extern "C" {
   void qp_free_point(qp_point_t *pnt);
 
   /* initialize maps */
+  qp_pixinfo_t * qp_init_pixinfo(size_t nside);
+  void qp_free_pixinfo(qp_pixinfo_t *pixinfo);
+  int qp_init_map_pixinfo(qp_map_t *map);
   qp_map_t * qp_init_map(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_mode);
   qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
                                      qp_vec_mode vec_mode, qp_proj_mode proj_mode,
@@ -615,6 +645,18 @@ extern "C" {
   int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map);
   int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
                  qp_map_t *map);
+
+  /* Compute theta/phi offset from pixel center.  For interpolating maps. */
+  void qp_pixel_offset(qp_memory_t *mem, int nside, long pix, double ra,
+                       double dec, double *dtheta, double *dphi);
+
+  /* C implementation of healpix-cxx/healpy get_interp_val method */
+  void qp_get_interpol(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double ra,
+                       double dec, long pix[4], double weight[4]);
+  double qp_get_interp_val(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double *map,
+                           double ra, double dec);
+  void qp_get_interp_valn(qp_memory_t *mem, int nside, double *map,
+                          double *ra, double *dec, double *val, int n);
 
   /* map -> tod */
   int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map);

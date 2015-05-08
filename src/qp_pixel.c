@@ -197,3 +197,238 @@ void qp_bore2pix_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
     qp_quat2pix(mem, q, nside, pix+ii, sin2psi+ii, cos2psi+ii);
   }
 }
+
+void qp_pixel_offset(qp_memory_t *mem, int nside, long pix,
+                     double ra, double dec, double *dtheta,
+                     double *dphi) {
+  if (mem->pix_order == QP_ORDER_NEST)
+    pix2ang_nest(nside, pix, dtheta, dphi);
+  else
+    pix2ang_ring(nside, pix, dtheta, dphi);
+  *dtheta = M_PI_2 - deg2rad(dec) - *dtheta;
+  if (*dtheta < -M_PI_2) *dtheta += M_PI;
+  if (*dtheta > M_PI_2) *dtheta -= M_PI;
+  *dphi = deg2rad(ra) - *dphi;
+  if (*dphi < -M_PI) *dphi += M_TWOPI;
+  if (*dphi > M_PI) *dphi -= M_TWOPI;
+}
+
+/* copied get_interpol from healpix-cxx, because there is no C equivalent. */
+
+qp_pixinfo_t * qp_init_pixinfo(size_t nside) {
+  qp_pixinfo_t *pixinfo = malloc(sizeof(*pixinfo));
+  pixinfo->nside = nside;
+  pixinfo->npface = pixinfo->nside * pixinfo->nside;
+  pixinfo->npix = 12 * pixinfo->npface;
+  pixinfo->ncap = (pixinfo->npface - pixinfo->nside) << 1;
+  pixinfo->fact2 = 4. / pixinfo->npix;
+  pixinfo->fact1 = (pixinfo->nside << 1) * pixinfo->fact2;
+  pixinfo->rings = calloc(4 * pixinfo->nside, sizeof(qp_ring_t));
+  pixinfo->rings_init = QP_ARR_MALLOC_1D;
+  pixinfo->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
+  return pixinfo;
+}
+
+void qp_free_pixinfo(qp_pixinfo_t *pixinfo) {
+  if (pixinfo->rings_init & QP_ARR_MALLOC_1D)
+    free(pixinfo->rings);
+  if (pixinfo->init & QP_STRUCT_MALLOC)
+    free(pixinfo);
+  else
+    memset(pixinfo, 0, sizeof(*pixinfo));
+}
+
+void get_ring_info2(qp_pixinfo_t *pixinfo, long iring, long *startpix,
+                    long *ringpix, double *theta, int *shifted) {
+
+  qp_ring_t *ring = pixinfo->rings + iring;
+
+  if (!ring->init) {
+    ring->idx = iring;
+
+    long northring = \
+      (iring > (2 * pixinfo->nside)) ? (4 * pixinfo->nside - iring) : iring;
+
+    if (northring < pixinfo->nside) {
+      double tmp = northring * northring * pixinfo->fact2;
+      double costheta = 1 - tmp;
+      double sintheta = sqrt(tmp * (2 - tmp));
+      ring->theta = atan2(sintheta, costheta);
+      ring->ringpix = 4 * northring;
+      ring->shifted = 1;
+      ring->startpix = 2 * northring * (northring - 1);
+    } else {
+      ring->theta = acos((2 * pixinfo->nside - northring) * pixinfo->fact1);
+      ring->ringpix = 4 * pixinfo->nside;
+      ring->shifted = (((northring - pixinfo->nside) & 1) == 0);
+      ring->startpix = pixinfo->ncap + (northring - pixinfo->nside) * ring->ringpix;
+    }
+
+    if (northring != iring) {
+      ring->theta = M_PI - ring->theta;
+      ring->startpix = pixinfo->npix - ring->startpix - ring->ringpix;
+    }
+
+    ring->init = 1;
+  }
+
+  *theta = ring->theta;
+  *ringpix = ring->ringpix;
+  *shifted = ring->shifted;
+  *startpix = ring->startpix;
+}
+
+int get_interpol_ring(qp_pixinfo_t *pixinfo, double theta, double phi,
+                      long pix[4], double weight[4]) {
+  if (theta < 0 || theta > M_PI)
+    return -1;
+
+  int nside = pixinfo->nside;
+  long npix = pixinfo->npix;
+  double z = cos(theta);
+  double az = fabs(z);
+
+  long ir1;
+  if (az < 2. / 3.)
+    ir1 = nside * (2 - 1.5*z);
+  else {
+    ir1 = nside * sqrt(3 * (1 - az));
+    if (z <= 0)
+      ir1 = 4 * nside - ir1 - 1;
+  }
+  long ir2 = ir1 + 1;
+
+  double theta1, theta2, w1, tmp, dphi;
+  long sp, nr;
+  int shift;
+  long i1, i2;
+
+  if (ir1 > 0) {
+    get_ring_info2(pixinfo, ir1, &sp, &nr, &theta1, &shift);
+    dphi = M_TWOPI / nr;
+    tmp = phi / dphi - 0.5 * shift;
+    i1 = (tmp < 0) ? tmp - 1 : tmp;
+    w1 = (phi - (i1 + 0.5 * shift) * dphi) / dphi;
+    i2 = i1 + 1;
+    if (i1 < 0) i1 += nr;
+    if (i2 >= nr) i2 -= nr;
+    pix[0] = sp + i1;
+    pix[1] = sp + i2;
+    weight[0] = 1 - w1;
+    weight[1] = w1;
+  }
+
+  if (ir2 < (4 * nside)) {
+    get_ring_info2(pixinfo, ir2, &sp, &nr, &theta2, &shift);
+    dphi = M_TWOPI / nr;
+    tmp = phi / dphi - 0.5 * shift;
+    i1 = (tmp < 0) ? tmp - 1 : tmp;
+    w1 = (phi - (i1 + 0.5 * shift) * dphi) / dphi;
+    i2 = i1 + 1;
+    if (i1 < 0) i1 += nr;
+    if (i2 >= nr) i2 -= nr;
+    pix[2] = sp + i1;
+    pix[3] = sp + i2;
+    weight[2] = 1 - w1;
+    weight[3] = w1;
+  }
+
+  if (ir1 == 0) {
+    double wtheta = theta / theta2;
+    weight[2] *= wtheta;
+    weight[3] *= wtheta;
+    double fac = (1 - wtheta) * 0.25;
+    weight[0] = fac;
+    weight[1] = fac;
+    weight[2] += fac;
+    weight[3] += fac;
+    pix[0] = (pix[2] + 2) & 3;
+    pix[1] = (pix[3] + 2) & 3;
+  } else if (ir2 == 4 * nside) {
+    double wtheta = (theta - theta1)/(M_PI - theta1);
+    weight[0] *= (1 - wtheta);
+    weight[1] *= (1 - wtheta);
+    double fac = wtheta * 0.25;
+    weight[0] += fac;
+    weight[1] += fac;
+    weight[2] = fac;
+    weight[3] = fac;
+    pix[2] = ((pix[0] + 2) & 3) + npix - 4;
+    pix[3] = ((pix[1] + 2) & 3) + npix - 4;
+  } else {
+    double wtheta = (theta - theta1) / (theta2 - theta1);
+    weight[0] *= (1 - wtheta);
+    weight[1] *= (1 - wtheta);
+    weight[2] *= wtheta;
+    weight[3] *= wtheta;
+  }
+
+  return 0;
+}
+
+int get_interpol_nest(qp_pixinfo_t *pixinfo, double theta, double phi,
+                      long pix[4], double weight[4]) {
+  if (get_interpol_ring(pixinfo, theta, phi, pix, weight))
+    return -1;
+  for (int ii = 0; ii < 4; ii++) {
+    ring2nest(pixinfo->nside, pix[ii], pix + ii);
+  }
+  return 0;
+}
+
+double get_interp_val_ring(qp_pixinfo_t *pixinfo, double *map,
+                           double theta, double phi) {
+  long pix[4];
+  double weight[4];
+  get_interpol_ring(pixinfo, theta, phi, pix, weight);
+
+  double val = 0;
+  for (int ii = 0; ii < 4; ii++)
+    val += map[pix[ii]] * weight[ii];
+  return val;
+}
+
+double get_interp_val_nest(qp_pixinfo_t *pixinfo, double *map,
+                           double theta, double phi) {
+  long pix[4];
+  double weight[4];
+  get_interpol_nest(pixinfo, theta, phi, pix, weight);
+
+  double val = 0;
+  for (int ii = 0; ii < 4; ii++)
+    val += map[pix[ii]] * weight[ii];
+  return val;
+}
+
+void qp_get_interpol(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double ra,
+                     double dec, long pix[4], double weight[4]) {
+  if (mem->pix_order == QP_ORDER_RING) {
+    get_interpol_ring(pixinfo, M_PI_2 - deg2rad(dec), deg2rad(ra),
+                      pix, weight);
+  } else {
+    get_interpol_nest(pixinfo, M_PI_2 - deg2rad(dec), deg2rad(ra),
+                      pix, weight);
+  }
+}
+
+double qp_get_interp_val(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double *map,
+                         double ra, double dec) {
+  if (mem->pix_order == QP_ORDER_RING) {
+    return get_interp_val_ring(pixinfo, map, M_PI_2 - deg2rad(dec),
+                               deg2rad(ra));
+  } else {
+    return get_interp_val_nest(pixinfo, map, M_PI_2 - deg2rad(dec),
+                               deg2rad(ra));
+  }
+}
+
+void qp_get_interp_valn(qp_memory_t *mem, int nside, double *map, double *ra,
+                        double *dec, double *val, int n) {
+  qp_pixinfo_t *pixinfo = qp_init_pixinfo(nside);
+
+  for (int ii = 0; ii < n; ii++) {
+    val[ii] = qp_get_interp_val(mem, pixinfo, map, ra[ii], dec[ii]);
+  }
+
+  qp_free_pixinfo(pixinfo);
+}
