@@ -752,10 +752,35 @@ class QPoint(object):
             return pix, sin2psi, cos2psi
         return pix
 
-    def get_interp_val(self, map_in, ra, dec, **kwargs):
+    def get_interp_val(self, map_in, ra, dec, nest=False):
         """
-        TODO
+        Interpolate map pixels to these coordinates.  Uses a C implementation
+        of the bilinear interpolation method `get_interpol()` as implemented
+        in the equivalent healpix_cxx / healpy function.
+
+        Arguments
+        ---------
+        map_in : array_like
+            A single healpix map or list of maps which to interpolate from.
+        ra, dec: array_like
+            Timestreams of coordinates to interpolate to, in degrees,
+            of shape (nsample,)
+        nest: bool, optional
+            If True, input map is in the nested pixel ordering scheme.
+            Otherwise, ring ordering is assumed.
+            Default: False.
+
+        Returns
+        -------
+        values : array_like
+            Array of interpolated map values, of shape (nmap, nsample).
         """
+
+        pix_order = self.get('pix_order')
+        if nest:
+            self.set(pix_order='nest')
+        else:
+            self.set(pix_order='ring')
 
         ra, dec = lib.check_inputs(ra, dec)
         n = ra.size
@@ -767,6 +792,8 @@ class QPoint(object):
 
         for m, v in zip(map_in, val):
             qp.qp_get_interp_valn(self._memory, nside, m, ra, dec, v, n)
+
+        self.set(pix_order=pix_order)
 
         v = v.squeeze()
         if not v.shape:
