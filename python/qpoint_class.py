@@ -1,8 +1,9 @@
 import numpy as np
 import _libqpoint as lib
 from _libqpoint import libqp as qp
+from _libqpoint import check_input, check_inputs, check_output
 
-__all__ = ['QPoint']
+__all__ = ['QPoint', 'check_input', 'check_inputs', 'check_output']
 
 class QPoint(object):
 
@@ -240,10 +241,10 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ctime = lib.check_input('ctime', np.atleast_1d(ctime))
+        ctime = check_input('ctime', np.atleast_1d(ctime))
         n = ctime.size
 
-        gmst = lib.check_output('gmst', shape=ctime.shape)
+        gmst = check_output('gmst', shape=ctime.shape)
         qp.qp_gmstn(self._memory, ctime, gmst, n)
 
         if n == 1:
@@ -272,10 +273,10 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ctime, lon = lib.check_inputs(ctime, lon)
+        ctime, lon = check_inputs(ctime, lon)
         n = ctime.size
 
-        lmst = lib.check_output('lmst', shape=ctime.shape)
+        lmst = check_output('lmst', shape=ctime.shape)
         qp.qp_lmstn(self._memory, ctime, lon, lmst, n)
 
         if n == 1:
@@ -305,10 +306,10 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ctime, ra, dec = lib.check_inputs(ctime, ra, dec)
+        ctime, ra, dec = check_inputs(ctime, ra, dec)
         n = ctime.size
 
-        dipole = lib.check_output('dipole', shape=ctime.shape)
+        dipole = check_output('dipole', shape=ctime.shape)
         qp.qp_dipolen(self._memory, ctime, ra, dec, dipole, n)
 
         if n == 1:
@@ -332,10 +333,10 @@ class QPoint(object):
         """
 
         delta_az, delta_el, delta_psi = \
-            lib.check_inputs(delta_az, delta_el, delta_psi)
+            check_inputs(delta_az, delta_el, delta_psi)
         ndet = delta_az.size
 
-        quat = lib.check_output('quat', shape=(ndet,4))
+        quat = check_output('quat', shape=(ndet,4))
         qp.qp_det_offsetn(delta_az, delta_el, delta_psi, quat, ndet)
 
         if ndet == 1:
@@ -356,10 +357,10 @@ class QPoint(object):
 
         q          quaternion for each hwp angle
         """
-        theta = lib.check_input('theta', np.atleast_1d(theta))
+        theta = check_input('theta', np.atleast_1d(theta))
         n = theta.size
 
-        quat = lib.check_output('quat', shape=(n,4))
+        quat = check_output('quat', shape=(n,4))
         qp.qp_hwp_quatn(theta, quat, n)
 
         if n == 1:
@@ -397,11 +398,11 @@ class QPoint(object):
         self.set(**kwargs)
 
         az, el, pitch, roll, lon, lat, ctime = \
-            lib.check_inputs(az, el, pitch, roll, lon, lat, ctime)
+            check_inputs(az, el, pitch, roll, lon, lat, ctime)
         n = az.size
 
         # identity quaternion
-        q = lib.check_output('q', q, shape=(n,4), fill=[1,0,0,0])
+        q = check_output('q', q, shape=(n,4), fill=[1,0,0,0])
 
         qp.qp_azel2bore(self._memory, az, el, pitch, roll, lon, lat,
                         ctime, q, n)
@@ -444,18 +445,18 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off  = lib.check_input('q_off', q_off)
-        q_bore = lib.check_input('q_bore', q_bore)
+        q_off  = check_input('q_off', q_off)
+        q_bore = check_input('q_bore', q_bore)
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError,'ctime required if mean_aber is False'
             ctime = np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
-        ctime  = lib.check_input('ctime', ctime)
-        ra = lib.check_output('ra', ra, shape=ctime.shape, dtype=np.double)
-        dec = lib.check_output('dec', dec, shape=ctime.shape, dtype=np.double)
-        sin2psi = lib.check_output('sin2psi', sin2psi, shape=ctime.shape,
+        ctime  = check_input('ctime', ctime)
+        ra = check_output('ra', ra, shape=ctime.shape, dtype=np.double)
+        dec = check_output('dec', dec, shape=ctime.shape, dtype=np.double)
+        sin2psi = check_output('sin2psi', sin2psi, shape=ctime.shape,
                                    dtype=np.double)
-        cos2psi = lib.check_output('cos2psi', cos2psi, shape=ctime.shape,
+        cos2psi = check_output('cos2psi', cos2psi, shape=ctime.shape,
                                    dtype=np.double)
         n = ctime.size
 
@@ -467,7 +468,7 @@ class QPoint(object):
                 qp.qp_bore2radec(self._memory, q_off, ctime, q_bore,
                                  ra, dec, sin2psi, cos2psi, n)
         else:
-            q_hwp = lib.check_input('q_hwp', q_hwp, shape=q_bore.shape)
+            q_hwp = check_input('q_hwp', q_hwp, shape=q_bore.shape)
             if sindec:
                 qp.qp_bore2rasindec_hwp(self._memory, q_off, ctime, q_bore,
                                         q_hwp, ra, dec, sin2psi, cos2psi, n)
@@ -522,13 +523,13 @@ class QPoint(object):
         self.set(**kwargs)
 
         az, el, pitch, roll, lon, lat, ctime = \
-            lib.check_inputs(az, el, pitch, roll, lon, lat, ctime)
+            check_inputs(az, el, pitch, roll, lon, lat, ctime)
 
-        ra = lib.check_output('ra', ra, shape=az.shape, dtype=np.double)
-        dec = lib.check_output('dec', dec, shape=az.shape, dtype=np.double)
-        sin2psi = lib.check_output('sin2psi', sin2psi, shape=az.shape,
+        ra = check_output('ra', ra, shape=az.shape, dtype=np.double)
+        dec = check_output('dec', dec, shape=az.shape, dtype=np.double)
+        sin2psi = check_output('sin2psi', sin2psi, shape=az.shape,
                                    dtype=np.double)
-        cos2psi = lib.check_output('cos2psi', cos2psi, shape=az.shape,
+        cos2psi = check_output('cos2psi', cos2psi, shape=az.shape,
                                    dtype=np.double)
         n = az.size
 
@@ -542,7 +543,7 @@ class QPoint(object):
                                  az, el, pitch, roll, lon, lat, ctime,
                                  ra, dec, sin2psi, cos2psi, n)
         else:
-            hwp = lib.check_input('hwp', hwp, shape=az.shape)
+            hwp = check_input('hwp', hwp, shape=az.shape)
 
             if sindec:
                 qp.qp_azel2rasindec_hwp(self._memory, delta_az, delta_el, delta_psi,
@@ -561,9 +562,9 @@ class QPoint(object):
         """
         self.set(**kwargs)
 
-        ra, dec, pa = lib.check_inputs(ra, dec, pa)
+        ra, dec, pa = check_inputs(ra, dec, pa)
         n = ra.size
-        quat = lib.check_output('quat', shape=(n,4), dtype=np.double,
+        quat = check_output('quat', shape=(n,4), dtype=np.double,
                                 **kwargs)
         qp.qp_radecpa2quatn(self._memory, ra, dec, pa, quat, n)
 
@@ -577,11 +578,11 @@ class QPoint(object):
         """
         self.set(**kwargs)
 
-        quat = lib.check_input('quat', np.atleast_2d(quat))
+        quat = check_input('quat', np.atleast_2d(quat))
         n = quat.shape[0]
-        ra = lib.check_output('ra', shape=(n,), dtype=np.double, **kwargs)
-        dec = lib.check_output('dec', shape=(n,), dtype=np.double, **kwargs)
-        pa = lib.check_output('pa', shape=(n,), dtype=np.double, **kwargs)
+        ra = check_output('ra', shape=(n,), dtype=np.double, **kwargs)
+        dec = check_output('dec', shape=(n,), dtype=np.double, **kwargs)
+        pa = check_output('pa', shape=(n,), dtype=np.double, **kwargs)
 
         qp.qp_quat2radecpan(self._memory, quat, ra, dec, pa, n)
         if n == 1:
@@ -595,10 +596,10 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ra, dec = lib.check_inputs(ra, dec)
+        ra, dec = check_inputs(ra, dec)
         n = ra.size
 
-        pix = lib.check_output('pix', shape=ra.shape, dtype=np.int, **kwargs)
+        pix = check_output('pix', shape=ra.shape, dtype=np.int, **kwargs)
         qp.qp_radec2pixn(self._memory, ra, dec, nside, pix, n)
 
         if n == 1:
@@ -613,7 +614,7 @@ class QPoint(object):
         self.set(**kwargs)
 
         ra, dec, sin2psi, cos2psi = \
-            lib.check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
+            check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
         n = ra.size
 
         qp.qp_radec2galn(self._memory, ra, dec, sin2psi, cos2psi, n)
@@ -630,7 +631,7 @@ class QPoint(object):
         self.set(**kwargs)
 
         ra, dec, sin2psi, cos2psi = \
-            lib.check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
+            check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
         n = ra.size
 
         qp.qp_gal2radecn(self._memory, ra, dec, sin2psi, cos2psi, n)
@@ -653,7 +654,7 @@ class QPoint(object):
 
         from qmap_class import check_map
         map_in, nside = check_map(map_in)
-        map_out = lib.check_output(
+        map_out = check_output(
             'map_out', map_out, shape=map_in.shape, fill=0)
 
         try:
@@ -674,13 +675,13 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        quat = lib.check_input('quat', np.atleast_2d(quat))
+        quat = check_input('quat', np.atleast_2d(quat))
 
         n = quat.shape[0]
         shape = (n,)
-        pix = lib.check_output('pix', shape=shape, dtype=np.int, **kwargs)
-        sin2psi = lib.check_output('sin2psi', shape=shape, **kwargs)
-        cos2psi = lib.check_output('cos2psi', shape=shape, **kwargs)
+        pix = check_output('pix', shape=shape, dtype=np.int, **kwargs)
+        sin2psi = check_output('sin2psi', shape=shape, **kwargs)
+        cos2psi = check_output('cos2psi', shape=shape, **kwargs)
         qp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
 
         if n == 1:
@@ -724,18 +725,18 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off  = lib.check_input('q_off', q_off)
-        q_bore = lib.check_input('q_bore', q_bore)
+        q_off  = check_input('q_off', q_off)
+        q_bore = check_input('q_bore', q_bore)
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError,'ctime required if mean_aber is False'
             ctime = np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
-        ctime  = lib.check_input('ctime', ctime)
-        pix  = lib.check_output('pix', shape=ctime.shape,
+        ctime  = check_input('ctime', ctime)
+        pix  = check_output('pix', shape=ctime.shape,
                                 dtype=np.int, **kwargs)
-        sin2psi = lib.check_output('sin2psi', shape=ctime.shape,
+        sin2psi = check_output('sin2psi', shape=ctime.shape,
                                    **kwargs)
-        cos2psi = lib.check_output('cos2psi', shape=ctime.shape,
+        cos2psi = check_output('cos2psi', shape=ctime.shape,
                                    **kwargs)
         n = ctime.size
 
@@ -743,7 +744,7 @@ class QPoint(object):
             qp.qp_bore2pix(self._memory, q_off, ctime, q_bore,
                            nside, pix, sin2psi, cos2psi, n)
         else:
-            q_hwp = lib.check_input('q_hwp', q_hwp, shape=q_bore.shape)
+            q_hwp = check_input('q_hwp', q_hwp, shape=q_bore.shape)
 
             qp.qp_bore2pix_hwp(self._memory, q_off, ctime, q_bore,
                                q_hwp, nside, pix, sin2psi, cos2psi, n)
@@ -782,13 +783,13 @@ class QPoint(object):
         else:
             self.set(pix_order='ring')
 
-        ra, dec = lib.check_inputs(ra, dec)
+        ra, dec = check_inputs(ra, dec)
         n = ra.size
 
         from qmap_class import check_map
         map_in, nside = check_map(map_in)
 
-        val = lib.check_output('value', shape=(len(map_in), n))
+        val = check_output('value', shape=(len(map_in), n))
 
         for m, v in zip(map_in, val):
             qp.qp_get_interp_valn(self._memory, nside, m, ra, dec, v, n)

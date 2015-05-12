@@ -615,6 +615,42 @@ def check_flags(arg):
 
 def check_input(name, arg, shape=None, dtype=np.double, inplace=True,
                 fill=0, allow_transpose=True, allow_tuple=True, output=False):
+    """
+    Ensure input argument is an aligned array of the right type and shape.
+
+    Arguments
+    ---------
+    name : string
+        Name of the argument
+    arg : array_like
+        The argument itself
+    shape : tuple, optional
+        If supplied, ensure `arg` has this shape.
+    dtype : numpy.dtype, optional
+        Ensure `arg` is of this dtype.  Default: numpy.double.
+    inplace : bool, optional
+        If False make sure that a copy of the input `arg` is made prior to
+        returning.  Otherwise, the output `arg` may share memory with the
+        input.
+    fill : scalar, optional
+        If the input is missing or empty, fill with this value.
+        If None, leave the array empty.
+    allow_transpose : bool, optional
+        If True, transpose the input array if the transposed shape matches
+        `shape`.
+    allow_tuple : bool, optional
+        If True, `numpy.vstack` the input `arg` if it is a tuple.
+    output : bool, optional
+        If True, ensure that the output `arg` is a writeable array.
+        Otherwise, the array is only ensured to be aligned and
+        C-contiguous.
+
+    Returns
+    -------
+    arg :
+        Aligned, contiguous and properly typed and shaped array for
+        passing to the C library.
+    """
     if arg is None:
         if shape is None:
             raise ValueError,'need shape to initialize input!'
@@ -646,6 +682,22 @@ def check_input(name, arg, shape=None, dtype=np.double, inplace=True,
     return arg
 
 def check_inputs(*args, **kwargs):
+    """
+    Ensure that a group of input arguments have the same shape by broadcasting.
+
+    Arguments
+    ---------
+    args :
+        A list of broadcastable array_like arguments.
+    kwargs :
+        Dictionary of arguments to pass to `check_input`.
+
+    Returns
+    -------
+    args :
+        A list of broadcast and properly aligned/shaped/typed arrays for
+        passing to the C library as a set of timestreams.
+    """
     args = [arg if arg is not None else 0 for arg in args]
     return [check_input('input', np.atleast_1d(x), **kwargs)
             for x in np.broadcast_arrays(*args)]
@@ -653,6 +705,45 @@ def check_inputs(*args, **kwargs):
 def check_output(name, arg=None, shape=None, dtype=np.double,
                  inplace=True, fill=None, allow_transpose=True,
                   allow_tuple=True, **kwargs):
+    """
+    Ensure that the output argument is properly aligned/shaped/typed.
+    Check input kwargs to see if a pointer to the output array
+    has been passed in.
+
+    Arguments
+    ---------
+    name : string
+        Name of the argument
+    arg : array_like, optional
+        The argument itself.  If not supplied, kwargs is checked.
+    shape : tuple, optional
+        If supplied, ensure `arg` has this shape.  If `arg` is None,
+        this argument is required.
+    dtype : numpy.dtype, optional
+        Ensure `arg` is of this dtype.  Default: numpy.double.
+    inplace : bool, optional
+        If False make sure that a copy of the input `arg` is made prior to
+        returning.  Otherwise, the output `arg` may share memory with the
+        input.
+    fill : scalar, optional
+        If the input is missing or empty, fill with this value.
+        If None, leave the array empty.
+    allow_transpose : bool, optional
+        If True, transpose the input array if the transposed shape matches
+        `shape`.
+    allow_tuple : bool, optional
+        If True, `numpy.vstack` the input `arg` if it is a tuple.
+    kwargs :
+        Any remaining input arguments.  If `arg` is None,
+        `kwargs` is searched for the `name` key.  If not found, a
+        an empty array is created of the appropriate shape.
+
+    Returns
+    -------
+    arg :
+        Aligned, contiguous, writeable and properly typed and shaped array
+        for passing to the C library.
+    """
     if arg is None:
         arg = kwargs.pop(name, None)
     return check_input(name, arg, shape, dtype, inplace, fill,
