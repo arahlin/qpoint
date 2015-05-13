@@ -11,11 +11,12 @@
 #include <omp.h>
 #endif
 
-qp_det_t * qp_init_det(quat_t q_off, double weight, double poleff) {
+qp_det_t * qp_init_det(quat_t q_off, double weight, double gain, double poleff) {
   qp_det_t *det = malloc(sizeof(*det));
 
   memcpy(det->q_off, q_off, sizeof(quat_t));
   det->weight = weight;
+  det->gain = gain;
   det->poleff = poleff;
 
   det->n = 0;
@@ -32,7 +33,7 @@ qp_det_t * qp_init_det(quat_t q_off, double weight, double poleff) {
 
 qp_det_t * qp_default_det(void) {
   quat_t q = {1, 0, 0, 0};
-  return qp_init_det(q, 1.0, 1.0);
+  return qp_init_det(q, 1.0, 1.0, 1.0);
 }
 
 void qp_init_det_tod(qp_det_t *det, size_t n) {
@@ -80,8 +81,8 @@ void qp_free_det(qp_det_t *det) {
     free(det);
 }
 
-qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *poleff,
-                             size_t n) {
+qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *gain,
+                             double *poleff, size_t n) {
   qp_detarr_t *dets = malloc(sizeof(*dets));
   qp_det_t *det;
   dets->n = n;
@@ -93,6 +94,7 @@ qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *poleff,
     det = dets->arr + ii;
     memcpy(det->q_off, q_off[ii], sizeof(quat_t));
     det->weight = weight[ii];
+    det->gain = gain[ii];
     det->poleff = poleff[ii];
     det->n = 0;
     det->tod_init = 0;
@@ -567,8 +569,9 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
   long ipix;
   quat_t q;
   double w = det->weight;
-  double wg = w * det->poleff;
-  double wg2 = wg * det->poleff;
+  double g = det->gain;
+  double wp = w * det->poleff;
+  double wp2 = wp * det->poleff;
 
   if (qp_check_error(mem, !mem->init, QP_ERROR_INIT,
                      "qp_tod2map1: mem not initialized."))
@@ -605,11 +608,11 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
     if (det->tod_init && map->vec_init) {
       switch (map->vec_mode) {
         case QP_VEC_POL:
-          map->vec[1][ipix] += wg * cpp * det->tod[ii];
-          map->vec[2][ipix] += wg * spp * det->tod[ii];
+          map->vec[1][ipix] += wp * g * cpp * det->tod[ii];
+          map->vec[2][ipix] += wp * g * spp * det->tod[ii];
           /* fall through */
         case QP_VEC_TEMP:
-          map->vec[0][ipix] += w * det->tod[ii];
+          map->vec[0][ipix] += w * g * det->tod[ii];
           break;
         default:
           break;
@@ -619,11 +622,11 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
     if (map->proj_init) {
       switch(map->proj_mode) {
         case QP_PROJ_POL:
-          map->proj[1][ipix] += wg * cpp;
-          map->proj[2][ipix] += wg * spp;
-          map->proj[3][ipix] += wg2 * cpp * cpp;
-          map->proj[4][ipix] += wg2 * cpp * spp;
-          map->proj[5][ipix] += wg2 * spp * spp;
+          map->proj[1][ipix] += wp * cpp;
+          map->proj[2][ipix] += wp * spp;
+          map->proj[3][ipix] += wp2 * cpp * cpp;
+          map->proj[4][ipix] += wp2 * cpp * spp;
+          map->proj[5][ipix] += wp2 * spp * spp;
           /* fall through */
         case QP_PROJ_TEMP:
           map->proj[0][ipix] += w;
@@ -718,14 +721,14 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 
 #define DATUM(n) (map->vec[n][ipix])
 #define POLDATUM(n) \
-  (DATUM(n) + det->poleff * (DATUM(n+1) * cpp + DATUM(n+2) * spp))
+  (det->gain * (DATUM(n) + det->poleff * (DATUM(n+1) * cpp + DATUM(n+2) * spp)))
 #define IDATUM(n) \
   (map->vec[n][pix[0]] * weight[0] + \
    map->vec[n][pix[1]] * weight[1] + \
    map->vec[n][pix[2]] * weight[2] + \
    map->vec[n][pix[3]] * weight[3])
 #define IPOLDATUM(n) \
-  (IDATUM(n) + det->poleff * (IDATUM(n+1) * cpp + IDATUM(n+2) * spp))
+  (det->gain * (IDATUM(n) + det->poleff * (IDATUM(n+1) * cpp + IDATUM(n+2) * spp)))
 
 int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_map_t *map) {

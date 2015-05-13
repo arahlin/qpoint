@@ -116,6 +116,7 @@ class qp_det_t(ct.Structure):
         ('init', ct.c_int),
         ('q_off', ct.c_double * 4),
         ('weight', ct.c_double),
+        ('gain', ct.c_double),
         ('poleff', ct.c_double),
         ('n', ct.c_size_t),
         ('tod_init', ct.c_int),
@@ -340,7 +341,7 @@ def get_proj_mode(proj_in=None, pol=True):
 # **********************************************************************
 
 # initialize detectors
-setargs('qp_init_det', arg=(quat_t, ct.c_double, ct.c_double),
+setargs('qp_init_det', arg=(quat_t, ct.c_double, ct.c_double, ct.c_double),
         res=qp_det_t_p)
 setargs('qp_default_det', res=qp_det_t_p)
 setargs('qp_init_det_tod', arg=(qp_det_t_p, ct.c_size_t))
@@ -350,7 +351,7 @@ setargs('qp_init_det_flag', arg=(qp_det_t_p, ct.c_size_t))
 setargs('qp_init_det_flag_from_array',
         arg=(qp_det_t_p, arrf, ct.c_size_t, ct.c_int))
 setargs('qp_free_det', arg=qp_det_t_p)
-setargs('qp_init_detarr', arg=(quat_t_p, arr, arr, ct.c_size_t),
+setargs('qp_init_detarr', arg=(quat_t_p, arr, arr, arr, ct.c_size_t),
         res=qp_detarr_t_p)
 setargs('qp_init_detarr_tod', arg=(qp_detarr_t_p, ct.c_size_t));
 setargs('qp_init_detarr_tod_from_array_1d',
