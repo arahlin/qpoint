@@ -7,7 +7,7 @@ Uses the SOFA Software Collection, available from http://www.iausofa.org/
 """
 
 def version():
-    return '1.0.0'
+    return '1.1.0'
 
 import tools
 from qpoint_class import *
