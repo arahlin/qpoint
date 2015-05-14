@@ -8,25 +8,72 @@ from _libqpoint import libqp as qp
 
 __all__ = ['QMap', 'check_map', 'check_proj']
 
-def check_map(map_in, copy=False):
+def check_map(map_in, copy=False, partial=False):
     """
     Return a properly transposed and memory-aligned map and its nside.
+
+    Arguments
+    ---------
+    map_in : map or list of maps
+        Input map(s)
+    copy : bool, optional
+        If True, ensure that output map does not share memory with
+        the input map.   Use if you do not want in-place operations to
+        modify the map contents.
+    partial : bool, optional
+        If True, the map is not checked to ensure a proper healpix nside,
+        and the number of pixels is returned instead.
+
+    Returns
+    -------
+    map_out : numpy.ndarray
+        Properly shaped and memory-aligned map, copied from the input
+        if necessary.
+    nside or npix : int
+        If partial is False, the map nside. Otherwise, the number of pixels.
     """
     map_out = np.atleast_2d(map_in)
     if np.argmax(map_out.shape) == 0:
         map_out = map_out.T
-    nside = hp.get_nside(map_out)
+    if partial:
+        nside = len(map_out[0])
+    else:
+        nside = hp.get_nside(map_out)
     map_out = lib.check_input('map', map_out)
     if copy and np.may_share_memory(map_in, map_out):
         map_out = map_out.copy()
     return map_out, nside
 
-def check_proj(proj_in, copy=False):
+def check_proj(proj_in, copy=False, partial=False):
     """
     Return a properly transposed and memory-aligned projection map,
     its nside, and the map dimension.
+
+    Arguments
+    ---------
+    proj_in : map or list of maps
+        Input projection matrix map
+    copy : bool, optional
+        If True, ensure that output map does not share memory with
+        the input map.   Use if you do not want in-place operations to
+        modify the map contents.
+    partial : bool, optional
+        If True, the map is not checked to ensure a proper healpix nside,
+        and the number of pixels is returned instead.
+
+    Returns
+    -------
+    map_out : numpy.ndarray
+        Properly shaped and memory-aligned map, copied from the input
+        if necessary.
+    nside or npix : int
+        If partial is False, the map nside. Otherwise, the number of pixels.
+    nmap : int
+        The map size this projection matrix is intended to invert, i.e.
+        the solution to `len(proj) = nmap * (nmap + 1) / 2`.  Raises an
+        error if an integer solution is not found.
     """
-    proj_out, nside = check_map(proj_in, copy=copy)
+    proj_out, nside = check_map(proj_in, copy=copy, partial=partial)
     nmap = int(np.roots([1, 1, - 2 * len(proj_out)]).max())
     if (nmap * (nmap + 1) /2 != len(proj_out)):
         raise ValueError, 'proj has incompatible shape'
@@ -36,8 +83,6 @@ class QMap(QPoint):
     """
     Quaternion-based mapmaker that generates per-channel pointing
     on-the-fly.
-
-    Input and output maps are initialized once
     """
 
     def __init__(self, nside=256, pol=True,
@@ -662,7 +707,7 @@ class QMap(QPoint):
         # return
         return tod
 
-    def proj_cond(self, proj=None, mode=None):
+    def proj_cond(self, proj=None, mode=None, partial=False):
         """
         Hits-normalized projection matrix condition number for
         each pixel.
@@ -670,10 +715,13 @@ class QMap(QPoint):
         Arguments
         ---------
         proj : array_like
-            Projection matrix, of shape (N*(N+1)/2, npix)
+            Projection matrix, of shape (N*(N+1)/2, npix).
+            If None, obtained from the depo.
         mode : {None, 1, -1, 2, -2, inf, -inf, 'fro'}, optional
             condition number order.  See `numpy.linalg.cond`.
             Default: None (2-norm from SVD)
+        partial : bool, optional
+            If True, the map is not checked to ensure a proper healpix nside.
 
         Returns
         -------
@@ -686,7 +734,7 @@ class QMap(QPoint):
             proj = self.depo['proj']
         if proj is None or proj is False:
             raise ValueError, 'missing proj'
-        proj, _, nmap = check_proj(proj, copy=True)
+        proj, _, nmap = check_proj(proj, copy=True, partial=partial)
         nproj = len(proj)
 
         # normalize
@@ -712,7 +760,7 @@ class QMap(QPoint):
         return cond
 
     def solve_map_cho(self, vec=None, proj=None, mask=None, copy=True,
-                   return_proj=False, return_mask=False):
+                   return_proj=False, return_mask=False, partial=False):
         """
         Solve for a map, given the binned map and the projection matrix
         for each pixel, using Cholesky decomposition.  This method
@@ -740,6 +788,8 @@ class QMap(QPoint):
         return_mask : bool, optional
             if True, return the mask array, updated with any pixels
             that could not be solved.
+        partial : bool, optional
+            If True, the map is not checked to ensure a proper healpix nside.
 
         Returns
         -------
@@ -756,38 +806,41 @@ class QMap(QPoint):
         if vec is None:
             vec = self.depo['vec']
         if vec is None or vec is False:
-            raise ValueError,' missing vec'
-        vec, nside = check_map(vec, copy=copy)
+            raise ValueError, 'missing vec'
+        vec, nside = check_map(vec, copy=copy, partial=partial)
 
         if proj is None:
             proj = self.depo['proj']
         if proj is None or proj is False:
             raise ValueError, 'missing proj'
         pcopy = True if not return_proj else copy
-        proj, pnside, nmap = check_proj(proj, copy=pcopy)
+        proj, pnside, nmap = check_proj(proj, copy=pcopy, partial=partial)
 
         if pnside != nside or nmap != len(vec):
             raise ValueError('vec and proj have incompatible shapes')
         nproj = len(proj)
 
-        npix = hp.nside2npix(nside)
-
         # deal with mask
         if mask is None:
-            mask = np.ones(npix, dtype=bool)
+            mask = np.ones(len(vec[0]), dtype=bool)
         else:
             mcopy = True if not return_mask else copy
-            mask, mnside = check_map(mask, copy=mcopy)
+            mask, mnside = check_map(mask, copy=mcopy, partial=partial)
             if mnside != nside:
                 raise ValueError('mask has incompatible shape')
             mask = mask.squeeze().astype(bool)
+        mask &= proj[0].astype(bool)
 
         # if unpolarized, just divide
         if len(vec) == 1:
+            vec = vec.squeeze()
+            proj = proj.squeeze()
             vec[mask] /= proj[mask]
-            if return_proj:
-                return vec, proj
-            return vec
+            vec[~mask] = 0
+            ret = (vec,) + (proj,) * return_proj + (mask,) * return_mask
+            if len(ret) == 1:
+                return ret[0]
+            return ret
 
         # projection matrix indices
         idx = np.zeros((nmap, nmap), dtype=int)
@@ -811,7 +864,7 @@ class QMap(QPoint):
                 proj[:, ii] = A[rtri, ctri]
 
         # return
-        ret = ((vec,) + (proj,) * return_proj + (mask,) * return_mask)
+        ret = (vec,) + (proj,) * return_proj + (mask,) * return_mask
         if len(ret) == 1:
             return ret[0]
         return ret
