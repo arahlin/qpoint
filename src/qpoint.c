@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <float.h>
 #include "sofa.h"
-#ifdef SLAREFRO
+#ifdef ENABLE_SLAREFRO
 #include "slarefro.h"
 #endif
 #include "qpoint.h"
@@ -197,7 +197,7 @@ double qp_refraction(double el, double lat, double height, double temp,
 		     double press, double hum, double freq, double lapse,
 		     double tol) {
   double ref = 0;
-#ifdef SLAREFRO
+#ifdef ENABLE_SLAREFRO
   slaf_refro(M_PI_2 - deg2rad(el),
 	     height, temp + 273.15, // temperature, K
 	     press, hum, C_MS * 1e-3 / freq, // wavelength, um

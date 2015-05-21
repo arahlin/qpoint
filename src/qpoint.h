@@ -169,8 +169,10 @@ extern "C" {
   OPTIONFUNC(pix_order);
   OPTIONFUNC(interp_pix);
   OPTIONFUNC(fast_pix);
+#ifndef ENABLE_LITE
   OPTIONFUNC(num_threads);
   OPTIONFUNC(thread_num);
+#endif
 
   /* Set weather data */
   void qp_set_weather(qp_memory_t *mem,
@@ -444,6 +446,8 @@ extern "C" {
 			    double *ra, double *sindec, double *sin2psi,
 			    double *cos2psi, int n);
 
+#ifndef ENABLE_LITE
+
   /* *************************************************************************
      Pixelization
      ********************************************************************** */
@@ -663,6 +667,8 @@ extern "C" {
   int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map);
   int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
                  qp_map_t *map);
+
+#endif // ENABLE_LITE
 
 #ifdef __cplusplus
 }

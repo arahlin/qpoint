@@ -1,17 +1,18 @@
 VPATH=../sofa:.
-DEBUG = -g -O3
-# DEBUG = -O3
+DEBUG = -g
+# DEBUG =
 CC = gcc
 
 # HACK
 # need gfortran for slarefro package
-ifeq ($(shell which gfortran), )
-SLAINC =
-SLALIB =
-else
+ifneq ($(shell which gfortran), )
+ifeq ($(DISABLE_SLAREFRO), )
+ifeq ($(ENABLE_LITE), )
 VPATH = ../sofa:../slarefro:.
-SLAINC = -I../slarefro -DSLAREFRO
+SLAINC = -I../slarefro -DENABLE_SLAREFRO
 SLALIB = -L../slarefro -lslarefro
+endif
+endif
 endif
 
 ifeq ($(HEALPIX), )
@@ -35,15 +36,46 @@ CFITSINC =
 CFITSLIB = -lcfitsio
 endif
 
-CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa $(SLAINC) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC -fopenmp
+LIBNAME_FULL = libqpoint
+LIBNAME_LITE = libqpntlt
+
+ifneq ($(ENABLE_LITE), )
+CFITSINC =
+CFITSLIB =
+HPXINC =
+HPXLIB =
+PFLAGS = -DENABLE_LITE
+LIBNAME = $(LIBNAME_LITE)
+else
+PFLAGS =
+LIBNAME = $(LIBNAME_FULL)
+endif
+
+CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -I. -I../sofa $(SLAINC) $(PFLAGS) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC -fopenmp
 LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) -lgomp
 
-SRCS = $(wildcard *.c) qp_iers_bulletin_a.c
+SRCS = $(wildcard *.c)
+ifeq ($(filter qp_iers_bulletin_a.c, $(SRCS)), )
+SRCS := $(SRCS) qp_iers_bulletin_a.c
+endif
+
+ifneq ($(PFLAGS), )
+SRCS := $(filter-out qp_map.c qp_pixel.c, $(SRCS))
+endif
+
 OBJS = $(SRCS:.c=.o)
 HEADERS = $(wildcard *.h)
 HEADER = qpoint.h
-LIB = libqpoint.a
+ifneq ($(ENABLE_SHARED), )
+LIB = $(LIBNAME).so
+CFLAGS := -fPIC $(CFLAGS)
+LDFLAGS := -shared $(LDFLAGS)
+else
+LIB = $(LIBNAME).a
+endif
 PREFIX?=/usr/local
+INCPREFIX=$(PREFIX)/include
+LIBPREFIX=$(PREFIX)/lib
 
 default: all
 all: $(LIB)
@@ -52,21 +84,27 @@ qp_iers_bulletin_a.c: iers_bulletin_a.dat make_iers_bulletin_a_dot_c.py
 	python make_iers_bulletin_a_dot_c.py
 
 $(LIB): $(OBJS)
+ifneq ($(ENABLE_SHARED), )
+	$(CC) $(LDFLAGS) $(OBJS) -o $@
+else
 	ar ru $@ $(OBJS)
+endif
 
 install: $(LIB) $(HEADER)
-	install -m 644 $(HEADER) $(PREFIX)/include
-	install -m 644 $(LIB) $(PREFIX)/lib
+	install -m 644 $(HEADER) $(INCPREFIX)
+	install -m 644 $(LIB) $(LIBPREFIX)
 
 uninstall:
-	cd $(PREFIX)/include && rm -f $(HEADER)
-	cd $(PREFIX)/lib && rm -f $(LIB)
+	cd $(INCPREFIX) && rm -f $(HEADER)
+	cd $(LIBPREFIX) && rm -f $(LIBNAME).*
 
-.PHONY: tidy clean
+.PHONY: tidy clean clean-obj
 
 tidy:
 	rm -f *~
 
-clean: tidy
+clean-obj:
 	rm -f *.o
-	rm -f $(LIB)
+
+clean: tidy clean-obj
+	rm -f $(LIBNAME_FULL).* $(LIBNAME_LITE).*

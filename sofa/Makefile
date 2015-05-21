@@ -6,11 +6,18 @@ SRCS=$(filter-out $(TESTSRC),$(wildcard *.c))
 OBJS=$(SRCS:.c=.o)
 HEADERS=$(wildcard *.h)
 LIBNAME=sofa_c
-TARGET=lib$(LIBNAME).a
 PREFIX?=/usr/local
 
 CC = gcc
 CFLAGS = -pedantic -Wall -O3 -fPIC -I. $(DEBUG)
+
+ifeq ($(ENABLE_SHARED), )
+TARGET=lib$(LIBNAME).a
+else
+TARGET=lib$(LIBNAME).so
+LDFLAGS := -shared $(LDFLAGS)
+CFLAGS := -fPIC $(CFLAGS)
+endif
 
 all: lib
 
@@ -20,7 +27,11 @@ all: lib
 lib: $(TARGET)
 
 $(TARGET): $(OBJS) $(HEADERS)
+ifeq ($(ENABLE_SHARED), )
 	ar ru $(TARGET) $(OBJS)
+else
+	gcc $(LDFLAGS) $(OBJS) -o $@
+endif
 
 test: $(TESTTARG)
 

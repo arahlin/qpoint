@@ -5,7 +5,11 @@ CC=gcc
 ifeq ($(shell which gfortran), )
 SLAR =
 else
+ifneq ($(DISABLE_SLAREFRO), )
+SLAR =
+else
 SLAR = slarefro
+endif
 endif
 
 ifneq ($(SLAR), )
@@ -21,17 +25,29 @@ default: all
 all: qpoint python
 
 .PHONY: qpoint sofa slarefro python
-qpoint: sofa $(SLAR)
+qpoint: clean-obj-qpoint sofa $(SLAR)
 	make -C src
+
+qpoint-shared: clean-obj-qpoint sofa-shared $(SLAR)
+	ENABLE_SHARED=yes make -C src
+
+qpoint-shared-lite: clean-obj-qpoint sofa-shared $(SLAR)
+	ENABLE_SHARED=yes ENABLE_LITE=yes make -C src
 
 sofa:
 	make -C sofa
+
+sofa-shared:
+	ENABLE_SHARED=yes make -C sofa
 
 slarefro:
 	make -C slarefro
 
 install-sofa: sofa
 	make -C sofa install
+
+install-sofa-shared: sofa-shared
+	ENABLE_SHARED=yes make -C sofa install
 
 install-slarefro: slarefro
 	make -C slarefro install
@@ -44,6 +60,12 @@ install-python: python
 
 install-qpoint: qpoint install-sofa $(INSTALL_SLAR)
 	make -C src install
+
+install-qpoint-shared: qpoint-shared install-sofa-shared
+	ENABLE_SHARED=yes make -C src install
+
+install-qpoint-shared-lite: qpoint-shared install-sofa-shared
+	ENABLE_SHARED=yes ENABLE_LITE=yes make -C src install
 
 install: install-qpoint install-python
 
@@ -84,6 +106,9 @@ clean-slarefro:
 
 clean-python:
 	python setup.py clean --all
+
+clean-obj-qpoint:
+	make -C src clean-obj
 
 clean-qpoint:
 	make -C src clean

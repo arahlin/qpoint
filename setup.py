@@ -17,7 +17,7 @@ libslarefro_file = 'slarefro/libslarefro.a'
 if os.path.exists(libslarefro_file):
     incl_dirs.append('slarefro')
     extra_obj.append(libslarefro_file)
-    extra_args.append('-DSLAREFRO')
+    extra_args.append('-DENABLE_SLAREFRO')
 
 hpx = os.getenv('HEALPIX','').strip()
 if hpx:

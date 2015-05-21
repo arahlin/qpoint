@@ -32,7 +32,9 @@ qp_memory_t * qp_init_memory(void) {
   mem->fast_pix = 0;
   mem->gal_init = 0;
   mem->thread_num = 0;
+#ifndef ENABLE_LITE
   qp_set_opt_num_threads(mem, 0);
+#endif
   mem->weather.height = 35000.;
   mem->weather.temperature = 0.;
   mem->weather.pressure = 10.;
@@ -141,7 +143,11 @@ void qp_print_weather_mp(int th, qp_weather_t *w) {
 }
 
 void qp_print_memory(qp_memory_t *mem) {
+#ifndef ENABLE_LITE
   int thread = qp_get_opt_thread_num(mem);
+#else
+  int thread = mem->thread_num;
+#endif
 
   printf("[%d]  ========== QPOINT MEMORY ==========\n", thread);
   qp_print_state_mp(thread, "ref", &mem->state_ref);
@@ -183,8 +189,10 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  opt: interp pix: %s\n", thread, mem->interp_pix ? "yes" : "no");
   printf("[%d]  opt: fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
 
+#ifndef ENABLE_LITE
   printf("[%d]  opt: num threads: %d\n", thread, qp_get_opt_num_threads(mem));
   printf("[%d]  thread num: %d\n", thread, qp_get_opt_thread_num(mem));
+#endif
   printf("[%d]  initialized: %s\n", thread, mem->init ? "yes" : "no");
 
   printf("[%d]  ===================================\n", thread);
@@ -297,7 +305,9 @@ void qp_set_options(qp_memory_t *mem,
   qp_set_opt_pix_order  (mem, pix_order);
   qp_set_opt_interp_pix (mem, interp_pix);
   qp_set_opt_fast_pix   (mem, fast_pix);
+#ifndef ENABLE_LITE
   qp_set_opt_num_threads(mem, num_threads);
+#endif
 }
 
 // update all ref_data parameters
