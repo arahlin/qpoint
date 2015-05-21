@@ -223,13 +223,13 @@ extern "C" {
 #define C_MS 299792458.0
 
   /* Return interpolated values from IERS Bulletin A */
-  int get_iers_bulletin_a( qp_memory_t *mem, double mjd,
-			   double *dut1, double *x, double *y );
+  int qp_get_iers_bulletin_a( qp_memory_t *mem, double mjd,
+                              double *dut1, double *x, double *y );
   /* Set IERS Bulletin A */
-  int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
-			   double *dut1, double *x, double *y );
+  int qp_set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
+                              double *dut1, double *x, double *y );
   /* Copy IERS Bulletin A */
-  int copy_iers_bulletin_a( qp_memory_t *memdest, qp_memory_t *memsrc );
+  int qp_copy_iers_bulletin_a( qp_memory_t *memdest, qp_memory_t *memsrc );
 
   /* Time conversion */
 #define CTIME_JD_EPOCH 2440587.5 /* JD for ctime = 0 */

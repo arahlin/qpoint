@@ -289,20 +289,20 @@ setargs('qp_bore2pix_hwp',
 setargs('qp_get_interp_valn',
         arg=(qp_memory_t_p, ct.c_int, arr, arr, arr, warr, ct.c_int))
 
-setargs('set_iers_bulletin_a',
+setargs('qp_set_iers_bulletin_a',
         arg=(qp_memory_t_p, ct.c_int, ct.c_int, arr, arr, arr),
         res=ct.c_int)
-setargs('get_iers_bulletin_a',
+setargs('qp_get_iers_bulletin_a',
         arg=(qp_memory_t_p, ct.c_double, ct.POINTER(ct.c_double),
              ct.POINTER(ct.c_double), ct.POINTER(ct.c_double)),
         res=ct.c_int)
 
-def get_bulletin_a(mem, mjd):
+def qp_get_bulletin_a(mem, mjd):
     dut1 = ct.c_double()
     x = ct.c_double()
     y = ct.c_double()
 
-    libqp.get_iers_bulletin_a(mem, mjd, ct.byref(dut1),
+    libqp.qp_get_iers_bulletin_a(mem, mjd, ct.byref(dut1),
                               ct.byref(x), ct.byref(y))
     return dut1.value, x.value, y.value
 

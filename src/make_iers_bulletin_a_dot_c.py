@@ -15,11 +15,13 @@
 #   * Bull. A UT1-UTC (sec. of time)
 #
 # 2012 Mike Nolta <mike@nolta.net>
+# 2015 ASR <arahlin@princeton.edu>
 
 header = """
 /*
  IERS Bulletin A interpolation
  2012 Mike Nolta <mike@nolta.net>
+ 2015 ASR <arahlin@princeton.edu>
  */
 
 #include <math.h>
@@ -31,8 +33,8 @@ header = """
 """
 
 footer = r"""
-int get_iers_bulletin_a( qp_memory_t *mem, double mjd,
-                         double *dut1, double *x, double *y )
+int qp_get_iers_bulletin_a( qp_memory_t *mem, double mjd,
+                           double *dut1, double *x, double *y )
 {
   qp_bulletina_t *B = &mem->bulletinA;
 
@@ -73,8 +75,8 @@ int get_iers_bulletin_a( qp_memory_t *mem, double mjd,
   return 0;
 }
 
-int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
-                         double *dut1, double *x, double *y)
+int qp_set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
+                           double *dut1, double *x, double *y)
 {
   qp_bulletina_t *B = &mem->bulletinA;
 
@@ -103,7 +105,7 @@ int set_iers_bulletin_a( qp_memory_t *mem, int mjd_min_, int mjd_max_,
   return 0;
 }
 
-int copy_iers_bulletin_a(qp_memory_t *memdest, qp_memory_t *memsrc) {
+int qp_copy_iers_bulletin_a(qp_memory_t *memdest, qp_memory_t *memsrc) {
   qp_bulletina_t *bdest = &memdest->bulletinA;
   qp_bulletina_t *bsrc = &memsrc->bulletinA;
 
@@ -127,7 +129,7 @@ int copy_iers_bulletin_a(qp_memory_t *memdest, qp_memory_t *memsrc) {
 
 if __name__ == '__main__':
 
-    f = open( "iers_bulletin_a.c", "w" )
+    f = open( "qp_iers_bulletin_a.c", "w" )
     f.write( header )
 
     mjds = []

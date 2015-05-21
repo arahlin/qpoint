@@ -56,7 +56,7 @@ double qp_gmst(qp_memory_t *mem, double ctime) {
   
   if (mem->accuracy == 0) {
     if (qp_check_update(&mem->state_dut1, ctime)) {
-      get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+      qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
     }
     gmst = ctime2gmst(ctime, mem->dut1, mem->accuracy);
   } else {
@@ -347,14 +347,14 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   // or get dut1 from IERS bulletin
   mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
   if (qp_check_update(&mem->state_wobble, ctime)) {
-    get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+    qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
     ctime2jdtt(ctime, jd_tt);
     qp_wobble_quat(jd_tt, x, y, mem->q_wobble);
 #ifdef DEBUG
     qp_print_quat("wobble", mem->q_wobble);
 #endif
   } else if (qp_check_update(&mem->state_dut1, ctime))
-    get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+    qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
   if (qp_check_apply(&mem->state_wobble)) {
     Quaternion_mul_left(mem->q_wobble, q);
 #ifdef DEBUG

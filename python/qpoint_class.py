@@ -830,7 +830,7 @@ class QPoint(object):
         mjd_min, mjd_max = int(mjd[0]), int(mjd[-1])
 
         try:
-            qp.set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
+            qp.qp_set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
         except:
             raise RuntimeError(
                 'Error loading Bulletin A data from file {}'.format(filename))
@@ -843,7 +843,7 @@ class QPoint(object):
         """
 
         def func(x):
-            return lib.get_bulletin_a(self._memory, x)
+            return lib.qp_get_bulletin_a(self._memory, x)
         fvec = np.vectorize(func, [np.double]*3)
 
         out = fvec(mjd)

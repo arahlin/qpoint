@@ -38,7 +38,7 @@ endif
 CFLAGS = $(DEBUG) -Wall -std=c99 -I. -I../sofa $(SLAINC) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC -fopenmp
 LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) -lgomp
 
-SRCS = $(wildcard *.c) iers_bulletin_a.c
+SRCS = $(wildcard *.c) qp_iers_bulletin_a.c
 OBJS = $(SRCS:.c=.o)
 HEADERS = $(wildcard *.h)
 HEADER = qpoint.h
@@ -48,7 +48,7 @@ PREFIX?=/usr/local
 default: all
 all: $(LIB)
 
-iers_bulletin_a.c: iers_bulletin_a.dat make_iers_bulletin_a_dot_c.py
+qp_iers_bulletin_a.c: iers_bulletin_a.dat make_iers_bulletin_a_dot_c.py
 	python make_iers_bulletin_a_dot_c.py
 
 $(LIB): $(OBJS)
