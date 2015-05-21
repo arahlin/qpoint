@@ -54,10 +54,7 @@ endif
 CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -I. -I../sofa $(SLAINC) $(PFLAGS) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC -fopenmp
 LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) -lgomp
 
-SRCS = $(wildcard *.c)
-ifeq ($(filter qp_iers_bulletin_a.c, $(SRCS)), )
-SRCS := $(SRCS) qp_iers_bulletin_a.c
-endif
+SRCS = $(filter-out %iers_bulletin_a.c, $(wildcard *.c)) qp_iers_bulletin_a.c
 
 ifneq ($(PFLAGS), )
 SRCS := $(filter-out qp_map.c qp_pixel.c, $(SRCS))
@@ -107,4 +104,5 @@ clean-obj:
 	rm -f *.o
 
 clean: tidy clean-obj
+	rm -f *iers_bulletin_a.c
 	rm -f $(LIBNAME_FULL).* $(LIBNAME_LITE).*
