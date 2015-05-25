@@ -721,14 +721,14 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 
 #define DATUM(n) (map->vec[n][ipix])
 #define POLDATUM(n) \
-  (det->gain * (DATUM(n) + det->poleff * (DATUM(n+1) * cpp + DATUM(n+2) * spp)))
+  (DATUM(n) + det->poleff * (DATUM(n+1) * cpp + DATUM(n+2) * spp))
 #define IDATUM(n) \
   (map->vec[n][pix[0]] * weight[0] + \
    map->vec[n][pix[1]] * weight[1] + \
    map->vec[n][pix[2]] * weight[2] + \
    map->vec[n][pix[3]] * weight[3])
 #define IPOLDATUM(n) \
-  (det->gain * (IDATUM(n) + det->poleff * (IDATUM(n+1) * cpp + IDATUM(n+2) * spp)))
+  (IDATUM(n) + det->poleff * (IDATUM(n+1) * cpp + IDATUM(n+2) * spp))
 
 int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_map_t *map) {
@@ -757,6 +757,7 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
   quat_t q;
   long pix[4];
   double weight[4];
+  double g = det->gain;
   int do_interp = (mem->interp_pix &&               \
                    (map->vec_mode == QP_VEC_TEMP || \
                     map->vec_mode == QP_VEC_POL));
@@ -793,31 +794,31 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
 
     switch (map->vec_mode) {
       case QP_VEC_D2_POL:
-        det->tod[ii] += dphi * dphi * POLDATUM(15)
-          + dtheta * dphi * POLDATUM(12)
-          + dtheta * dtheta * POLDATUM(9);
+        det->tod[ii] += g * (dphi * dphi * POLDATUM(15)
+                             + dtheta * dphi * POLDATUM(12)
+                             + dtheta * dtheta * POLDATUM(9));
         /* fall through */
       case QP_VEC_D1_POL:
-        det->tod[ii] += dphi * POLDATUM(6) + dtheta * POLDATUM(3);
+        det->tod[ii] += g * (dphi * POLDATUM(6) + dtheta * POLDATUM(3));
         /* fall through */
       case QP_VEC_POL:
-        if (mem->interp_pix)
-          det->tod[ii] += IPOLDATUM(0);
+        if (do_interp)
+          det->tod[ii] += g * IPOLDATUM(0);
         else
-          det->tod[ii] += POLDATUM(0);
+          det->tod[ii] += g * POLDATUM(0);
         break;
       case QP_VEC_D2:
-        det->tod[ii] += dphi * dphi * DATUM(5) + dtheta * dphi * DATUM(4)
-          + dtheta * dtheta * DATUM(3);
+        det->tod[ii] += g * (dphi * dphi * DATUM(5) + dtheta * dphi * DATUM(4)
+                             + dtheta * dtheta * DATUM(3));
         /* fall through */
       case QP_VEC_D1:
-        det->tod[ii] += dphi * DATUM(2) + dtheta * DATUM(1);
+        det->tod[ii] += g * (dphi * DATUM(2) + dtheta * DATUM(1));
         /* fall through */
       case QP_VEC_TEMP:
-        if (mem->interp_pix)
-          det->tod[ii] += IDATUM(0);
+        if (do_interp)
+          det->tod[ii] += g * IDATUM(0);
         else
-          det->tod[ii] += DATUM(0);
+          det->tod[ii] += g * DATUM(0);
         break;
       default:
         break;

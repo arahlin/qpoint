@@ -6,8 +6,10 @@ Based on M. Nolta's libactpol.
 Uses the SOFA Software Collection, available from http://www.iausofa.org/
 """
 
+__version__ = (1, 2, 1)
+
 def version():
-    return '1.2.0'
+    return __version__
 
 import tools
 from qpoint_class import *
