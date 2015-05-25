@@ -88,8 +88,8 @@ else
 endif
 
 install: $(LIB) $(HEADER)
-	install -m 644 $(HEADER) $(INCPREFIX)
-	install -m 644 $(LIB) $(LIBPREFIX)
+	install $(HEADER) $(INCPREFIX)
+	install $(LIB) $(LIBPREFIX)
 
 uninstall:
 	cd $(INCPREFIX) && rm -f $(HEADER)

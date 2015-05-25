@@ -45,8 +45,8 @@ clean:
 install: $(TARGET) $(HEADERS)
 	if [ ! -d $(PREFIX)/lib ]; then install -d $(PREFIX)/lib; fi
 	if [ ! -d $(PREFIX)/include ]; then install -d $(PREFIX)/include; fi
-	install -m 644 $(TARGET) $(PREFIX)/lib/
-	install -m 644 $(HEADERS) $(PREFIX)/include/
+	install $(TARGET) $(PREFIX)/lib/
+	install $(HEADERS) $(PREFIX)/include/
 
 .PHONY: uninstall
 uninstall:
