@@ -309,8 +309,39 @@ class QPoint(object):
         ctime, ra, dec = check_inputs(ctime, ra, dec)
         n = ctime.size
 
-        dipole = check_output('dipole', shape=ctime.shape)
+        dipole = check_output('dipole', shape=ctime.shape, **kwargs)
         qp.qp_dipolen(self._memory, ctime, ra, dec, dipole, n)
+
+        if n == 1:
+            return dipole[0]
+        return dipole
+
+    def bore2dipole(self, q_off, ctime, q_bore, **kwargs):
+        """
+        Calculate dipole timestream for given offset and boresight pointing.
+
+        Arguments:
+
+        q_off      Detector offset quaternion for a single detector,
+                   calculated using det_offset
+        ctime      array of unix times in seconds UTC
+        q_bore     Nx4 array of quaternions encoding the boresight orientation
+                   on the sky (as output by azel2radec)
+
+        Outputs:
+
+        dipole     dipole amplitude in K
+        """
+
+        self.set(**kwargs)
+
+        q_off = check_input('q_off', q_off, shape=(4,))
+        ctime = check_input('ctime', ctime)
+        n = ctime.size
+        q_bore = check_input('q_bore', q_bore, shape=(n, 4))
+
+        dipole = check_output('dipole', shape=ctime.shape, **kwargs)
+        qp.qp_bore2dipole(self._memory, q_off, ctime, q_bore, dipole, n)
 
         if n == 1:
             return dipole[0]

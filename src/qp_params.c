@@ -31,6 +31,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->interp_pix = 0;
   mem->fast_pix = 0;
   mem->gal_init = 0;
+  mem->dipole_init = 0;
   mem->thread_num = 0;
 #ifndef ENABLE_LITE
   qp_set_opt_num_threads(mem, 0);
@@ -51,6 +52,7 @@ qp_memory_t * qp_init_memory(void) {
   memset(mem->q_ref,      0, sizeof(quat_t));
   memset(mem->q_gal,      0, sizeof(quat_t));
   memset(mem->q_gal_inv,  0, sizeof(quat_t));
+  memset(mem->v_dipole,   0, sizeof(vec3_t));
   memset(mem->beta_rot,   0, sizeof(vec3_t));
   memset(mem->beta_earth, 0, sizeof(vec3_t));
   mem->bulletinA.entries = NULL;

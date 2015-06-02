@@ -88,6 +88,8 @@ class qp_memory_t(ct.Structure):
         ('q_gal', ct.c_double * 4),
         ('q_gal_inv', ct.c_double * 4),
         ('gal_init', ct.c_int),
+        ('v_dipole', ct.c_double * 3),
+        ('dipole_init', ct.c_int),
         ('beta_earth', ct.c_double * 3),
         ('beta_rot', ct.c_double * 3),
         ('bulletinA', qp_bulletina_t),
@@ -247,6 +249,8 @@ setargs('qp_hwp_quatn', arg=(arr, wquat_t_p, ct.c_int))
 setargs('qp_gmstn', arg=(qp_memory_t_p, arr, warr, ct.c_int))
 setargs('qp_lmstn', arg=(qp_memory_t_p, arr, arr, warr, ct.c_int))
 setargs('qp_dipolen', arg=(qp_memory_t_p, arr, arr, arr, warr, ct.c_int))
+setargs('qp_bore2dipole',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, warr, ct.c_int))
 
 setargs('qp_bore2radec',
         arg=(qp_memory_t_p, quat_t, arr, quat_t_p,

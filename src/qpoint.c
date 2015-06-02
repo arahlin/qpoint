@@ -82,16 +82,68 @@ void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst, int n)
   }
 }
 
-double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec) {
+#define DIPOLE_RA  167.987505
+#define DIPOLE_DEC -7.22
 
+void qp_dipole_init(qp_memory_t *mem) {
+  if (mem->dipole_init)
+    return;
+
+  /* dipole angles */
+  quat_t q;
+  qp_radecpa2quat(mem, DIPOLE_RA, DIPOLE_DEC, 0., q);
+  Quaternion_to_matrix_col3(q, mem->v_dipole);
+  mem->dipole_init = 1;
+}
+
+double cdist2dipole(qp_memory_t *mem, double cdist, double ctime) {
   const double tcmb = 2.725;
-  const double dipole_phi = deg2rad(167.987505);
-  const double dipole_theta = M_PI/2 - deg2rad(-7.22);
-  const double sdtheta = sin(dipole_theta);
-  const double cdtheta = cos(dipole_theta);
   const double beta = 369e3 / C_MS;
   const double vhelio = 0.00027;
   const double dipole_epoch = 2451170;
+
+  double out = tcmb * beta * (cdist + beta/2. * (2 * cdist * cdist - 1));
+
+  double jd[2];
+  ctime2jd(ctime, jd);
+  double delta = (jd[1] + (jd[0] - dipole_epoch)) / 365.25;
+
+  if (mem->fast_math) {
+    out += vhelio * poly_cos(2 * M_PI * delta);
+  } else {
+    out += vhelio * cos(2 * M_PI * delta);
+  }
+
+  return out;
+}
+
+double qp_quat2dipole(qp_memory_t *mem, double ctime, quat_t q) {
+  qp_dipole_init(mem);
+
+  vec3_t v;
+  Quaternion_to_matrix_col3(q, v);
+  double cdist = vec3_dot_product(mem->v_dipole, v);
+  return cdist2dipole(mem, cdist, ctime);
+}
+
+void qp_bore2dipole(qp_memory_t *mem, quat_t q_off, double *ctime,
+                    quat_t *q_bore, double *dipole, int n) {
+  quat_t q_det;
+
+  qp_dipole_init(mem);
+
+  for (int ii = 0; ii < n; ii++) {
+    qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q_det);
+    dipole[ii] = qp_quat2dipole(mem, ctime[ii], q_det);
+  }
+}
+
+double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec) {
+
+  const double dipole_phi = deg2rad(DIPOLE_RA);
+  const double dipole_theta = M_PI/2 - deg2rad(DIPOLE_DEC);
+  const double sdtheta = sin(dipole_theta);
+  const double cdtheta = cos(dipole_theta);
 
   double theta = M_PI/2 - deg2rad(dec);
   double phi = deg2rad(ra);
@@ -108,19 +160,7 @@ double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec) {
   }
 
   double cdist = cdtheta * ctheta + sdtheta * stheta * cdphi;
-  double out = tcmb * beta * (cdist + beta/2. * (2 * cdist * cdist - 1));
-
-  double jd[2];
-  ctime2jd(ctime, jd);
-  double delta = (jd[1] + jd[0] - dipole_epoch) / 365.25;
-
-  if (mem->fast_math) {
-    out += vhelio * poly_cos(2 * M_PI * delta);
-  } else {
-    out += vhelio * cos(2 * M_PI * delta);
-  }
-
-  return out;
+  return cdist2dipole(mem, cdist, ctime);
 }
 
 void qp_dipolen(qp_memory_t *mem, double *ctime, double *ra, double *dec,

@@ -72,6 +72,8 @@ extern "C" {
     quat_t q_gal;             // galactic coordinates
     quat_t q_gal_inv;         // inverse of q_gal
     int gal_init;             // q_gal* initialized?
+    vec3_t v_dipole;          // dipole direction
+    int dipole_init;          // q_dipole initialized?
     vec3_t beta_earth;        // earth orbital velocity
     vec3_t beta_rot;          // earth rotational velocity
     qp_bulletina_t bulletinA; // bulletin A data
@@ -307,10 +309,15 @@ extern "C" {
   void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst,
 		int n);
 
-  /* Calculate dipole amplitude */
+  /* Calculate dipole amplitude(s) from quaternion */
+  double qp_quat2dipole(qp_memory_t *mem, double ctime, quat_t q);
+  void qp_bore2dipole(qp_memory_t *mem, quat_t q_off, double *ctime,
+                        quat_t *q_bore, double *dipole, int n);
+
+  /* Calculate dipole amplitude from ra/dec */
   double qp_dipole(qp_memory_t *mem, double ctime, double ra, double dec);
 
-  /* Calculate dipole amplitudes */
+  /* Calculate dipole amplitudes from ra/dec */
   void qp_dipolen(qp_memory_t *mem, double *ctime, double *ra, double *dec,
                   double *dipole, int n);
 
