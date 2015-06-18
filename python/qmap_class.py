@@ -759,13 +759,12 @@ class QMap(QPoint):
         cond = np.apply_along_axis(func, 0, proj)
         return cond
 
-    def solve_map_cho(self, vec=None, proj=None, mask=None, copy=True,
-                   return_proj=False, return_mask=False, partial=False):
+    def solve_map(self, vec=None, proj=None, mask=None, copy=True,
+                  return_proj=False, return_mask=False, partial=False,
+                  method='exact'):
         """
         Solve for a map, given the binned map and the projection matrix
-        for each pixel, using Cholesky decomposition.  This method
-        uses the scipy.linalg.cho_factor and scipy.linalg.cho_solve
-        functions internally.
+        for each pixel.
 
         Arguments
         ---------
@@ -790,6 +789,9 @@ class QMap(QPoint):
             that could not be solved.
         partial : bool, optional
             If True, the map is not checked to ensure a proper healpix nside.
+        method : string, optional
+            Map inversion method.  If "exact", invert the pointing matrix directly
+            If "cho", use Cholesky decomposition to solve.  Default: "exact".
 
         Returns
         -------
@@ -797,6 +799,7 @@ class QMap(QPoint):
             A solved map or set of maps, in shape (N, npix).
         proj_out : array_like
             The upper triangular elements of the decomposed projection matrix,
+            (if method is 'cho') or of the matrix inverse (if method is 'exact'),
             if requested, in shape (N*(N+1)/2, npix).
         mask : array_like
             1-d array, True for valid pixels, if `return_mask` is True
@@ -847,24 +850,85 @@ class QMap(QPoint):
         rtri, ctri = np.triu_indices(nmap)
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
-        # solve
-        from scipy.linalg import cho_factor, cho_solve
-        for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
-            if not m:
-                proj[:, ii] = 0
-                vec[:, ii] = 0
-                continue
-            try:
-                vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
-            except:
-                mask[ii] = False
-                proj[:, ii] = 0
-                vec[:, ii] = 0
+        if method == 'exact' and nmap in [2,3]:
+            if nmap == 2:
+                det = (proj[0] * proj[2] - proj[1] * proj[1])
+                proj[:] = proj[2, 1, 0][:] / det
+                proj[1] *= -1
             else:
-                proj[:, ii] = A[rtri, ctri]
+                det = (proj[0] * (proj[3] * proj[5] - proj[4] * proj[4]) +
+                       proj[1] * (proj[2] * proj[4] - proj[1] * proj[5]) +
+                       proj[2] * (proj[1] * proj[4] - proj[2] * proj[3]))
+                proj[:] = ((proj[[3,1,1,0,0,0]] * proj[[5,5,4,5,4,3]] -
+                            proj[[4,2,2,2,1,1]] * proj[[4,4,3,2,2,1]])
+                           / det)[:]
+            vec[:] = (proj[idx] * vec).sum(axis=0)
+        else:
+            # solve
+            from scipy.linalg import cho_factor, cho_solve
+            for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
+                if not m:
+                    proj[:, ii] = 0
+                    vec[:, ii] = 0
+                    continue
+                try:
+                    if method == 'cho':
+                        vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
+                    elif method == 'exact':
+                        vec[:, ii] = np.linalg.solve(A, v)
+                except:
+                    mask[ii] = False
+                    proj[:, ii] = 0
+                    vec[:, ii] = 0
+                else:
+                    proj[:, ii] = A[rtri, ctri]
 
         # return
         ret = (vec,) + (proj,) * return_proj + (mask,) * return_mask
         if len(ret) == 1:
             return ret[0]
         return ret
+
+    def solve_map_cho(self, *args, **kwargs):
+        """
+        Solve for a map, given the binned map and the projection matrix
+        for each pixel, using Cholesky decomposition.  This method
+        uses the scipy.linalg.cho_factor and scipy.linalg.cho_solve
+        functions internally.
+
+        Arguments
+        ---------
+        vec : array_like, optional
+            A map or list of N maps.  Default to `depo['vec']`.
+        proj : array_like, optional
+            An array of upper-triangular projection matrices for each pixel,
+            of shape (N*(N+1)/2, npix).  Default to `depo['proj']`.
+        mask : array_like, optional
+            A mask of shape (npix,), evaluates to True where pixels are valid.
+            The input mask in converted to a boolean array if supplied.
+        copy : bool, optional
+            if False, do the computation in-place so that the input maps are
+            modified.  Otherwise, a copy is created prior to solving.
+            Default: False.
+        return_proj : bool, optional
+            if True, return the Cholesky-decomposed projection matrix.
+            if False, and inplace is True, the input projection matrix
+            is not modified.
+        return_mask : bool, optional
+            if True, return the mask array, updated with any pixels
+            that could not be solved.
+        partial : bool, optional
+            If True, the map is not checked to ensure a proper healpix nside.
+
+        Returns
+        -------
+        map : array_like
+            A solved map or set of maps, in shape (N, npix).
+        proj_out : array_like
+            The upper triangular elements of the decomposed projection matrix,
+            if requested, in shape (N*(N+1)/2, npix).
+        mask : array_like
+            1-d array, True for valid pixels, if `return_mask` is True
+        """
+        kwargs['method'] = 'cho'
+        return self.solve_map(*args, **kwargs)
