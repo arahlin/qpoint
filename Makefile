@@ -25,13 +25,13 @@ default: all
 all: qpoint python
 
 .PHONY: qpoint sofa slarefro python
-qpoint: clean-obj-qpoint sofa $(SLAR)
+qpoint: sofa $(SLAR)
 	make -C src
 
-qpoint-shared: clean-obj-qpoint sofa-shared $(SLAR)
+qpoint-shared: sofa-shared $(SLAR)
 	ENABLE_SHARED=yes make -C src
 
-qpoint-shared-lite: clean-obj-qpoint sofa-shared $(SLAR)
+qpoint-shared-lite: sofa-shared $(SLAR)
 	ENABLE_SHARED=yes ENABLE_LITE=yes make -C src
 
 sofa:
@@ -106,9 +106,6 @@ clean-slarefro:
 
 clean-python:
 	python setup.py clean --all
-
-clean-obj-qpoint:
-	make -C src clean-obj
 
 clean-qpoint:
 	make -C src clean

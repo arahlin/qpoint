@@ -46,9 +46,11 @@ HPXINC =
 HPXLIB =
 PFLAGS = -DENABLE_LITE
 LIBNAME = $(LIBNAME_LITE)
+OBJNAME = -lt.o
 else
 PFLAGS =
 LIBNAME = $(LIBNAME_FULL)
+OBJNAME = .o
 endif
 
 CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -I. -I../sofa $(SLAINC) $(PFLAGS) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC -fopenmp
@@ -60,7 +62,7 @@ ifneq ($(PFLAGS), )
 SRCS := $(filter-out qp_map.c qp_pixel.c, $(SRCS))
 endif
 
-OBJS = $(SRCS:.c=.o)
+OBJS = $(SRCS:.c=$(OBJNAME))
 HEADERS = $(wildcard *.h)
 HEADER = qpoint.h
 ifneq ($(ENABLE_SHARED), )
@@ -79,6 +81,9 @@ all: $(LIB)
 
 qp_iers_bulletin_a.c: iers_bulletin_a.dat make_iers_bulletin_a_dot_c.py
 	python make_iers_bulletin_a_dot_c.py
+
+$(OBJS): %$(OBJNAME): %.c
+	$(CC) -c $(CFLAGS) $< -o $@
 
 $(LIB): $(OBJS)
 ifneq ($(ENABLE_SHARED), )
