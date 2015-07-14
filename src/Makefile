@@ -53,8 +53,18 @@ LIBNAME = $(LIBNAME_FULL)
 OBJNAME = .o
 endif
 
-CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -I. -I../sofa $(SLAINC) $(PFLAGS) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC -fopenmp
-LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) -lgomp
+ifeq ($(CC),icc)
+OPENMP = -qopenmp
+OPENMP_LD =
+else
+OPENMP = -fopenmp
+OPENMP_LD = -lgomp
+endif
+
+CFLAGS = $(DEBUG) -O3 -Wall -std=c99
+# add some options even when CFLAGS overridden on command line
+override CFLAGS += -std=c99 -I. -I../sofa $(SLAINC) $(PFLAGS) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC $(OPENMP)
+LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) $(OPENMP_LD)
 
 SRCS = $(filter-out %iers_bulletin_a.c, $(wildcard *.c)) qp_iers_bulletin_a.c
 
@@ -67,7 +77,6 @@ HEADERS = $(wildcard *.h)
 HEADER = qpoint.h
 ifneq ($(ENABLE_SHARED), )
 LIB = $(LIBNAME).so
-CFLAGS := -fPIC $(CFLAGS)
 LDFLAGS := -shared $(LDFLAGS)
 else
 LIB = $(LIBNAME).a
