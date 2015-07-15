@@ -15,7 +15,7 @@ extra_obj = [libsofa_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC']
 
 # do different stuff if using intel copmilers
-if os.environ["CC"] == "icc":
+if os.getenv("CC", "") == "icc":
     extra_args.append('-qopenmp')
     libs = []
 else:
