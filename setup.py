@@ -68,7 +68,7 @@ ext_qp = Extension('qpoint.libqpoint', src,
                    extra_objects=extra_obj)
 
 setup(name='qpoint',
-      version='0.1',
+      version='1.4.1',
       description='Pointing for SPIDER',
       author='ASR',
       packages=['qpoint'],
