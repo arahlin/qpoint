@@ -133,6 +133,7 @@ class qp_detarr_t(ct.Structure):
         ('init', ct.c_int),
         ('n', ct.c_size_t),
         ('arr_init', ct.c_int),
+        ('diff', ct.c_size_t),
         ('arr', qp_det_t_p)
         ]
 qp_detarr_t_p = ct.POINTER(qp_detarr_t)
@@ -678,7 +679,7 @@ def check_input(name, arg, shape=None, dtype=np.double, inplace=True,
                     _, arg = np.broadcast_arrays(np.empty(shape), arg)
                 except ValueError:
                     s = 'input {} of shape {} must have shape {}'
-                    raise ValueError(s.format(name, arg,shape, shape))
+                    raise ValueError(s.format(name, arg.shape, shape))
     istat = check_flags(arg)
     arg = np.require(arg, dtype, list('AC' + 'W'*output))
     ostat = check_flags(arg)
