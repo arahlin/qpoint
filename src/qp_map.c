@@ -603,7 +603,7 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_poi
                        "qp_tod2map1_diff: reshape error"))
       return mem->error_code;
 
-  int jj = 0;
+  // int jj = 0;
   for (int ii = 0; ii < pnt->n; ii++) {
     /* if either samples are flagged then skip*/
     if (det->flag_init || det_pair->flag_init){
@@ -698,7 +698,7 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
     if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
                        "qp_tod2map1: reshape error"))
       return mem->error_code;
-  int jj = 0;
+  // int jj = 0;
   for (int ii = 0; ii < pnt->n; ii++) {
     if (det->flag_init && det->flag[ii])
       continue;
@@ -715,7 +715,7 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
     if (det->tod_init && map->vec_init) {
       switch (map->vec_mode) {
         case QP_VEC_POL:
-	  if(jj<1){jj++;printf("psi %d  %f \n",ii, atan2(spp,cpp)/2.0*180/3.1415);}
+	  //if(jj<1){jj++;printf("psi %d  %f \n",ii, atan2(spp,cpp)/2.0*180/3.1415);}
           map->vec[1][ipix] += wp * g * cpp * det->tod[ii];
           map->vec[2][ipix] += wp * g * spp * det->tod[ii];
           /* fall through */
