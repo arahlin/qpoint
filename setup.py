@@ -1,4 +1,6 @@
-from distutils.core import setup, Extension
+# numpy.distutils handles intel compiler
+# need to pass --compiler=intel (or add to [build_ext] section of setup.cfg)
+from numpy.distutils.core import setup, Extension
 import os, glob
 from warnings import warn
 
@@ -10,8 +12,15 @@ if not os.path.exists(libsofa_file):
 src = [x for x in glob.glob('src/*.c')]
 incl_dirs = ['src','sofa']
 extra_obj = [libsofa_file]
-extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC','-fopenmp']
-libs = ['gomp']
+extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC']
+
+# do different stuff if using intel copmilers
+if os.getenv("CC", "") == "icc":
+    extra_args.append('-qopenmp')
+    libs = []
+else:
+    extra_args.append('-fopenmp')
+    libs = ['gomp']
 
 libslarefro_file = 'slarefro/libslarefro.a'
 if os.path.exists(libslarefro_file):
@@ -59,7 +68,7 @@ ext_qp = Extension('qpoint.libqpoint', src,
                    extra_objects=extra_obj)
 
 setup(name='qpoint',
-      version='0.1',
+      version='1.4.1',
       description='Pointing for SPIDER',
       author='ASR',
       packages=['qpoint'],

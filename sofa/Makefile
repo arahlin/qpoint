@@ -9,14 +9,15 @@ LIBNAME=sofa_c
 PREFIX?=/usr/local
 
 CC = gcc
-CFLAGS = -pedantic -Wall -O3 -fPIC -I. $(DEBUG)
+CFLAGS = -pedantic -Wall -O3 $(DEBUG)
+# add some options even when CFLAGS overridden on command line
+override CFLAGS += -fPIC -I.
 
 ifeq ($(ENABLE_SHARED), )
 TARGET=lib$(LIBNAME).a
 else
 TARGET=lib$(LIBNAME).so
 LDFLAGS := -shared $(LDFLAGS)
-CFLAGS := -fPIC $(CFLAGS)
 endif
 
 all: lib
@@ -28,15 +29,15 @@ lib: $(TARGET)
 
 $(TARGET): $(OBJS) $(HEADERS)
 ifeq ($(ENABLE_SHARED), )
-	ar ru $(TARGET) $(OBJS)
+	$(AR) ru $(TARGET) $(OBJS)
 else
-	gcc $(LDFLAGS) $(OBJS) -o $@
+	$(CC) $(LDFLAGS) $(OBJS) -o $@
 endif
 
 test: $(TESTTARG)
 
 $(TESTTARG): $(TESTOBJ) $(TARGET)
-	gcc -o $@ $(TESTOBJ) -L. -l$(LIBNAME)
+	$(CC) -o $@ $(TESTOBJ) -L. -l$(LIBNAME)
 
 .PHONY: clean tidy
 clean:

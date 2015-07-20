@@ -857,38 +857,24 @@ class QMap(QPoint):
         rtri, ctri = np.triu_indices(nmap)
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
-        if method == 'exact' and nmap in [2,3]:
-            if nmap == 2:
-                det = (proj[0] * proj[2] - proj[1] * proj[1])
-                proj[:] = proj[2, 1, 0][:] / det
-                proj[1] *= -1
+        # solve
+        from scipy.linalg import cho_factor, cho_solve
+        for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
+            if not m:
+                proj[:, ii] = 0
+                vec[:, ii] = 0
+                continue
+            try:
+                if method == 'cho':
+                    vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
+                elif method == 'exact':
+                    vec[:, ii] = np.linalg.solve(A, v)
+            except:
+                mask[ii] = False
+                proj[:, ii] = 0
+                vec[:, ii] = 0
             else:
-                det = (proj[0] * (proj[3] * proj[5] - proj[4] * proj[4]) +
-                       proj[1] * (proj[2] * proj[4] - proj[1] * proj[5]) +
-                       proj[2] * (proj[1] * proj[4] - proj[2] * proj[3]))
-                proj[:] = ((proj[[3,1,1,0,0,0]] * proj[[5,5,4,5,4,3]] -
-                            proj[[4,2,2,2,1,1]] * proj[[4,4,3,2,2,1]])
-                           / det)[:]
-            vec[:] = (proj[idx] * vec).sum(axis=0)
-        else:
-            # solve
-            from scipy.linalg import cho_factor, cho_solve
-            for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
-                if not m:
-                    proj[:, ii] = 0
-                    vec[:, ii] = 0
-                    continue
-                try:
-                    if method == 'cho':
-                        vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
-                    elif method == 'exact':
-                        vec[:, ii] = np.linalg.solve(A, v)
-                except:
-                    mask[ii] = False
-                    proj[:, ii] = 0
-                    vec[:, ii] = 0
-                else:
-                    proj[:, ii] = A[rtri, ctri]
+                proj[:, ii] = A[rtri, ctri]
 
         # return
         ret = (vec,) + (proj,) * return_proj + (mask,) * return_mask
