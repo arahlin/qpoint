@@ -532,13 +532,16 @@ extern "C" {
 
     int flag_init;   // flag initialized?
     uint8_t *flag;   // flag array
+
   } qp_det_t;
 
   typedef struct {
     int init;        // initialized?
     size_t n;        // number of dets
     int arr_init;    // array init?
+    size_t diff; //do differencing?
     qp_det_t *arr;   // array
+
   } qp_detarr_t;
 
   typedef struct {
