@@ -603,7 +603,6 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_poi
                        "qp_tod2map1_diff: reshape error"))
       return mem->error_code;
 
-  // int jj = 0;
   for (int ii = 0; ii < pnt->n; ii++) {
     /* if either samples are flagged then skip*/
     if (det->flag_init || det_pair->flag_init){
@@ -628,13 +627,6 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_poi
       switch (map->vec_mode) {
       case QP_VEC_POL:
 	/*wp and wp_p should be the same here...set to lowest weight?*/
-	//if(jj<1){jj++;printf("psi psi_p %d  %f %f \n",ii, atan2(spp,cpp)/2.0*180/3.1415, atan2(spp_p,cpp_p)/2.0*180/3.1415);}
-	cpp = atan2(spp,cpp);
-	cpp_p = atan2(spp_p,cpp_p);
-	spp = sin(cpp);
-	cpp = cos(cpp);
-	spp_p = sin(cpp_p);
-	cpp_p = cos(cpp_p);
 	map->vec[1][ipix] += (wp * cpp - wp_p * cpp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]) * 0.5;
 	map->vec[2][ipix] += (wp * spp - wp_p * spp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]) * 0.5;
 	/* fall through */
