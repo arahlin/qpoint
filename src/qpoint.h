@@ -6,7 +6,7 @@ extern "C" {
 
 #include <stdint.h>
 
-#define QP_VERSION 1.4.1
+#define QP_VERSION 1.5.0
 
   /* *************************************************************************
      Types and parameters
