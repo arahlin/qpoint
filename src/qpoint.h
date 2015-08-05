@@ -481,16 +481,26 @@ extern "C" {
                     double *sin2psi, double *cos2psi, int n);
 
   /* Rotate from celestial to galactic coordinates */
+  void qp_radec2gal_quat(qp_memory_t *mem, quat_t q);
+  void qp_radec2gal_quatn(qp_memory_t *mem, quat_t *q, int n);
   void qp_radec2gal(qp_memory_t *mem, double *ra, double *dec,
                     double *sin2psi, double *cos2psi);
   void qp_radec2galn(qp_memory_t *mem, double *ra, double *dec,
                      double *sin2psi, double *cos2psi, int n);
+  void qp_radecpa2gal(qp_memory_t *mem, double *ra, double *dec, double *pa);
+  void qp_radecpa2galn(qp_memory_t *mem, double *ra, double *dec,
+                       double *pa, int n);
 
   /* Rotate from galactic to celestial coordinates */
+  void qp_gal2radec_quat(qp_memory_t *mem, quat_t q);
+  void qp_gal2radec_quatn(qp_memory_t *mem, quat_t *q, int n);
   void qp_gal2radec(qp_memory_t *mem, double *ra, double *dec,
                     double *sin2psi, double *cos2psi);
   void qp_gal2radecn(qp_memory_t *mem, double *ra, double *dec,
                      double *sin2psi, double *cos2psi, int n);
+  void qp_gal2radecpa(qp_memory_t *mem, double *ra, double *dec, double *pa);
+  void qp_gal2radecpan(qp_memory_t *mem, double *ra, double *dec,
+                       double *pa, int n);
 
   /* Rotate a TQU map from one coordinate system to another */
   void qp_rotate_map(qp_memory_t *mem, int nside,

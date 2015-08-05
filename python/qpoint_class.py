@@ -637,39 +637,126 @@ class QPoint(object):
             return pix[0]
         return pix
 
-    def radec2gal(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+    def rotate_quat(self, quat, coord=['C', 'G'], inplace=True, **kwargs):
         """
-        Rotate celestial coordinates to galactic coordinates.
+        Rotate a quaternion from one coordinate system to another.
+        Supported coordinates:
+
+        C: celestial (equatorial) coordinates
+        G: galactic coordinates
+
+        Arguments
+        ---------
+        quat : array_like
+            array of quaternions, of shape (n, 4)
+        coord : list, optional
+            2-element list of input and output coordinates
+        inplace : bool, optional
+            If True, apply the rotation in-place on the input quaternion.
+            Otherwise, return a copy of the input array.  Default: True.
+
+        Remaining keyword arguments are passed to the `QMap.set` method.
+
+        Returns
+        -------
+        quat : array_like
+            rotated quaternion array
         """
 
         self.set(**kwargs)
 
-        ra, dec, sin2psi, cos2psi = \
-            check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
+        quat = check_input('quat', np.atleast_2d(quat), inplace=inplace)
+        n = quat.size / 4
+
+        if coord[0] == 'C' and coord[1] == 'G':
+            qp.qp_radec2gal_quatn(self._memory, quat, n)
+        elif coord[0] == 'G' and coord[1] == 'C':
+            qp.qp_gal2radec_quatn(self._memory, quat, n)
+        else:
+            raise ValueError('unsupported coord {}'.format(coord))
+
+        return quat.squeeze()
+
+    def rotate_coord(self, ra, dec, pa=None, sin2psi=None, cos2psi=None,
+                     coord=['C', 'G'], inplace=True, **kwargs):
+        """
+        Rotate coordinates from one coordinate system to another.
+        Supported coordinates:
+
+        C: celestial (equatorial) coordinates
+        G: galactic coordinates
+
+        Arguments
+        ---------
+        ra, dec, pa : array_like
+          -- or --
+        ra, dec, sin2psi, cos2psi : array_like
+            arrays of coordinates, of shape (n,)
+            If none of pa, sin2psi or cos2psi are supplied,
+            pa = 0 is assumed.
+        coord : list, optional
+            2-element list of input and output coordinates.
+            Supported systems: C, G.
+        inplace : bool, optional
+            If True, apply the rotation in-place on the input quaternion.
+            Otherwise, return a copy of the input array.  Default: True.
+
+        Remaining keyword arguments are passed to the `QMap.set` method.
+
+        Returns
+        -------
+        ra, dec, pa : array_like
+          -- or --
+        ra, dec, sin2psi, cos2psi : array_like
+            rotated coordinate arrays, same form as input
+        """
+        self.set(**kwargs)
+
+        do_pa = True
+        if pa is None:
+            if sin2psi is None and cos2psi is None:
+                pass
+            elif sin2psi is None or cos2psi is None:
+                raise KeyError('both sin2psi and cos2psi arguments required')
+            else:
+                do_pa = False
+
+        ra, dec, pa, sin2psi, cos2psi = \
+            check_inputs(ra, dec, pa, sin2psi, cos2psi, inplace=inplace)
         n = ra.size
 
-        qp.qp_radec2galn(self._memory, ra, dec, sin2psi, cos2psi, n)
+        if coord[0] == 'C' and coord[1] == 'G':
+            if do_pa:
+                qp.qp_radecpa2galn(self._memory, ra, dec, pa, n)
+            else:
+                qp.qp_radec2galn(self._memory, ra, dec, sin2psi, cos2psi, n)
+        elif coord[0] == 'G' and coord[1] == 'C':
+            if do_pa:
+                qp.qp_gal2radecpan(self._memory, ra, dec, pa, n)
+            else:
+                qp.qp_gal2radecn(self._memory, ra, dec, sin2psi, cos2psi, n)
 
         if n == 1:
+            if do_pa:
+                return ra[0], dec[0], pa[0]
             return ra[0], dec[0], sin2psi[0], cos2psi[0]
+        if do_pa:
+            return ra, dec, pa
         return ra, dec, sin2psi, cos2psi
+
+    def radec2gal(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+        """
+        Rotate celestial coordinates to galactic coordinates.
+        """
+        return self.rotate_coord(ra, dec, sin2psi, cos2psi, coord=['C','G'],
+                                 inplace=inplace, **kwargs)
 
     def gal2radec(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
         """
         Rotate celestial coordinates to galactic coordinates.
         """
-
-        self.set(**kwargs)
-
-        ra, dec, sin2psi, cos2psi = \
-            check_inputs(ra, dec, sin2psi, cos2psi, inplace=inplace)
-        n = ra.size
-
-        qp.qp_gal2radecn(self._memory, ra, dec, sin2psi, cos2psi, n)
-
-        if n == 1:
-            return ra[0], dec[0], sin2psi[0], cos2psi[0]
-        return ra, dec, sin2psi, cos2psi
+        return self.rotate_coord(ra, dec, sin2psi, cos2psi, coord=['G','C'],
+                                 inplace=inplace, **kwargs)
 
     def rotate_map(self, map_in, coord=['C','G'], **kwargs):
         """
