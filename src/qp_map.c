@@ -1006,7 +1006,10 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 void qp_set_opt_num_threads(qp_memory_t *mem, int num_threads) {
   if (num_threads == 0) {
 #ifdef _OPENMP
-    num_threads = omp_get_num_procs();
+#pragma omp parallel
+    {
+      num_threads = omp_get_num_threads();
+    }
 #else
     num_threads = 1;
 #endif
