@@ -6,7 +6,7 @@ Based on M. Nolta's libactpol.
 Uses the SOFA Software Collection, available from http://www.iausofa.org/
 """
 
-__version__ = (1, 5, 0)
+__version__ = (1, 5, 1)
 
 def version():
     return __version__
