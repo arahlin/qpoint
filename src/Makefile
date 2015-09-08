@@ -39,6 +39,8 @@ endif
 LIBNAME_FULL = libqpoint
 LIBNAME_LITE = libqpntlt
 
+QP_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
+
 ifneq ($(ENABLE_LITE), )
 CFITSINC =
 CFITSLIB =
@@ -61,7 +63,7 @@ OPENMP = -fopenmp
 OPENMP_LD = -lgomp
 endif
 
-CFLAGS = $(DEBUG) -O3 -Wall -std=c99
+CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -DQP_VERSION=\"$(QP_VERSION)\"
 # add some options even when CFLAGS overridden on command line
 override CFLAGS += -std=c99 -I. -I../sofa $(SLAINC) $(PFLAGS) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC $(OPENMP)
 LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) $(OPENMP_LD)

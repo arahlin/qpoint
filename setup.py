@@ -4,6 +4,16 @@ from numpy.distutils.core import setup, Extension
 import os, glob
 from warnings import warn
 
+# get version from git tag
+import subprocess as sp
+version = sp.check_output(
+    'git describe --abbrev=4 --dirty --always --tags'.split()).strip()
+vtup = tuple(int(x) for x in version.split('-')[0].split('.'))
+print('qpoint version {}'.format(vtup))
+with open('python/_version.py', 'w') as f:
+    f.write('__version__ = ({:d}, {:d}, {:d})\n'.format(*vtup))
+varg = '-DQP_VERSION=\"{}\"'.format(version)
+
 # hack to avoid recompiling sofa every time
 libsofa_file = 'sofa/libsofa_c.a'
 if not os.path.exists(libsofa_file):
@@ -12,7 +22,7 @@ if not os.path.exists(libsofa_file):
 src = [x for x in glob.glob('src/*.c')]
 incl_dirs = ['src','sofa']
 extra_obj = [libsofa_file]
-extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC']
+extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC', varg]
 
 # do different stuff if using intel copmilers
 if os.getenv("CC", "") == "icc":
@@ -68,7 +78,7 @@ ext_qp = Extension('qpoint.libqpoint', src,
                    extra_objects=extra_obj)
 
 setup(name='qpoint',
-      version='1.4.1',
+      version=version,
       description='Pointing for SPIDER',
       author='ASR',
       packages=['qpoint'],
