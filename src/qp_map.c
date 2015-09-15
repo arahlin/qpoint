@@ -627,12 +627,18 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_poi
       switch (map->vec_mode) {
       case QP_VEC_POL:
 	/*wp and wp_p should be the same here...set to lowest weight?*/
-	map->vec[1][ipix] += (wp * cpp - wp_p * cpp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]) * 0.5;
-	map->vec[2][ipix] += (wp * spp - wp_p * spp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]) * 0.5;
+	w = (w + w_p) * 0.5;
+	/*
+	  map->vec[1][ipix] += 0.5 * w * (wp * cpp - wp_p * cpp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);
+	map->vec[2][ipix] += 0.5 * w * (wp * spp - wp_p * spp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);
+	*/
+	map->vec[1][ipix] += 0.5 * w * w * (cpp - cpp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);                                                                                             
+        map->vec[2][ipix] += 0.5 * w * w * (spp - spp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);  
 	/* fall through */
       case QP_VEC_TEMP:
-	if(w_p < w) w = w_p;
-	map->vec[0][ipix] += 0.5 * w * (g * det->tod[ii] + g_p * det_pair->tod[ii]);
+	//if(w_p < w) w = w_p;
+	w = (w + w_p) * 0.5;
+	map->vec[0][ipix] += 0.5 * w * w * (g * det->tod[ii] + g_p * det_pair->tod[ii]);
 	break;
       default:
 	break;
@@ -642,14 +648,21 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_poi
     if (map->proj_init) {
       switch(map->proj_mode) {
         case QP_PROJ_POL:
+	  w = (w + w_p) * 0.5;
           map->proj[1][ipix] += 0.;
           map->proj[2][ipix] += 0.;
-          map->proj[3][ipix] += 0.5*(wp * cpp - wp_p * cpp_p) * (wp * cpp - wp_p * cpp_p);
-          map->proj[4][ipix] += 0.5*(wp * spp - wp_p * spp_p) * (wp * cpp - wp_p * cpp_p);
-          map->proj[5][ipix] += 0.5*(wp * spp - wp_p * spp_p) * (wp * spp - wp_p * spp_p);
-          /* fall through */
+          /*
+	  map->proj[3][ipix] += 0.5 * w *(wp * cpp - wp_p * cpp_p) * (wp * cpp - wp_p * cpp_p);
+          map->proj[4][ipix] += 0.5 * w *(wp * spp - wp_p * spp_p) * (wp * cpp - wp_p * cpp_p);
+          map->proj[5][ipix] += 0.5 * w *(wp * spp - wp_p * spp_p) * (wp * spp - wp_p * spp_p);
+          */
+	  map->proj[3][ipix] += 0.5 * w * w * (cpp - cpp_p) * (cpp - cpp_p);                                                                                                               
+          map->proj[4][ipix] += 0.5 * w * w * (spp - spp_p) * (cpp - cpp_p);                                                                                                               
+          map->proj[5][ipix] += 0.5 * w * w * (spp - spp_p) * (spp - spp_p);    
+	  /* fall through */
         case QP_PROJ_TEMP:
-          map->proj[0][ipix] += w;
+	  w = (w + w_p) * 0.5;
+          map->proj[0][ipix] += w * w;
           break;
         default:
           break;
