@@ -274,10 +274,17 @@ setargs('qp_quat2radecpan',
 setargs('qp_radec2pixn',
         arg=(qp_memory_t_p, arr, arr, ct.c_int, warri, ct.c_int))
 
+setargs('qp_radec2gal_quatn', arg=(qp_memory_t_p, wquat_t_p, ct.c_int))
+setargs('qp_gal2radec_quatn', arg=(qp_memory_t_p, wquat_t_p, ct.c_int))
+
 setargs('qp_radec2galn',
         arg=(qp_memory_t_p, warr, warr, warr, warr, ct.c_int))
 setargs('qp_gal2radecn',
         arg=(qp_memory_t_p, warr, warr, warr, warr, ct.c_int))
+setargs('qp_radecpa2galn',
+        arg=(qp_memory_t_p, warr, warr, warr, ct.c_int))
+setargs('qp_gal2radecpan',
+        arg=(qp_memory_t_p, warr, warr, warr, ct.c_int))
 setargs('qp_rotate_map',
         arg=(qp_memory_t_p, ct.c_int, arr2, ct.c_char,
              arr2, ct.c_char))

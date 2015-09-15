@@ -5,3 +5,4 @@ build/
 *.so
 local
 .*.swp
+python/_version.py

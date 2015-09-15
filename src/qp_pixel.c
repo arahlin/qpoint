@@ -32,7 +32,7 @@ void qp_init_gal(qp_memory_t *mem) {
   /* galactic pole cf. sofa/g2icrs */
   double gp_ra = 192.85948;
   double gp_dec = 27.12825;
-  double gp_pa = 32.93192+90;
+  double gp_pa = 32.93192 - 90;
 
   qp_radecpa2quat(mem, gp_ra, gp_dec, gp_pa, mem->q_gal);
   Quaternion_copy(mem->q_gal_inv, mem->q_gal);
@@ -41,13 +41,31 @@ void qp_init_gal(qp_memory_t *mem) {
   mem->gal_init = 1;
 }
 
+void qp_radec2gal_quat(qp_memory_t *mem, quat_t q) {
+  qp_init_gal(mem);
+  Quaternion_mul_left(mem->q_gal_inv, q);
+}
+
+void qp_radec2gal_quatn(qp_memory_t *mem, quat_t *q, int n) {
+  for (int ii=0; ii<n; ii++) {
+    qp_radec2gal_quat(mem, q[ii]);
+  }
+}
+
 void qp_radec2gal(qp_memory_t *mem, double *ra, double *dec,
                   double *sin2psi, double *cos2psi) {
   quat_t q;
-  qp_init_gal(mem);
   qp_radec2quat(mem, *ra, *dec, *sin2psi, *cos2psi, q);
-  Quaternion_mul_left(mem->q_gal_inv, q);
+  qp_radec2gal_quat(mem, q);
   qp_quat2radec(mem, q, ra, dec, sin2psi, cos2psi);
+}
+
+void qp_radecpa2gal(qp_memory_t *mem, double *ra, double *dec,
+                    double *pa) {
+  quat_t q;
+  qp_radecpa2quat(mem, *ra, *dec, *pa, q);
+  qp_radec2gal_quat(mem, q);
+  qp_quat2radecpa(mem, q, ra, dec, pa);
 }
 
 void qp_radec2galn(qp_memory_t *mem, double *ra, double *dec,
@@ -57,19 +75,51 @@ void qp_radec2galn(qp_memory_t *mem, double *ra, double *dec,
   }
 }
 
-void qp_gal2radec(qp_memory_t *mem, double *ra, double *dec,
-                  double *sin2psi, double *cos2psi) {
-  quat_t q;
+void qp_radecpa2galn(qp_memory_t *mem, double *ra, double *dec,
+                     double *pa, int n) {
+  for (int ii=0; ii<n; ii++) {
+    qp_radecpa2gal(mem, ra+ii, dec+ii, pa+ii);
+  }
+}
+
+void qp_gal2radec_quat(qp_memory_t *mem, quat_t q) {
   qp_init_gal(mem);
-  qp_radec2quat(mem, *ra, *dec, *sin2psi, *cos2psi, q);
   Quaternion_mul_left(mem->q_gal, q);
+}
+
+void qp_gal2radec_quatn(qp_memory_t *mem, quat_t *q, int n) {
+  for (int ii=0; ii<n; ii++) {
+    qp_gal2radec_quat(mem, q[ii]);
+  }
+}
+
+void qp_gal2radec(qp_memory_t *mem, double *ra, double *dec,
+                    double *sin2psi, double *cos2psi) {
+  quat_t q;
+  qp_radec2quat(mem, *ra, *dec, *sin2psi, *cos2psi, q);
+  qp_gal2radec_quat(mem, q);
   qp_quat2radec(mem, q, ra, dec, sin2psi, cos2psi);
+}
+
+void qp_gal2radecpa(qp_memory_t *mem, double *ra, double *dec,
+                    double *pa) {
+  quat_t q;
+  qp_radecpa2quat(mem, *ra, *dec, *pa, q);
+  qp_gal2radec_quat(mem, q);
+  qp_quat2radecpa(mem, q, ra, dec, pa);
 }
 
 void qp_gal2radecn(qp_memory_t *mem, double *ra, double *dec,
                    double *sin2psi, double *cos2psi, int n) {
   for (int ii=0; ii<n; ii++) {
     qp_gal2radec(mem, ra+ii, dec+ii, sin2psi+ii, cos2psi+ii);
+  }
+}
+
+void qp_gal2radecpan(qp_memory_t *mem, double *ra, double *dec,
+                     double *pa, int n) {
+  for (int ii=0; ii<n; ii++) {
+    qp_gal2radecpa(mem, ra+ii, dec+ii, pa+ii);
   }
 }
 
