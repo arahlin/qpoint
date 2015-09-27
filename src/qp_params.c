@@ -30,6 +30,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->pix_order = 0;
   mem->interp_pix = 0;
   mem->fast_pix = 0;
+  mem->error_missing = 1;
   mem->gal_init = 0;
   mem->dipole_init = 0;
   mem->thread_num = 0;
@@ -190,6 +191,7 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  opt: polconv: %s\n", thread, mem->polconv ? "IAU" : "healpix");
   printf("[%d]  opt: interp pix: %s\n", thread, mem->interp_pix ? "yes" : "no");
   printf("[%d]  opt: fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
+  printf("[%d]  opt: error missing: %s\n", thread, mem->error_missing ? "yes" : "no");
 
 #ifndef ENABLE_LITE
   printf("[%d]  opt: num threads: %d\n", thread, qp_get_opt_num_threads(mem));
@@ -290,6 +292,7 @@ OPTIONFUNCD(polconv)
 OPTIONFUNCD(pix_order)
 OPTIONFUNCD(interp_pix)
 OPTIONFUNCD(fast_pix)
+OPTIONFUNCD(error_missing)
 
 void qp_set_options(qp_memory_t *mem,
 		    int accuracy,
@@ -299,16 +302,18 @@ void qp_set_options(qp_memory_t *mem,
 		    int pix_order,
                     int interp_pix,
                     int fast_pix,
+                    int error_missing,
 		    int num_threads) {
-  qp_set_opt_accuracy   (mem, accuracy);
-  qp_set_opt_mean_aber  (mem, mean_aber);
-  qp_set_opt_fast_math  (mem, fast_math);
-  qp_set_opt_polconv    (mem, polconv);
-  qp_set_opt_pix_order  (mem, pix_order);
-  qp_set_opt_interp_pix (mem, interp_pix);
-  qp_set_opt_fast_pix   (mem, fast_pix);
+  qp_set_opt_accuracy      (mem, accuracy);
+  qp_set_opt_mean_aber     (mem, mean_aber);
+  qp_set_opt_fast_math     (mem, fast_math);
+  qp_set_opt_polconv       (mem, polconv);
+  qp_set_opt_pix_order     (mem, pix_order);
+  qp_set_opt_interp_pix    (mem, interp_pix);
+  qp_set_opt_fast_pix      (mem, fast_pix);
+  qp_set_opt_error_missing (mem, error_missing);
 #ifndef ENABLE_LITE
-  qp_set_opt_num_threads(mem, num_threads);
+  qp_set_opt_num_threads   (mem, num_threads);
 #endif
 }
 

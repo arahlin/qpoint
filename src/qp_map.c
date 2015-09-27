@@ -272,13 +272,18 @@ void qp_num_maps(qp_vec_mode vec_mode, qp_proj_mode proj_mode,
   *num_proj = np;
 }
 
-qp_map_t * qp_init_map(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_mode) {
+// if npix != 0 then partial map
+qp_map_t * qp_init_map(size_t nside, size_t npix, qp_vec_mode vec_mode,
+                       qp_proj_mode proj_mode) {
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = nside2npix(nside);
+  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
+  map->pixhash_init = 0;
+  map->pixhash = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
 
@@ -311,10 +316,10 @@ qp_map_t * qp_init_map(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_mod
 }
 
 qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
-                                   qp_vec_mode vec_mode, qp_proj_mode proj_mode,
-                                   int copy) {
+                                   size_t npix, qp_vec_mode vec_mode,
+                                   qp_proj_mode proj_mode, int copy) {
   if (copy) {
-    qp_map_t *map = qp_init_map(nside, vec_mode, proj_mode);
+    qp_map_t *map = qp_init_map(nside, npix, vec_mode, proj_mode);
 
     if (map->num_vec)
       for (int ii = 0; ii < map->num_vec; ii++)
@@ -329,9 +334,12 @@ qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = nside2npix(nside);
+  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
+  map->pixhash_init = 0;
+  map->pixhash = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
   map->vec_mode = vec_mode;
@@ -359,11 +367,11 @@ qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
   return map;
 }
 
-qp_map_t * qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside,
-                                      qp_vec_mode vec_mode, qp_proj_mode proj_mode,
-                                      int copy) {
+qp_map_t *
+qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside, size_t npix,
+                           qp_vec_mode vec_mode, qp_proj_mode proj_mode, int copy) {
   if (copy) {
-    qp_map_t *map = qp_init_map(nside, vec_mode, proj_mode);
+    qp_map_t *map = qp_init_map(nside, npix, vec_mode, proj_mode);
 
     if (map->num_vec)
       for (int ii = 0; ii < map->num_vec; ii++)
@@ -378,9 +386,12 @@ qp_map_t * qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside,
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = nside2npix(nside);
+  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
+  map->pixhash_init = 0;
+  map->pixhash = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
   map->vec_mode = vec_mode;
@@ -412,13 +423,17 @@ qp_map_t * qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside,
   return map;
 }
 
-qp_map_t * qp_init_map_1d(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_mode) {
+qp_map_t * qp_init_map_1d(size_t nside, size_t npix, qp_vec_mode vec_mode,
+                          qp_proj_mode proj_mode) {
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = nside2npix(nside);
+  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
+  map->pixhash_init = 0;
+  map->pixhash = NULL;
 
   qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
 
@@ -455,11 +470,23 @@ qp_map_t * qp_init_map_1d(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_
 // if blank, malloc fresh arrays
 // otherwise, if copy, copy arrays
 // otherwise, point to arrays
+// pixhash is copied if it exists
 qp_map_t * qp_init_map_from_map(qp_map_t *map, int blank, int copy) {
+  size_t npix = map->partial ? map->npix : 0;
+  qp_map_t *new_map;
+
   if (blank)
-    return qp_init_map(map->nside, map->vec_mode, map->proj_mode);
-  return qp_init_map_from_arrays(map->vec, map->proj, map->nside,
-                                 map->vec_mode, map->proj_mode, copy);
+    new_map = qp_init_map(map->nside, npix, map->vec_mode, map->proj_mode);
+  else
+    new_map = qp_init_map_from_arrays(map->vec, map->proj, map->nside, npix,
+                                      map->vec_mode, map->proj_mode, copy);
+
+  if (map->pixhash_init) {
+    new_map->pixhash = qp_copy_pixhash(map->pixhash);
+    new_map->pixhash_init = new_map->pixhash->init;
+  }
+
+  return new_map;
 }
 
 // convert 1d map to 2d
@@ -495,6 +522,16 @@ int qp_reshape_map(qp_map_t *map) {
   return 0;
 }
 
+int qp_init_map_pixhash(qp_map_t *map, long *pix, size_t npix) {
+  if (!map->init)
+    return QP_ERROR_INIT;
+  if (npix != map->npix)
+    return QP_ERROR_INIT;
+  map->pixhash = qp_init_pixhash(pix, npix);
+  map->pixhash_init = map->pixhash->init;
+  return 0;
+}
+
 int qp_init_map_pixinfo(qp_map_t *map) {
   if (!map->init)
     return QP_ERROR_INIT;
@@ -523,6 +560,9 @@ void qp_free_map(qp_map_t *map) {
   if (map->pixinfo_init)
     qp_free_pixinfo(map->pixinfo);
 
+  if (map->pixhash_init)
+    qp_free_pixhash(map->pixhash);
+
   if (map->init & QP_STRUCT_MALLOC)
     free(map);
   else
@@ -546,6 +586,9 @@ int qp_add_map(qp_memory_t *mem, qp_map_t *map, qp_map_t *maploc) {
   if (qp_check_error(mem, map->nside != maploc->nside, QP_ERROR_MAP,
                      "qp_add_map: nsides differ."))
     return mem->error_code;
+  if (qp_check_error(mem, map->npix != maploc->npix, QP_ERROR_MAP,
+                     "qp_add_map: npixs differ."))
+    return mem->error_code;
 
   if (map->vec_init && maploc->vec_init && map->vec_mode) {
     for (int ii = 0; ii < map->num_vec; ii++)
@@ -564,7 +607,8 @@ int qp_add_map(qp_memory_t *mem, qp_map_t *map, qp_map_t *maploc) {
   return 0;
 }
 
-int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_point_t *pnt, qp_map_t *map) {
+int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
+                     qp_point_t *pnt, qp_map_t *map) {
 
   double spp, cpp, spp_p, cpp_p, ctime;
   long ipix, ipix_p;
@@ -594,6 +638,9 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_poi
   if (qp_check_error(mem, !map->init, QP_ERROR_INIT,
                      "qp_tod2map1_diff: map not initialized."))
     return mem->error_code;
+  if (qp_check_error(mem, map->partial && !map->pixhash_init, QP_ERROR_INIT,
+                     "qp_tod2map1_diff: map pixhash not initialized."))
+    return mem->error_code;
   if (qp_check_error(mem, !mem->mean_aber && !pnt->ctime_init, QP_ERROR_POINT,
                      "qp_tod2map1_diff: ctime required if not mean_aber"))
     return mem->error_code;
@@ -622,7 +669,28 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair, qp_poi
     }
     qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
     qp_quat2pix(mem, q_p, map->nside, &ipix_p, &spp_p, &cpp_p);
-    
+
+    if (map->partial) {
+      ipix = qp_repixelize(map->pixhash, ipix);
+      if (ipix < 0) {
+        if (mem->error_missing) {
+          qp_set_error(mem, QP_ERROR_MAP,
+                       "qp_tod2map1_diff: pixel out of bounds");
+          return mem->error_code;
+        }
+        continue;
+      }
+      ipix_p = qp_repixelize(map->pixhash, ipix_p);
+      if (ipix_p < 0) {
+        if (mem->error_missing) {
+          qp_set_error(mem, QP_ERROR_MAP,
+                       "qp_tod2map1_diff: pair pixel out of bounds");
+          return mem->error_code;
+        }
+        continue;
+      }
+    }
+
     if (det->tod_init && det_pair->tod_init && map->vec_init) {
       switch (map->vec_mode) {
       case QP_VEC_POL:
@@ -695,6 +763,9 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
   if (qp_check_error(mem, !map->init, QP_ERROR_INIT,
                      "qp_tod2map1: map not initialized."))
     return mem->error_code;
+  if (qp_check_error(mem, map->partial && !map->pixhash_init, QP_ERROR_INIT,
+                     "qp_tod2map1: map pixhash not initialized."))
+    return mem->error_code;
   if (qp_check_error(mem, !mem->mean_aber && !pnt->ctime_init, QP_ERROR_POINT,
                      "qp_tod2map1: ctime required if not mean_aber"))
     return mem->error_code;
@@ -716,6 +787,18 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
       qp_bore2det(mem, det->q_off, ctime, pnt->q_bore[ii], q);
 
     qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
+
+    if (map->partial) {
+      ipix = qp_repixelize(map->pixhash, ipix);
+      if (ipix < 0) {
+        if (mem->error_missing) {
+          qp_set_error(mem, QP_ERROR_MAP,
+                       "qp_tod2map1: pixel out of bounds");
+          return mem->error_code;
+        }
+        continue;
+      }
+    }
 
     if (det->tod_init && map->vec_init) {
       switch (map->vec_mode) {
@@ -768,6 +851,9 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
     return mem->error_code;
   if (qp_check_error(mem, !map->init, QP_ERROR_INIT,
                      "qp_tod2map: map not initialized."))
+    return mem->error_code;
+  if (qp_check_error(mem, map->partial && !map->pixhash_init, QP_ERROR_INIT,
+                     "qp_tod2map: map pixhash not initialized."))
     return mem->error_code;
   if (qp_check_error(mem, !mem->mean_aber && !pnt->ctime_init, QP_ERROR_POINT,
                      "qp_tod2map: ctime required if not mean_aber"))
@@ -823,6 +909,9 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
       if (!errloc && !err) {
 #pragma omp critical
         errloc = qp_add_map(memloc, map, maploc);
+        if (errloc)
+#pragma omp atomic
+          err += errloc;
       }
       qp_free_map(maploc);
     }
@@ -872,6 +961,9 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
   if (qp_check_error(mem, !map->init, QP_ERROR_INIT,
                      "qp_map2tod1: map not initialized."))
     return mem->error_code;
+  if (qp_check_error(mem, map->partial && !map->pixhash_init, QP_ERROR_INIT,
+                     "qp_map2tod1: map pixhash not initialized."))
+    return mem->error_code;
   if (qp_check_error(mem, !mem->mean_aber && !pnt->ctime_init, QP_ERROR_POINT,
                      "qp_map2tod1: ctime required if not mean_aber"))
     return mem->error_code;
@@ -885,6 +977,7 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
   int do_interp = (mem->interp_pix &&               \
                    (map->vec_mode == QP_VEC_TEMP || \
                     map->vec_mode == QP_VEC_POL));
+  int jj, bad_pix = 0;
 
   if (map->vec1d_init && !map->vec_init)
     if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
@@ -914,6 +1007,32 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
         qp_get_interpol(mem, map->pixinfo, ra, dec, pix, weight);
     } else {
       qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
+    }
+
+    if (map->partial) {
+      ipix = qp_repixelize(map->pixhash, ipix);
+      if (ipix < 0) {
+        if (mem->error_missing) {
+          qp_set_error(mem, QP_ERROR_MAP,
+                       "qp_map2tod1: pixel out of bounds");
+          return mem->error_code;
+        }
+        continue;
+      }
+      bad_pix = 0;
+      for (jj = 0; jj < 4; jj++) {
+        pix[jj] = qp_repixelize(map->pixhash, pix[jj]);
+        if (pix[jj] < 0) {
+          if (mem->error_missing) {
+            qp_set_error(mem, QP_ERROR_MAP,
+                         "qp_map2tod1: neighbor pixel out of bounds");
+            return mem->error_code;
+          }
+          bad_pix = 1;
+          break;
+        }
+      }
+      if (bad_pix) continue;
     }
 
     switch (map->vec_mode) {
@@ -966,6 +1085,9 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
     return mem->error_code;
   if (qp_check_error(mem, !map->init, QP_ERROR_INIT,
                      "qp_map2tod: map not initialized."))
+    return mem->error_code;
+  if (qp_check_error(mem, map->partial && !map->pixhash_init, QP_ERROR_INIT,
+                     "qp_map2tod: map pixhash not initialized."))
     return mem->error_code;
   if (qp_check_error(mem, !mem->mean_aber && !pnt->ctime_init, QP_ERROR_POINT,
                      "qp_map2tod: ctime required if not mean_aber"))

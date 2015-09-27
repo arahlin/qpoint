@@ -28,6 +28,7 @@ warr = NDP(np.double, ndim=1, flags=['A','C','W'])
 warri = NDP(np.int, ndim=1, flags=['A','C','W'])
 
 arr2 = NDP(np.uintp, ndim=1, flags=['A','C'])
+larr = NDP(np.long, ndim=1, flags=['A','C'])
 
 QP_DO_ALWAYS = ct.c_int.in_dll(libqp, "QP_DO_ALWAYS").value
 QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
@@ -101,6 +102,7 @@ class qp_memory_t(ct.Structure):
         ('pix_order', ct.c_int),
         ('interp_pix', ct.c_int),
         ('fast_pix', ct.c_int),
+        ('error_missing', ct.c_int),
         ('num_threads', ct.c_int),
         ('thread_num', ct.c_int),
         ]
@@ -176,10 +178,13 @@ proj_modes = {1 : QP_PROJ_TEMP,
 class qp_map_t(ct.Structure):
     _fields_ = [
         ('init', ct.c_int),
+        ('partial', ct.c_int),
         ('nside', ct.c_size_t),
         ('npix', ct.c_size_t),
         ('pixinfo_init', ct.c_int),
         ('pixinfo', ct.c_void_p),
+        ('pixhash_init', ct.c_int),
+        ('pixhash', ct.c_void_p),
         ('num_vec', ct.c_size_t),
         ('vec_mode', qp_vec_mode),
         ('vec1d_init', ct.c_int),
@@ -382,15 +387,18 @@ setargs('qp_init_point_from_arrays',
 setargs('qp_free_point', arg=qp_point_t_p)
 
 # initialize maps
-setargs('qp_init_map', arg=(ct.c_size_t, qp_vec_mode, qp_proj_mode),
+setargs('qp_init_map', arg=(ct.c_size_t, ct.c_size_t, qp_vec_mode, qp_proj_mode),
         res=qp_map_t_p)
 setargs('qp_init_map_from_arrays_1d',
-        arg=(arr, arr, ct.c_size_t, qp_vec_mode, qp_proj_mode, ct.c_int),
+        arg=(arr, arr, ct.c_size_t, ct.c_size_t,
+             qp_vec_mode, qp_proj_mode, ct.c_int),
         res=qp_map_t_p)
 setargs('qp_init_map_from_map',
         arg=(qp_map_t_p, ct.c_int, ct.c_int), res=qp_map_t_p)
 setargs('qp_free_map', arg=qp_map_t_p)
 setargs('qp_reshape_map', arg=qp_map_t_p, res=ct.c_int)
+setargs('qp_init_map_pixhash',
+        arg=(qp_map_t_p, larr, ct.c_size_t), res=ct.c_int)
 
 # tod -> map
 setargs('qp_add_map', arg=(qp_map_t_p, qp_map_t_p), res=ct.c_int)
@@ -560,6 +568,9 @@ check_get_fast_math = check_get_bool
 check_set_fast_pix = check_set_bool
 check_get_fast_pix = check_get_bool
 
+check_set_error_missing = check_set_bool
+check_get_error_missing = check_get_bool
+
 check_set_interp_pix = check_set_bool
 check_get_interp_pix = check_get_bool
 
@@ -580,7 +591,7 @@ def check_get_thread_num(tn):
     return tn
 
 options = ['accuracy','mean_aber','fast_math','polconv','pix_order',
-           'interp_pix','fast_pix','num_threads','thread_num']
+           'interp_pix','fast_pix','error_missing','num_threads','thread_num']
 option_funcs = dict()
 for p in options:
     option_funcs[p] = dict()

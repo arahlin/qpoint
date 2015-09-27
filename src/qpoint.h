@@ -86,6 +86,7 @@ extern "C" {
     int pix_order;         // pixel ordering (1=nest, 0=ring)
     int interp_pix;        // interpolate between pixels in map2tod (1=yes, 0=no)
     int fast_pix;          // use vec2pix instead of ang2pix in binners
+    int error_missing;     // raise an error when reading/writing missing pixels
     int num_threads;       // number of parallel threads
     int thread_num;        // current thread number
 
@@ -159,6 +160,7 @@ extern "C" {
 		      int pix_order,
                       int interp_pix,
                       int fast_pix,
+                      int error_missing,
 		      int num_threads);
 
 #define OPTIONFUNC(opt)                                 \
@@ -171,6 +173,7 @@ extern "C" {
   OPTIONFUNC(pix_order);
   OPTIONFUNC(interp_pix);
   OPTIONFUNC(fast_pix);
+  OPTIONFUNC(error_missing);
 #ifndef ENABLE_LITE
   OPTIONFUNC(num_threads);
   OPTIONFUNC(thread_num);
@@ -524,8 +527,8 @@ extern "C" {
     QP_STRUCT_INIT = 0x01,     // structure initialized
     QP_STRUCT_MALLOC = 0x02,   // malloc'd structure
     QP_ARR_INIT_PTR = 0x04,    // pointer to array
-    QP_ARR_MALLOC_1D = 0x08,     // top dimension malloc'd
-    QP_ARR_MALLOC_2D = 0x10,     // second dimension malloc'd
+    QP_ARR_MALLOC_1D = 0x08,   // top dimension malloc'd
+    QP_ARR_MALLOC_2D = 0x10,   // second dimension malloc'd
   } qp_init_mode;
 
   typedef struct {
@@ -608,12 +611,32 @@ extern "C" {
   } qp_pixinfo_t;
 
   typedef struct {
+    long key;
+    long index;
+  } qp_pix_pair_t;
+
+  typedef struct {
+    size_t count;
+    qp_pix_pair_t *pairs;
+  } qp_pix_bucket_t;
+
+  typedef struct {
+    int init;
+    size_t count;
+    qp_pix_bucket_t *buckets;
+  } qp_pixhash_t;
+
+  typedef struct {
     int init;                // initialized?
+    int partial;             // partial map?
     size_t nside;            // map nside
     size_t npix;             // map npix
 
     int pixinfo_init;        // pix info initialized?
     qp_pixinfo_t *pixinfo;   // pixel info structure
+
+    int pixhash_init;        // pix hash initialized?
+    qp_pixhash_t *pixhash;   // repixelization hash table
 
     size_t num_vec;          // number of map columns
     qp_vec_mode vec_mode;    // map mode
@@ -654,14 +677,19 @@ extern "C" {
                                         size_t n, int copy);
   void qp_free_point(qp_point_t *pnt);
 
+  /* map repixelization */
+  qp_pixhash_t * qp_init_pixhash(long *pix, size_t npix);
+  qp_pixhash_t * qp_copy_pixhash(qp_pixhash_t *pixhash);
+  void qp_free_pixhash(qp_pixhash_t *pixhash);
+  long qp_repixelize(qp_pixhash_t *pixhash, long pix);
+  int qp_init_map_pixhash(qp_map_t *map, long *pix, size_t npix);
+
   /* initialize maps */
-  qp_pixinfo_t * qp_init_pixinfo(size_t nside);
-  void qp_free_pixinfo(qp_pixinfo_t *pixinfo);
-  int qp_init_map_pixinfo(qp_map_t *map);
-  qp_map_t * qp_init_map(size_t nside, qp_vec_mode vec_mode, qp_proj_mode proj_mode);
+  qp_map_t * qp_init_map(size_t nside, size_t npix, qp_vec_mode vec_mode,
+                         qp_proj_mode proj_mode);
   qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
-                                     qp_vec_mode vec_mode, qp_proj_mode proj_mode,
-                                     int copy);
+                                     size_t npix, qp_vec_mode vec_mode,
+                                     qp_proj_mode proj_mode, int copy);
   qp_map_t * qp_init_map_from_map(qp_map_t *map, int blank, int copy);
   void qp_free_map(qp_map_t *map);
 
@@ -676,6 +704,9 @@ extern "C" {
                        double dec, double *dtheta, double *dphi);
 
   /* C implementation of healpix-cxx/healpy get_interp_val method */
+  qp_pixinfo_t * qp_init_pixinfo(size_t nside);
+  void qp_free_pixinfo(qp_pixinfo_t *pixinfo);
+  int qp_init_map_pixinfo(qp_map_t *map);
   void qp_get_interpol(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double ra,
                        double dec, long pix[4], double weight[4]);
   double qp_get_interp_val(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double *map,

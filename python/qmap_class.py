@@ -147,7 +147,8 @@ class QMap(QPoint):
             return False
         return True
 
-    def init_source(self, source_map, pol=True, reset=False):
+    def init_source(self, source_map, pol=True, pixels=None, nside=None,
+                    reset=False):
         """
         Initialize the source map structure.  Timestreams are
         produced by scanning this map.
@@ -160,6 +161,12 @@ class QMap(QPoint):
         pol : bool, optional
             If True, and the map shape is (3, npix), then input is a
             polarized map (and not T + 1st derivatives).
+        pixels : 1D array_like, optional
+            Array of pixel numbers for each map index, if `source_map` is
+            a partial map.
+        nside : int, optional
+            map dimension.  If `pixels` is supplied, this argument is required.
+            Otherwise, the nside is determined from the input map.
         reset : bool, optional
             If True, and if the structure has already been initialized,
             it is reset and re-initialized with the new map.  If False,
@@ -188,18 +195,35 @@ class QMap(QPoint):
             else:
                 raise RuntimeError, 'source already initialized'
 
+        if pixels is None:
+            partial = False
+        else:
+            partial = True
+            if nside is None:
+                raise ValueError, 'nside required for partial maps'
+
         # check map shape and create pointer
-        smap, nside = check_map(source_map)
+        smap, snside = check_map(source_map, partial=partial)
+        if not partial:
+            nside = snside
+            npix = hp.nside2npix(nside)
+        else:
+            npix = len(pixels)
 
         # store map
         self.depo['source_map'] = smap
+        if partial:
+            self.depo['source_pixels'] = pixels
 
         # initialize
         source = self._source.contents
+        source.partial = partial
         source.nside = nside
-        source.npix = hp.nside2npix(nside)
+        source.npix = npix
         source.pixinfo_init = 0
         source.pixinfo = None
+        source.pixhash_init = 0
+        source.pixhash = None
         source.num_vec = len(source_map)
         source.vec_mode = lib.get_vec_mode(smap, pol)
         source.vec1d = lib.as_ctypes(smap.ravel())
@@ -214,8 +238,12 @@ class QMap(QPoint):
         source.proj1d_init = 0
         source.init = lib.QP_STRUCT_INIT
 
+        if partial:
+            if qp.qp_init_map_pixhash(self._source, pixels, npix):
+                raise RuntimeError, 'Error initializing source pixhash'
+
         if qp.qp_reshape_map(self._source):
-            raise RuntimeError, qp.qp_get_error_string(self._memory)
+            raise RuntimeError, 'Error reshaping source map'
 
     def reset_source(self):
         """
@@ -225,6 +253,7 @@ class QMap(QPoint):
         if hasattr(self, '_source'):
             qp.qp_free_map(self._source)
         self.depo.pop('source_map', None)
+        self.depo.pop('source_pixels', None)
         self._source = ct.pointer(lib.qp_map_t())
 
     def source_is_pol(self):
@@ -249,8 +278,8 @@ class QMap(QPoint):
             return False
         return True
 
-    def init_dest(self, nside=256, pol=True, vec=None, proj=None, copy=False,
-                  reset=False):
+    def init_dest(self, nside=None, pol=True, vec=None, proj=None, pixels=None,
+                  copy=False, reset=False):
         """
         Initialize the destination map structure.  Timestreams are binned
         and projection matrices accumulated into this structure.
@@ -258,7 +287,8 @@ class QMap(QPoint):
         Arguments
         ---------
         nside : int, optional
-            map dimension
+            map dimension.  If `pixels` is supplied, this argument is required.
+            Otherwise, the default is 256.
         pol : bool, optional
             If True, a polarized map will be created.
         vec : array_like or bool, optional, shape (N, npix)
@@ -270,6 +300,9 @@ class QMap(QPoint):
             for each pixel.  If not supplied, a blank map of the appropriate
             shape is created. If False, accumulation of the projection matrix
             is disabled.
+        pixels : 1D array_like, optional
+            Array of pixel numbers for each map index, if `vec` and `proj` are
+            partial maps.
         copy : bool, optional
             If True and vec/proj are supplied, make copies of these inputs
             to avoid in-place operations.
@@ -289,7 +322,16 @@ class QMap(QPoint):
             else:
                 raise RuntimeError,'dest already initialized'
 
-        npix = hp.nside2npix(nside)
+        if pixels is None:
+            if nside is None:
+                nside = 256
+            npix = hp.nside2npix(nside)
+            partial = False
+        else:
+            if nside is None:
+                raise ValueError, 'nside required for partial maps'
+            npix = len(pixels)
+            partial = True
 
         if vec is None:
             if pol:
@@ -297,8 +339,10 @@ class QMap(QPoint):
             else:
                 vec = np.zeros((1, npix), dtype=np.double)
         elif vec is not False:
-            vec, nside = check_map(vec, copy=copy)
-            npix = hp.nside2npix(nside)
+            vec, vnside = check_map(vec, copy=copy, partial=partial)
+            if not partial:
+                nside = vnside
+                npix = hp.nside2npix(nside)
             if len(vec) == 1:
                 pol = False
             elif len(vec) == 3:
@@ -312,7 +356,7 @@ class QMap(QPoint):
             else:
                 proj = np.zeros((1, npix), dtype=np.double)
         elif proj is not False:
-            proj, pnside, pnmap = check_proj(proj, copy=copy)
+            proj, pnside, pnmap = check_proj(proj, copy=copy, partial=partial)
 
             if vec is not False:
                 if pnmap != len(vec):
@@ -328,20 +372,27 @@ class QMap(QPoint):
                     pol = True
                 else:
                     raise ValueError('proj has incompatible shape')
-                nside = pnside
-                npix = hp.nside2npix(nside)
+                if not partial:
+                    nside = pnside
+                    npix = hp.nside2npix(nside)
 
         # store arrays for later retrieval
         self.depo['vec'] = vec
         self.depo['proj'] = proj
+
+        if partial:
+            self.depo['dest_pixels'] = pixels
 
         # initialize
         ret = ()
         dest = self._dest.contents
         dest.nside = nside
         dest.npix = npix
+        dest.partial = partial
         dest.pixinfo_init = 0
         dest.pixinfo = None
+        dest.pixhash_init = 0
+        dest.pixhash = None
         if vec is not False:
             dest.num_vec = len(vec)
             dest.vec_mode = lib.get_vec_mode(vec, pol)
@@ -360,8 +411,12 @@ class QMap(QPoint):
         dest.proj_init = 0
         dest.init = lib.QP_STRUCT_INIT
 
+        if partial:
+            if qp.qp_init_map_pixhash(self._dest, pixels, npix):
+                raise RuntimeError, 'Error initializing dest pixhash'
+
         if qp.qp_reshape_map(self._dest):
-            raise RuntimeError, qp.qp_get_error_string(self._memory)
+            raise RuntimeError, 'Error reshaping dest map'
 
         # return
         if len(ret) == 1:
@@ -377,6 +432,7 @@ class QMap(QPoint):
             qp.qp_free_map(self._dest)
         self.depo.pop('vec', None)
         self.depo.pop('proj', None)
+        self.depo.pop('dest_pixels', None)
         self._dest = ct.pointer(lib.qp_map_t())
 
     def dest_is_pol(self):
@@ -767,7 +823,7 @@ class QMap(QPoint):
         return cond
 
     def solve_map(self, vec=None, proj=None, mask=None, copy=True,
-                  return_proj=False, return_mask=False, partial=False,
+                  return_proj=False, return_mask=False, partial=None,
                   method='exact'):
         """
         Solve for a map, given the binned map and the projection matrix
@@ -811,6 +867,13 @@ class QMap(QPoint):
         mask : array_like
             1-d array, True for valid pixels, if `return_mask` is True
         """
+
+        # check if we're dealing with a partial map
+        if partial is None:
+            if vec is None and 'dest_pixels' in self.depo:
+                partial = True
+            else:
+                partial = False
 
         # ensure properly shaped arrays
         if vec is None:
