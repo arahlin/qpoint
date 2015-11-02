@@ -720,6 +720,10 @@ class QPoint(object):
                 raise KeyError('both sin2psi and cos2psi arguments required')
             else:
                 do_pa = False
+        else:
+            if sin2psi is not None or cos2psi is not None:
+                raise KeyError('ambiguous pol arguments, supply either pa '
+                               'or sin2psi/cos2psi only')
 
         ra, dec, pa, sin2psi, cos2psi = \
             check_inputs(ra, dec, pa, sin2psi, cos2psi, inplace=inplace)
@@ -744,19 +748,21 @@ class QPoint(object):
             return ra, dec, pa
         return ra, dec, sin2psi, cos2psi
 
-    def radec2gal(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+    def radec2gal(self, ra, dec, pa=None, sin2psi=None, cos2psi=None,
+                  inplace=True, **kwargs):
         """
         Rotate celestial coordinates to galactic coordinates.
         """
-        return self.rotate_coord(ra, dec, sin2psi, cos2psi, coord=['C','G'],
-                                 inplace=inplace, **kwargs)
+        return self.rotate_coord(ra, dec, pa, sin2psi, cos2psi,
+                                 coord=['C','G'], inplace=inplace, **kwargs)
 
-    def gal2radec(self, ra, dec, sin2psi, cos2psi, inplace=True, **kwargs):
+    def gal2radec(self, ra, dec, pa=None, sin2psi=None, cos2psi=None,
+                  inplace=True, **kwargs):
         """
         Rotate celestial coordinates to galactic coordinates.
         """
-        return self.rotate_coord(ra, dec, sin2psi, cos2psi, coord=['G','C'],
-                                 inplace=inplace, **kwargs)
+        return self.rotate_coord(ra, dec, pa, sin2psi, cos2psi,
+                                 coord=['G','C'], inplace=inplace, **kwargs)
 
     def rotate_map(self, map_in, coord=['C','G'], **kwargs):
         """
