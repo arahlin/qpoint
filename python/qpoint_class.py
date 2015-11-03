@@ -764,7 +764,8 @@ class QPoint(object):
         return self.rotate_coord(ra, dec, pa, sin2psi, cos2psi,
                                  coord=['G','C'], inplace=inplace, **kwargs)
 
-    def rotate_map(self, map_in, coord=['C','G'], **kwargs):
+    def rotate_map(self, map_in, coord=['C','G'], map_out=None,
+                   interp_pix=True, **kwargs):
         """
         Rotate a polarized npix-x-3 map from one coordinate system to another.
         Supported coordinates:
@@ -776,10 +777,13 @@ class QPoint(object):
         from warnings import warn
         warn('This code is buggy, use at your own risk', UserWarning)
 
+        interp_orig = self.get('interp_pix')
+        self.set(interp_pix=interp_pix, **kwargs)
+
         from qmap_class import check_map
         map_in, nside = check_map(map_in)
         map_out = check_output(
-            'map_out', map_out, shape=map_in.shape, fill=0)
+            'map_out', map_out, shape=map_in.shape, dtype=map_in.dtype, fill=0)
 
         try:
             coord_in = coord[0]
@@ -787,8 +791,13 @@ class QPoint(object):
         except:
             raise ValueError,'unable to parse coord'
 
-        qp.qp_rotate_map(self._memory, nside, map_in, coord_in,
-                         map_out, coord_out)
+        map_in_p = lib.pointer_2d(map_in)
+        map_out_p = lib.pointer_2d(map_out)
+
+        qp.qp_rotate_map(self._memory, nside, map_in_p, coord_in,
+                         map_out_p, coord_out)
+
+        self.set(interp_pix=interp_orig)
         return map_out
 
     def quat2pix(self, quat, nside=256, pol=True, **kwargs):

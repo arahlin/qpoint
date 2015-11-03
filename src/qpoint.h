@@ -704,7 +704,7 @@ extern "C" {
                        double dec, double *dtheta, double *dphi);
 
   /* C implementation of healpix-cxx/healpy get_interp_val method */
-  qp_pixinfo_t * qp_init_pixinfo(size_t nside);
+  qp_pixinfo_t * qp_init_pixinfo(size_t nside, int populate);
   void qp_free_pixinfo(qp_pixinfo_t *pixinfo);
   int qp_init_map_pixinfo(qp_map_t *map);
   void qp_get_interpol(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double ra,

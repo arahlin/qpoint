@@ -535,7 +535,7 @@ int qp_init_map_pixhash(qp_map_t *map, long *pix, size_t npix) {
 int qp_init_map_pixinfo(qp_map_t *map) {
   if (!map->init)
     return QP_ERROR_INIT;
-  map->pixinfo = qp_init_pixinfo(map->nside);
+  map->pixinfo = qp_init_pixinfo(map->nside, 0);
   map->pixinfo_init = map->pixinfo->init;
   return 0;
 }

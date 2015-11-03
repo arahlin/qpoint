@@ -127,24 +127,23 @@ void qp_rotate_map(qp_memory_t *mem, int nside,
                    double **map_in, const char coord_in,
                    double **map_out, const char coord_out) {
   long npix = 12 * nside * nside;
-  long pix;
-  double ra, dec, sin2psi, cos2psi, norm;
-  double t,q,u;
+  long pix, ipix[4];
+  double ra, dec, sin2psi, cos2psi;
+  double t, q, u, weight[4];
 
   /* check inputs */
-  if (!(coord_in == 'C' || coord_in == 'G')) {
+  if (!(coord_in == 'C' || coord_in == 'G'))
     return;
-  }
-  if (!(coord_out == 'C' || coord_out == 'G')) {
+  if (!(coord_out == 'C' || coord_out == 'G'))
     return;
-  }
-  if (coord_in == coord_out) {
+  if (coord_in == coord_out)
     return;
-  }
 
+  /* initialize */
   qp_init_gal(mem);
+  qp_pixinfo_t *pixinfo = qp_init_pixinfo(nside, 1);
 
-#pragma omp parallel for private(pix, ra, dec, sin2psi, cos2psi, norm, t, q, u)
+#pragma omp parallel for private(pix, ipix, weight, ra, dec, sin2psi, cos2psi, t, q, u)
   for (long ii=0; ii<npix; ii++) {
     /* ra/dec of output pixel */
     if (mem->pix_order == QP_ORDER_NEST)
@@ -162,24 +161,34 @@ void qp_rotate_map(qp_memory_t *mem, int nside,
     } else if (coord_in == 'G' && coord_out == 'C') {
       qp_radec2gal(mem, &ra, &dec, &sin2psi, &cos2psi);
     }
-    pix = qp_radec2pix(mem, ra, dec, nside);
 
-    /* rotate input pixel to output pixel */
-    t = map_in[0][pix];
-    q = map_in[1][pix];
-    u = map_in[2][pix];
-    map_out[0][ii] = t;
-    norm = sqrt(q*q + u*u);
-    if (norm == 0) continue;
-    cos2psi = q / norm; /* input pol */
-    sin2psi = u / norm;
+    if (mem->interp_pix) {
+      qp_get_interpol(mem, pixinfo, ra, dec, ipix, weight);
+      /* rotate input pixel to output pixel */
+      t = q = u = 0;
+      for (int jj = 0; jj < 4; jj++) {
+        t += map_in[0][ipix[jj]] * weight[jj];
+        q += map_in[1][ipix[jj]] * weight[jj];
+        u += map_in[2][ipix[jj]] * weight[jj];
+      }
+    } else {
+      pix = qp_radec2pix(mem, ra, dec, nside);
+      t = map_in[0][pix];
+      q = map_in[1][pix];
+      u = map_in[2][pix];
+    }
+
+    if (t == 0 && q == 0 && u == 0) continue;
+    cos2psi = 1.;
+    sin2psi = 0.;
     if (coord_in == 'C' && coord_out == 'G') {
       qp_radec2gal(mem, &ra, &dec, &sin2psi, &cos2psi);
     } else if (coord_in == 'G' && coord_out == 'C') {
       qp_gal2radec(mem, &ra, &dec, &sin2psi, &cos2psi);
     }
-    map_out[1][ii] = norm * cos2psi;
-    map_out[2][ii] = norm * sin2psi;
+    map_out[0][ii] = t;
+    map_out[1][ii] = q * cos2psi + u * sin2psi;
+    map_out[2][ii] = u * cos2psi - q * sin2psi;
   }
 }
 
@@ -265,29 +274,6 @@ void qp_pixel_offset(qp_memory_t *mem, int nside, long pix,
 
 /* copied get_interpol from healpix-cxx, because there is no C equivalent. */
 
-qp_pixinfo_t * qp_init_pixinfo(size_t nside) {
-  qp_pixinfo_t *pixinfo = malloc(sizeof(*pixinfo));
-  pixinfo->nside = nside;
-  pixinfo->npface = pixinfo->nside * pixinfo->nside;
-  pixinfo->npix = 12 * pixinfo->npface;
-  pixinfo->ncap = (pixinfo->npface - pixinfo->nside) << 1;
-  pixinfo->fact2 = 4. / pixinfo->npix;
-  pixinfo->fact1 = (pixinfo->nside << 1) * pixinfo->fact2;
-  pixinfo->rings = calloc(4 * pixinfo->nside, sizeof(qp_ring_t));
-  pixinfo->rings_init = QP_ARR_MALLOC_1D;
-  pixinfo->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
-  return pixinfo;
-}
-
-void qp_free_pixinfo(qp_pixinfo_t *pixinfo) {
-  if (pixinfo->rings_init & QP_ARR_MALLOC_1D)
-    free(pixinfo->rings);
-  if (pixinfo->init & QP_STRUCT_MALLOC)
-    free(pixinfo);
-  else
-    memset(pixinfo, 0, sizeof(*pixinfo));
-}
-
 void get_ring_info2(qp_pixinfo_t *pixinfo, long iring, long *startpix,
                     long *ringpix, double *theta, int *shifted) {
 
@@ -322,10 +308,42 @@ void get_ring_info2(qp_pixinfo_t *pixinfo, long iring, long *startpix,
     ring->init = 1;
   }
 
-  *theta = ring->theta;
-  *ringpix = ring->ringpix;
-  *shifted = ring->shifted;
-  *startpix = ring->startpix;
+  if (theta != NULL)
+    *theta = ring->theta;
+  if (ringpix != NULL)
+    *ringpix = ring->ringpix;
+  if (shifted != NULL)
+    *shifted = ring->shifted;
+  if (startpix != NULL)
+    *startpix = ring->startpix;
+}
+
+qp_pixinfo_t * qp_init_pixinfo(size_t nside, int populate) {
+  qp_pixinfo_t *pixinfo = malloc(sizeof(*pixinfo));
+  pixinfo->nside = nside;
+  pixinfo->npface = pixinfo->nside * pixinfo->nside;
+  pixinfo->npix = 12 * pixinfo->npface;
+  pixinfo->ncap = (pixinfo->npface - pixinfo->nside) << 1;
+  pixinfo->fact2 = 4. / pixinfo->npix;
+  pixinfo->fact1 = (pixinfo->nside << 1) * pixinfo->fact2;
+  pixinfo->rings = calloc(4 * pixinfo->nside, sizeof(qp_ring_t));
+  pixinfo->rings_init = QP_ARR_MALLOC_1D;
+  pixinfo->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
+
+  if (populate) {
+    for (int iring = 0; iring < 4 * pixinfo->nside; iring++)
+      get_ring_info2(pixinfo, iring, NULL, NULL, NULL, NULL);
+  }
+  return pixinfo;
+}
+
+void qp_free_pixinfo(qp_pixinfo_t *pixinfo) {
+  if (pixinfo->rings_init & QP_ARR_MALLOC_1D)
+    free(pixinfo->rings);
+  if (pixinfo->init & QP_STRUCT_MALLOC)
+    free(pixinfo);
+  else
+    memset(pixinfo, 0, sizeof(*pixinfo));
 }
 
 int get_interpol_ring(qp_pixinfo_t *pixinfo, double theta, double phi,
@@ -474,7 +492,7 @@ double qp_get_interp_val(qp_memory_t *mem, qp_pixinfo_t *pixinfo, double *map,
 
 void qp_get_interp_valn(qp_memory_t *mem, int nside, double *map, double *ra,
                         double *dec, double *val, int n) {
-  qp_pixinfo_t *pixinfo = qp_init_pixinfo(nside);
+  qp_pixinfo_t *pixinfo = qp_init_pixinfo(nside, 0);
 
   for (int ii = 0; ii < n; ii++) {
     val[ii] = qp_get_interp_val(mem, pixinfo, map, ra[ii], dec[ii]);
