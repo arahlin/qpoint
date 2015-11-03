@@ -32,7 +32,7 @@ void qp_init_gal(qp_memory_t *mem) {
   /* galactic pole cf. sofa/g2icrs */
   double gp_ra = 192.85948;
   double gp_dec = 27.12825;
-  double gp_pa = 32.93192 - 90;
+  double gp_pa = 90 + 32.93192;
 
   qp_radecpa2quat(mem, gp_ra, gp_dec, gp_pa, mem->q_gal);
   Quaternion_copy(mem->q_gal_inv, mem->q_gal);
@@ -44,6 +44,11 @@ void qp_init_gal(qp_memory_t *mem) {
 void qp_radec2gal_quat(qp_memory_t *mem, quat_t q) {
   qp_init_gal(mem);
   Quaternion_mul_left(mem->q_gal_inv, q);
+}
+
+void qp_gal2radec_quat(qp_memory_t *mem, quat_t q) {
+  qp_init_gal(mem);
+  Quaternion_mul_left(mem->q_gal, q);
 }
 
 void qp_radec2gal_quatn(qp_memory_t *mem, quat_t *q, int n) {
@@ -80,11 +85,6 @@ void qp_radecpa2galn(qp_memory_t *mem, double *ra, double *dec,
   for (int ii=0; ii<n; ii++) {
     qp_radecpa2gal(mem, ra+ii, dec+ii, pa+ii);
   }
-}
-
-void qp_gal2radec_quat(qp_memory_t *mem, quat_t q) {
-  qp_init_gal(mem);
-  Quaternion_mul_left(mem->q_gal, q);
 }
 
 void qp_gal2radec_quatn(qp_memory_t *mem, quat_t *q, int n) {

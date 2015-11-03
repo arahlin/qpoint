@@ -589,7 +589,7 @@ void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
   }
 
   // cosmo (healpix) or IAU polarization convention?
-  if (!mem->polconv) sing = -sing;
+  if (!mem->polconv) cosg = -cosg;
 
   if (mem->fast_math) {
     *pa = rad2deg(poly_atan2(sing, cosg));
@@ -675,7 +675,7 @@ void qp_radec2quat(qp_memory_t *mem, double ra, double dec, double sin2psi,
 
 void qp_radecpa2quat(qp_memory_t *mem, double ra, double dec, double pa, quat_t q) {
   if (!mem->polconv)
-    pa = -pa;
+    pa = 180. - pa;
   Quaternion_r3(q, deg2rad(pa));
   Quaternion_r2_mul(M_PI_2 - deg2rad(dec), q);
   Quaternion_r3_mul(deg2rad(ra), q);
