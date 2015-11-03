@@ -190,6 +190,8 @@ void qp_rotate_map(qp_memory_t *mem, int nside,
     map_out[1][ii] = q * cos2psi + u * sin2psi;
     map_out[2][ii] = u * cos2psi - q * sin2psi;
   }
+
+  qp_free_pixinfo(pixinfo);
 }
 
 /* Compute pixel number and pol angle given nside and quaternion */
