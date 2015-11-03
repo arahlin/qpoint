@@ -379,8 +379,8 @@ int get_interpol_ring(qp_pixinfo_t *pixinfo, double theta, double phi,
     tmp = phi / dphi - 0.5 * shift;
     i1 = (tmp < 0) ? tmp - 1 : tmp;
     w1 = (phi - (i1 + 0.5 * shift) * dphi) / dphi;
-    i2 = i1 + 1;
     if (i1 < 0) i1 += nr;
+    i2 = i1 + 1;
     if (i2 >= nr) i2 -= nr;
     pix[0] = sp + i1;
     pix[1] = sp + i2;
@@ -394,8 +394,8 @@ int get_interpol_ring(qp_pixinfo_t *pixinfo, double theta, double phi,
     tmp = phi / dphi - 0.5 * shift;
     i1 = (tmp < 0) ? tmp - 1 : tmp;
     w1 = (phi - (i1 + 0.5 * shift) * dphi) / dphi;
-    i2 = i1 + 1;
     if (i1 < 0) i1 += nr;
+    i2 = i1 + 1;
     if (i2 >= nr) i2 -= nr;
     pix[2] = sp + i1;
     pix[3] = sp + i2;
