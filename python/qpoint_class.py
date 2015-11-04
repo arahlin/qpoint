@@ -441,7 +441,8 @@ class QPoint(object):
         return q
 
     def bore2radec(self, q_off, ctime, q_bore, q_hwp=None, sindec=False,
-                   ra=None, dec=None, sin2psi=None, cos2psi=None, **kwargs):
+                   return_pa=False, ra=None, dec=None, pa=None,
+                   sin2psi=None, cos2psi=None, **kwargs):
         """
         Calculate the orientation on the sky for a detector offset from the
         boresight.  Detector offsets are defined assuming the boresight is
@@ -462,6 +463,7 @@ class QPoint(object):
                    must be same shape as q_bore
         sindec     If True, return sin(dec) instead of dec in degrees
                    (default False)
+        return_pa  If True, return pa instead of sin2psi / cos2psi
 
         Any keywords accepted by the QPoint.set function can also be passed
         here, and will be processed prior to calculation.
@@ -477,18 +479,22 @@ class QPoint(object):
         self.set(**kwargs)
 
         q_off  = check_input('q_off', q_off)
-        q_bore = check_input('q_bore', q_bore)
+        q_bore = check_input('q_bore', np.atleast_2d(q_bore))
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError,'ctime required if mean_aber is False'
             ctime = np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = check_input('ctime', ctime)
-        ra = check_output('ra', ra, shape=ctime.shape, dtype=np.double)
-        dec = check_output('dec', dec, shape=ctime.shape, dtype=np.double)
-        sin2psi = check_output('sin2psi', sin2psi, shape=ctime.shape,
-                                   dtype=np.double)
-        cos2psi = check_output('cos2psi', cos2psi, shape=ctime.shape,
-                                   dtype=np.double)
+        pars = dict(shape=ctime.shape, dtype=np.double)
+        ra = check_output('ra', ra, **pars)
+        dec = check_output('dec', dec, **pars)
+        if return_pa:
+            pa = check_output('pa', pa, **pars)
+            sin2psi = check_output('sin2psi', None, **pars)
+            cos2psi = check_output('cos2psi', None, **pars)
+        else:
+            sin2psi = check_output('sin2psi', sin2psi, **pars)
+            cos2psi = check_output('cos2psi', cos2psi, **pars)
         n = ctime.size
 
         if q_hwp is None:
@@ -507,6 +513,14 @@ class QPoint(object):
                 qp.qp_bore2radec_hwp(self._memory, q_off, ctime, q_bore,
                                      q_hwp, ra, dec, sin2psi, cos2psi, n)
 
+        if return_pa:
+            pa[:] = np.arctan2(sin2psi, cos2psi + 1)
+            if n == 1:
+                return ra[0], dec[0], pa[0]
+            return ra, dec, pa
+
+        if n == 1:
+            return ra[0], dec[0], sin2psi[0], cos2psi[0]
         return ra, dec, sin2psi, cos2psi
 
     def azel2radec(self, delta_az, delta_el, delta_psi,
