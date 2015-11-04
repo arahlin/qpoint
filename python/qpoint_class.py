@@ -514,7 +514,7 @@ class QPoint(object):
                                      q_hwp, ra, dec, sin2psi, cos2psi, n)
 
         if return_pa:
-            pa[:] = np.arctan2(sin2psi, cos2psi + 1)
+            pa[:] = np.degrees(np.arctan2(sin2psi, cos2psi + 1))
             if n == 1:
                 return ra[0], dec[0], pa[0]
             return ra, dec, pa
