@@ -510,10 +510,10 @@ void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
     *ra = 0;
 
     if (sinb > 0) {
-      cosg = q[0] * q[0] - q[3] * q[3];
+      cosg = q[3] * q[3] - q[0] * q[0];
       sing = 2 * q[0] * q[3];
     } else {
-      cosg = q[2] * q[2] - q[1] * q[1];
+      cosg = q[1] * q[1] - q[2] * q[2];
       sing = 2 * q[1] * q[2];
     }
     norm = 2. * cosg;
@@ -531,14 +531,11 @@ void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
       *ra = rad2deg(atan2(sina_2, cosa_2));
 
     sing = q01 + q23;
-    cosg = q02 - q13;
+    cosg = q13 - q02;
     norm = 2. * cosg / cosb2;
   }
 
   *sindec = sinb;
-
-  // cosmo (healpix) or IAU polarization convention?
-  if (!mem->polconv) sing = -sing;
 
   *sin2psi = norm * sing;
   *cos2psi = norm * cosg - 1.;
@@ -560,11 +557,11 @@ void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
 
     if (sinb_2 > 0) {
       *dec = 90;
-      cosg = q[0] * q[0] - q[3] * q[3];
+      cosg = q[3] * q[3] - q[0] * q[0];
       sing = 2 * q[0] * q[3];
     } else {
       *dec = -90;
-      cosg = q[2] * q[2] - q[1] * q[1];
+      cosg = q[1] * q[1] - q[2] * q[2];
       sing = 2 * q[1] * q[2];
     }
   } else {
@@ -585,11 +582,8 @@ void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
     }
 
     sing = q01 + q23;
-    cosg = q02 - q13;
+    cosg = q13 - q02;
   }
-
-  // cosmo (healpix) or IAU polarization convention?
-  if (!mem->polconv) cosg = -cosg;
 
   if (mem->fast_math) {
     *pa = rad2deg(poly_atan2(sing, cosg));
@@ -622,11 +616,11 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
 
     if (sinb_2 > 0) {
       *dec = 90;
-      cosg = q[0] * q[0] - q[3] * q[3];
+      cosg = q[3] * q[3] - q[0] * q[0];
       sing = 2 * q[0] * q[3];
     } else {
       *dec = -90;
-      cosg = q[2] * q[2] - q[1] * q[1];
+      cosg = q[1] * q[1] - q[2] * q[2];
       sing = 2 * q[1] * q[2];
     }
     norm = 2. * cosg;
@@ -648,12 +642,9 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
     }
 
     sing = q01 + q23;
-    cosg = q02 - q13;
+    cosg = q13 - q02;
     norm = 2. * cosg / cosb2;
   }
-
-  // cosmo (healpix) or IAU polarization convention?
-  if (!mem->polconv) sing = -sing;
 
   *sin2psi = norm * sing;
   *cos2psi = norm * cosg - 1.;
@@ -662,21 +653,17 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
 void qp_radec2quat(qp_memory_t *mem, double ra, double dec, double sin2psi,
                    double cos2psi, quat_t q) {
   double ang;
-  if (!mem->polconv)
-    sin2psi = -sin2psi;
   if (mem->fast_math)
     ang = poly_atan2(sin2psi, cos2psi + 1);
   else
     ang = atan2(sin2psi, cos2psi + 1);
-  Quaternion_r3(q, ang);
+  Quaternion_r3(q, M_PI - ang);
   Quaternion_r2_mul(M_PI_2 - deg2rad(dec), q);
   Quaternion_r3_mul(deg2rad(ra), q);
 }
 
 void qp_radecpa2quat(qp_memory_t *mem, double ra, double dec, double pa, quat_t q) {
-  if (!mem->polconv)
-    pa = 180. - pa;
-  Quaternion_r3(q, deg2rad(pa));
+  Quaternion_r3(q, M_PI - deg2rad(pa));
   Quaternion_r2_mul(M_PI_2 - deg2rad(dec), q);
   Quaternion_r3_mul(deg2rad(ra), q);
 }

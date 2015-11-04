@@ -209,19 +209,18 @@ void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
     double norm, cosg, sing;
     if (cosb2 < DBL_EPSILON) {
       if (vec[2] > 0) {
-        cosg = q[0] * q[0] - q[3] * q[3];
+        cosg = q[3] * q[3] - q[0] * q[0];
         sing = 2 * q[0] * q[3];
       } else {
-        cosg = q[2] * q[2] - q[1] * q[1];
+        cosg = q[1] * q[1] - q[2] * q[2];
         sing = 2 * q[1] * q[2];
       }
       norm = 2 * cosg;
     } else {
-      cosg = q[0] * q[2] - q[1] * q[3];
+      cosg = q[1] * q[3] - q[0] * q[2];
       sing = q[0] * q[1] + q[2] * q[3];
       norm = 2. * cosg / cosb2;
     }
-    if (!mem->polconv) sing = -sing;
     *sin2psi = norm * sing;
     *cos2psi = norm * cosg - 1;
   } else {

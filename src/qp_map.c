@@ -669,6 +669,10 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
     }
     qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
     qp_quat2pix(mem, q_p, map->nside, &ipix_p, &spp_p, &cpp_p);
+    if (!mem->polconv) {
+      spp *= -1;
+      spp_p *= -1;
+    }
 
     if (map->partial) {
       ipix = qp_repixelize(map->pixhash, ipix);
@@ -787,6 +791,8 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
       qp_bore2det(mem, det->q_off, ctime, pnt->q_bore[ii], q);
 
     qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
+    if (!mem->polconv)
+      spp *= -1;
 
     if (map->partial) {
       ipix = qp_repixelize(map->pixhash, ipix);
@@ -1008,6 +1014,8 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
     } else {
       qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
     }
+    if (!mem->polconv)
+      spp *= -1;
 
     if (map->partial) {
       ipix = qp_repixelize(map->pixhash, ipix);
