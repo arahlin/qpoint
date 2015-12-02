@@ -824,7 +824,7 @@ class QMap(QPoint):
 
     def solve_map(self, vec=None, proj=None, mask=None, copy=True,
                   return_proj=False, return_mask=False, partial=None,
-                  method='exact'):
+                  fill=0, method='exact'):
         """
         Solve for a map, given the binned map and the projection matrix
         for each pixel.
@@ -852,6 +852,8 @@ class QMap(QPoint):
             that could not be solved.
         partial : bool, optional
             If True, the map is not checked to ensure a proper healpix nside.
+        fill : scalar, optional
+            Fill the solved map where proj == 0 with this value.  Default: 0.
         method : string, optional
             Map inversion method.  If "exact", invert the pointing matrix directly
             If "cho", use Cholesky decomposition to solve.  Default: "exact".
@@ -909,7 +911,7 @@ class QMap(QPoint):
             vec = vec.squeeze()
             proj = proj.squeeze()
             vec[mask] /= proj[mask]
-            vec[~mask] = 0
+            vec[~mask] = fill
             ret = (vec,) + (proj,) * return_proj + (mask,) * return_mask
             if len(ret) == 1:
                 return ret[0]
@@ -925,7 +927,7 @@ class QMap(QPoint):
         for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
             if not m:
                 proj[:, ii] = 0
-                vec[:, ii] = 0
+                vec[:, ii] = fill
                 continue
             try:
                 if method == 'cho':
@@ -935,7 +937,7 @@ class QMap(QPoint):
             except:
                 mask[ii] = False
                 proj[:, ii] = 0
-                vec[:, ii] = 0
+                vec[:, ii] = fill
             else:
                 proj[:, ii] = A[rtri, ctri]
 
@@ -975,6 +977,8 @@ class QMap(QPoint):
             that could not be solved.
         partial : bool, optional
             If True, the map is not checked to ensure a proper healpix nside.
+        fill : scalar, optional
+            Fill the solved map where proj == 0 with this value.  Default: 0.
 
         Returns
         -------
