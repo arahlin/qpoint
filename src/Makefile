@@ -71,7 +71,7 @@ LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) $(
 SRCS = $(filter-out %iers_bulletin_a.c, $(wildcard *.c)) qp_iers_bulletin_a.c
 
 ifneq ($(PFLAGS), )
-SRCS := $(filter-out qp_map.c qp_pixel.c, $(SRCS))
+SRCS := $(filter-out qp_map.c qp_pixel.c qp_pixhash.c, $(SRCS))
 endif
 
 OBJS = $(SRCS:.c=$(OBJNAME))
