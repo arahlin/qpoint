@@ -19,7 +19,10 @@ libsofa_file = 'sofa/libsofa_c.a'
 if not os.path.exists(libsofa_file):
     os.system('make -C sofa')
 
+sp.check_call('make -C src qp_iers_bulletin_a.c'.split())
 src = [x for x in glob.glob('src/*.c')]
+src = filter(lambda x: not x.endswith('iers_bulletin_a.c'), src)
+src += ['src/qp_iers_bulletin_a.c']
 incl_dirs = ['src','sofa']
 extra_obj = [libsofa_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC', varg]
