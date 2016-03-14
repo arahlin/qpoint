@@ -816,7 +816,7 @@ class QMap(QPoint):
 
         # calculate for each pixel
         # faster if numpy.linalg handles broadcasting
-        if map(int, np.__version__.split('.')) >= [1,8,0]:
+        if map(int, np.__version__.split('.')) >= [1,10,0]:
             proj[:, ~m] = 0
             cond = np.linalg.cond(proj[idx].transpose(2,0,1), p=mode)
             cond[~m] = np.inf
