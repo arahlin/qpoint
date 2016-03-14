@@ -838,7 +838,7 @@ class QMap(QPoint):
 
     def solve_map(self, vec=None, proj=None, mask=None, copy=True,
                   return_proj=False, return_mask=False, partial=None,
-                  fill=0, method='exact'):
+                  fill=0, cond=None, method='exact'):
         """
         Solve for a map, given the binned map and the projection matrix
         for each pixel.
@@ -939,7 +939,9 @@ class QMap(QPoint):
         # solve
         # faster if numpy.linalg handles broadcasting
         if method == 'exact' and map(int, np.__version__.split('.')) >= [1,8,0]:
-            mask &= np.isfinite(self.proj_cond(proj=proj))
+            if cond is None:
+                cond = self.proj_cond(proj=proj)
+            mask &= np.isfinite(cond)
             vec[:, ~mask] = 0
             proj[..., ~mask] = np.array([1,0,0,1,0,1])[:, None]
             vec[:] = np.linalg.solve(proj[idx].transpose(2,0,1),
