@@ -815,10 +815,24 @@ class QMap(QPoint):
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
         # calculate for each pixel
+        # faster if numpy.linalg handles broadcasting
+        if map(int, np.__version__.split('.')) >= [1,8,0]:
+            proj[:, ~m] = 0
+            cond = np.linalg.cond(proj[idx].transpose(2,0,1), p=mode)
+            cond[~m] = np.inf
+            # threshold at machine precision
+            cond[cond > 1./np.finfo(float).eps] = np.inf
+            return cond
+
+        # slow method, loop over pixels
         def func(x):
             if not np.isfinite(x[0]):
                 return np.inf
-            return np.linalg.cond(x[idx], p=mode)
+            c = np.linalg.cond(x[idx], p=mode)
+            # threshold at machine precision
+            if c > 1./np.finfo(float).eps:
+                return np.inf
+            return c
         cond = np.apply_along_axis(func, 0, proj)
         return cond
 
@@ -923,6 +937,21 @@ class QMap(QPoint):
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
         # solve
+        # faster if numpy.linalg handles broadcasting
+        if method == 'exact' and map(int, np.__version__.split('.')) >= [1,8,0]:
+            mask &= np.isfinite(self.proj_cond(proj=proj))
+            vec[:, ~mask] = 0
+            proj[..., ~mask] = np.array([1,0,0,1,0,1])[:, None]
+            vec[:] = np.linalg.solve(proj[idx].transpose(2,0,1),
+                                     vec.transpose()).transpose()
+            vec[:, ~mask] = fill
+            proj[:, ~mask] = 0
+            ret = (vec,) + return_proj * (proj,) + return_mask * (mask,)
+            if len(ret) == 1:
+                return ret[0]
+            return ret
+
+        # slow method, loop over pixels
         from scipy.linalg import cho_factor, cho_solve
         for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
             if not m:
