@@ -1027,20 +1027,22 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
         }
         continue;
       }
-      bad_pix = 0;
-      for (jj = 0; jj < 4; jj++) {
-        pix[jj] = qp_repixelize(map->pixhash, pix[jj]);
-        if (pix[jj] < 0) {
-          if (mem->error_missing) {
-            qp_set_error(mem, QP_ERROR_MAP,
-                         "qp_map2tod1: neighbor pixel out of bounds");
-            return mem->error_code;
+      if (do_interp) {
+          bad_pix = 0;
+          for (jj = 0; jj < 4; jj++) {
+            pix[jj] = qp_repixelize(map->pixhash, pix[jj]);
+            if (pix[jj] < 0) {
+              if (mem->error_missing) {
+                qp_set_error(mem, QP_ERROR_MAP,
+                             "qp_map2tod1: neighbor pixel out of bounds");
+                return mem->error_code;
+              }
+              bad_pix = 1;
+              break;
+            }
           }
-          bad_pix = 1;
-          break;
-        }
+          if (bad_pix) continue;
       }
-      if (bad_pix) continue;
     }
 
     switch (map->vec_mode) {
