@@ -212,6 +212,7 @@ class QMap(QPoint):
 
         # store map
         self.depo['source_map'] = smap
+        self.depo['source_nside'] = nside
         if partial:
             self.depo['source_pixels'] = pixels
 
@@ -253,6 +254,7 @@ class QMap(QPoint):
         if hasattr(self, '_source'):
             qp.qp_free_map(self._source)
         self.depo.pop('source_map', None)
+        self.depo.pop('source_nside', None)
         self.depo.pop('source_pixels', None)
         self._source = ct.pointer(lib.qp_map_t())
 
@@ -379,6 +381,7 @@ class QMap(QPoint):
         # store arrays for later retrieval
         self.depo['vec'] = vec
         self.depo['proj'] = proj
+        self.depo['dest_nside'] = nside
 
         if partial:
             self.depo['dest_pixels'] = pixels
@@ -432,6 +435,7 @@ class QMap(QPoint):
             qp.qp_free_map(self._dest)
         self.depo.pop('vec', None)
         self.depo.pop('proj', None)
+        self.depo.pop('dest_nside', None)
         self.depo.pop('dest_pixels', None)
         self._dest = ct.pointer(lib.qp_map_t())
 
