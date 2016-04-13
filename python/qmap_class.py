@@ -8,7 +8,7 @@ from _libqpoint import libqp as qp
 
 __all__ = ['QMap', 'check_map', 'check_proj']
 
-def check_map(map_in, copy=False, partial=False):
+def check_map(map_in, copy=False, partial=False, dtype=np.double):
     """
     Return a properly transposed and memory-aligned map and its nside.
 
@@ -39,7 +39,7 @@ def check_map(map_in, copy=False, partial=False):
         nside = len(map_out[0])
     else:
         nside = hp.get_nside(map_out)
-    map_out = lib.check_input('map', map_out)
+    map_out = lib.check_input('map', map_out, dtype=dtype)
     if copy and np.may_share_memory(map_in, map_out):
         map_out = map_out.copy()
     return map_out, nside
