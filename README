@@ -27,6 +27,26 @@ for both C and python:
     make
     sudo make install
 
+to install to a per-user directory:
+
+    make
+    make install-user
+    (or install-qpoint-user or install-python-user, as above)
+
+to install to a specific prefix (the directory that will contain the lib/
+subfolder, and the include/ subfolder in installing the C library):
+
+    make
+    sudo make PREFIX=/your/install/prefix install
+    (or use the install-qpoint or install-python targets, as above)
+
+Updating (assuming qpoint was obtained via git):
+
+    git pull --rebase
+    make
+    sudo make install
+    (or other install command, as above)
+
 NB: if the above fails due to a missing chealpix or cfitsio library,
 try setting the following environment variables for both healpix and cfitsio:
 
