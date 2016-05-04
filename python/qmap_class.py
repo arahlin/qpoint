@@ -849,7 +849,7 @@ class QMap(QPoint):
 
     def solve_map(self, vec=None, proj=None, mask=None, copy=True,
                   return_proj=False, return_mask=False, partial=None,
-                  fill=0, cond=None, method='exact'):
+                  fill=0, cond=None, cond_thresh=1e6, method='exact'):
         """
         Solve for a map, given the binned map and the projection matrix
         for each pixel.
@@ -879,6 +879,13 @@ class QMap(QPoint):
             If True, the map is not checked to ensure a proper healpix nside.
         fill : scalar, optional
             Fill the solved map where proj == 0 with this value.  Default: 0.
+        cond : array_like, optional
+            A map of condition number per pixel.  If not supplied, this will be
+            calculated using `proj_cond`
+        cond_thresh : scalar, optional
+            A threshold to place on the condition number to exclude pixels
+            prior to solving.  Reduce this to avoid `LinAlgError` due to
+            singular matrices.
         method : string, optional
             Map inversion method.  If "exact", invert the pointing matrix directly
             If "cho", use Cholesky decomposition to solve.  Default: "exact".
@@ -953,7 +960,7 @@ class QMap(QPoint):
                 np.version.short_version.split('.')) >= [1,8,0]:
             if cond is None:
                 cond = self.proj_cond(proj=proj)
-            mask &= np.isfinite(cond)
+            mask &= (cond < cond_thresh)
             vec[:, ~mask] = 0
             proj[..., ~mask] = np.array([1,0,0,1,0,1])[:, None]
             vec[:] = np.linalg.solve(proj[idx].transpose(2,0,1),
@@ -1022,6 +1029,13 @@ class QMap(QPoint):
             If True, the map is not checked to ensure a proper healpix nside.
         fill : scalar, optional
             Fill the solved map where proj == 0 with this value.  Default: 0.
+        cond : array_like, optional
+            A map of condition number per pixel.  If not supplied, this will be
+            calculated using `proj_cond`
+        cond_thresh : scalar, optional
+            A threshold to place on the condition number to exclude pixels
+            prior to solving.  Reduce this to avoid `LinAlgError` due to
+            singular matrices.
 
         Returns
         -------
