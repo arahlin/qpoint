@@ -82,8 +82,9 @@ void qp_lmstn(qp_memory_t *mem, double *ctime, double *lon, double *lmst, int n)
   }
 }
 
-#define DIPOLE_RA  167.987505
-#define DIPOLE_DEC -7.22
+/* Planck 2015 values (l, b) = (264.00, 48.24) */
+#define DIPOLE_RA  167.923
+#define DIPOLE_DEC -6.947
 
 void qp_dipole_init(qp_memory_t *mem) {
   if (mem->dipole_init)
@@ -97,8 +98,9 @@ void qp_dipole_init(qp_memory_t *mem) {
 }
 
 double cdist2dipole(qp_memory_t *mem, double cdist, double ctime) {
-  const double tcmb = 2.725;
-  const double beta = 369e3 / C_MS;
+  const double tcmb = 2.7255; /* Fixsen 2009 */
+  const double beta = 3364.5e-6 / tcmb; /* Planck 2015 */
+  /* annual modulation -- where are these numbers from? */
   const double vhelio = 0.00027;
   const double dipole_epoch = 2451170;
 
