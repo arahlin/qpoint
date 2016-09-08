@@ -962,7 +962,7 @@ class QMap(QPoint):
                 cond = self.proj_cond(proj=proj)
             mask &= (cond < cond_thresh)
             vec[:, ~mask] = 0
-            proj[..., ~mask] = np.array([1,0,0,1,0,1])[:, None]
+            proj[..., ~mask] = np.eye(nmap)[rtri, ctri][:, None]
             vec[:] = np.linalg.solve(proj[idx].transpose(2,0,1),
                                      vec.transpose()).transpose()
             vec[:, ~mask] = fill
