@@ -531,7 +531,7 @@ class QMap(QPoint):
         self._point = ct.pointer(lib.qp_point_t())
 
     def init_detarr(self, q_off, weight=None, gain=None, poleff=None, tod=None,
-                    flag=None, do_diff=False, write=False):
+                    flag=None, weights=None, do_diff=False, write=False):
         """
         Initialize the detector listing structure.  Detector properties and
         timestreams are passed to and from the mapmaker through this structure.
@@ -558,6 +558,12 @@ class QMap(QPoint):
             mapmaking.  nsamp must match that of the pointing structure.
             If not supplied, a zero-filled array is initialized (i.e. no 
             flagged samples).
+        weights : array_like, optional
+            Weight array, of shape (ndet, nsamp), for weighting each sample of
+            data.  nsamp must match that of the pointing structure.  If not
+            supplied, this option is not used.
+        do_diff : bool, optional
+            If True, initialize pairs of arrays for pair-differenced mapmaking.
         write : bool, optional
              If True, the timestreams are ensured writable and created if
              necessary.
@@ -588,6 +594,9 @@ class QMap(QPoint):
             flag = lib.check_input('flag', np.atleast_2d(flag),
                                    dtype=np.uint8, shape=shape)
             self.depo['flag'] = flag
+        if weights is not None:
+            weights = lib.check_input('weights', np.atleast_2d(weights), shape=shape)
+            self.depo['weights'] = weights
 
         # populate array
         dets = (lib.qp_det_t * n)()
@@ -609,6 +618,10 @@ class QMap(QPoint):
                 dets[idx].flag = lib.as_ctypes(flag[idx])
             else:
                 dets[idx].flag_init = 0
+            if weights is not None:
+                dets[idx].n = ns
+                dets[idx].weights_init = lib.QP_ARR_INIT_PTR
+                dets[idx].weights = lib.as_ctypes(weights[idx])
 
         detarr = lib.qp_detarr_t()
         detarr.n = n
@@ -631,6 +644,7 @@ class QMap(QPoint):
         self._detarr = None
         self.depo.pop('tod', None)
         self.depo.pop('flag', None)
+        self.depo.pop('weights', None)
 
     def reset(self):
         """
@@ -646,7 +660,7 @@ class QMap(QPoint):
             self.depo.pop(k)
 
     def from_tod(self, q_off, tod=None, count_hits=True, weight=None,
-                 gain=None, poleff=None, flag=None, do_diff=False,
+                 gain=None, poleff=None, flag=None, weights=None, do_diff=False,
                  **kwargs):
         """
         Calculate signal and hits maps for given detectors.
@@ -671,6 +685,8 @@ class QMap(QPoint):
           if not supplied.
         flag : array_like, optional
           array of flag timestreams for each channel, of shape (ndet, nsamp).
+        weights : array_like, optional
+          array of weight timestreams for each channel, of shape (ndet, nsamp).
         do_diff: do timestream differencing. Assumes first half of tods are
           one pair and the second half are the other.
 
@@ -688,8 +704,8 @@ class QMap(QPoint):
 
         # initialize detectors
         self.init_detarr(q_off, weight=weight, gain=gain, poleff=poleff,
-                         tod=tod, flag=flag, do_diff=do_diff)
-        
+                         tod=tod, flag=flag, weights=weights, do_diff=do_diff)
+
         # check modes
         return_vec = True
         if tod is None or tod is False or self.depo['vec'] is False:

@@ -127,6 +127,8 @@ class qp_det_t(ct.Structure):
         ('tod', ct.POINTER(ct.c_double)),
         ('flag_init', ct.c_int),
         ('flag', ct.POINTER(ct.c_uint8)),
+        ('weights_init', ct.c_int),
+        ('weights', ct.POINTER(ct.c_double)),
         ]
 qp_det_t_p = ct.POINTER(qp_det_t)
 

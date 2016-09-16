@@ -546,6 +546,8 @@ extern "C" {
     int flag_init;   // flag initialized?
     uint8_t *flag;   // flag array
 
+    int weights_init;   // weight tod initialized?
+    double *weights;    // weight tod array
   } qp_det_t;
 
   typedef struct {
@@ -660,6 +662,9 @@ extern "C" {
   void qp_init_det_tod_from_array(qp_det_t *det, double *tod, size_t n, int copy);
   void qp_init_det_flag(qp_det_t *det, size_t n);
   void qp_init_det_flag_from_array(qp_det_t *det, uint8_t *flag, size_t n, int copy);
+  void qp_init_det_weights(qp_det_t *det, size_t n);
+  void qp_init_det_weights_from_array(qp_det_t *det, double *weights, size_t n,
+                                      int copy);
   void qp_free_det(qp_det_t *det);
   qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *gain,
                                double *poleff, size_t n);
@@ -669,6 +674,9 @@ extern "C" {
   void qp_init_detarr_flag(qp_detarr_t *dets, size_t n);
   void qp_init_detarr_flag_from_array(qp_detarr_t *dets, uint8_t **flag,
                                       size_t n, int copy);
+  void qp_init_detarr_weights(qp_detarr_t *dets, size_t n);
+  void qp_init_detarr_weights_from_array(qp_detarr_t *dets, double **weights,
+                                         size_t n, int copy);
   void qp_free_detarr(qp_detarr_t *dets);
 
   /* initialize pointing */

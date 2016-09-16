@@ -27,6 +27,9 @@ qp_det_t * qp_init_det(quat_t q_off, double weight, double gain, double poleff) 
   det->flag_init = 0;
   det->flag = NULL;
 
+  det->weights_init = 0;
+  det->weights = NULL;
+
   det->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
   return det;
 }
@@ -72,11 +75,32 @@ void qp_init_det_flag_from_array(qp_det_t *det, uint8_t *flag, size_t n, int cop
   det->flag_init = QP_ARR_INIT_PTR;
 }
 
+void qp_init_det_weights(qp_det_t *det, size_t n) {
+  det->n = n;
+  det->weights = calloc(n, sizeof(double));
+  det->weights_init = QP_ARR_MALLOC_1D;
+}
+
+void qp_init_det_weights_from_array(qp_det_t *det, double *weights, size_t n,
+                                    int copy) {
+  if (copy) {
+    qp_init_det_weights(det, n);
+    memcpy(det->weights, weights, n * sizeof(double));
+    return;
+  }
+
+  det->n = n;
+  det->weights = weights;
+  det->weights_init = QP_ARR_INIT_PTR;
+}
+
 void qp_free_det(qp_det_t *det) {
   if (det->tod_init & QP_ARR_MALLOC_1D)
     free(det->tod);
   if (det->flag_init & QP_ARR_MALLOC_1D)
     free(det->flag);
+  if (det->weights_init & QP_ARR_MALLOC_1D)
+    free(det->weights);
   if (det->init & QP_STRUCT_MALLOC)
     free(det);
 }
@@ -102,6 +126,8 @@ qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *gain,
     det->tod = NULL;
     det->flag_init = 0;
     det->flag = NULL;
+    det->weights_init = 0;
+    det->weights = NULL;
     det->init = QP_STRUCT_INIT;
   }
 
@@ -143,10 +169,31 @@ void qp_init_detarr_flag_from_array(qp_detarr_t *dets, uint8_t **flag,
 }
 
 void qp_init_detarr_flag_from_array_1d(qp_detarr_t *dets, uint8_t *flag,
-                                      size_t n_chunk, int copy) {
+                                       size_t n_chunk, int copy) {
   for (int ii = 0; ii < dets->n; ii++) {
     qp_init_det_flag_from_array(dets->arr + ii, flag + ii * n_chunk,
-                               n_chunk, copy);
+                                n_chunk, copy);
+  }
+}
+
+void qp_init_detarr_weights(qp_detarr_t *dets, size_t n) {
+  for (int ii = 0; ii < dets->n; ii++) {
+    qp_init_det_weights(dets->arr + ii, n);
+  }
+}
+
+void qp_init_detarr_weights_from_array(qp_detarr_t *dets, double **weights,
+                                       size_t n, int copy) {
+  for (int ii = 0; ii < dets->n; ii++) {
+    qp_init_det_weights_from_array(dets->arr + ii, weights[ii], n, copy);
+  }
+}
+
+void qp_init_detarr_weights_from_array_1d(qp_detarr_t *dets, double *weights,
+                                          size_t n_chunk, int copy) {
+  for (int ii = 0; ii < dets->n; ii++) {
+    qp_init_det_weights_from_array(dets->arr + ii, weights + ii * n_chunk,
+                                   n_chunk, copy);
   }
 }
 
@@ -610,18 +657,19 @@ int qp_add_map(qp_memory_t *mem, qp_map_t *map, qp_map_t *maploc) {
 int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
                      qp_point_t *pnt, qp_map_t *map) {
 
-  double spp, cpp, spp_p, cpp_p, ctime;
+  double spp, cpp, spp_p, cpp_p, ctime, alpha, beta, delta;
   long ipix, ipix_p;
   quat_t q,q_p;
-  double w = det->weight;
+  double w0 = det->weight;
   double g = det->gain;
-  double wp = w * det->poleff;
-  //double wp2 = wp * det->poleff;
-  
-  double w_p = det_pair->weight;
+  double p = det->poleff;
+  double w = w0;
+
+  double w0_p = det_pair->weight;
   double g_p = det_pair->gain;
-  double wp_p = w * det_pair->poleff;
-  //double wp2_p = wp * det_pair->poleff;
+  double p_p = det_pair->poleff;
+  double w_p = w0_p;
+  double wd = 0.5 * (w + w_p);
 
   if (qp_check_error(mem, !mem->init, QP_ERROR_INIT,
                      "qp_tod2map1_diff: mem not initialized."))
@@ -651,7 +699,7 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
       return mem->error_code;
 
   for (int ii = 0; ii < pnt->n; ii++) {
-    /* if either samples are flagged then skip*/
+    /* if either samples are flagged then skip */
     if (det->flag_init || det_pair->flag_init){
       if(det->flag[ii] || det_pair->flag[ii]){
 	continue;
@@ -695,22 +743,27 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
       }
     }
 
+    if (det->weights_init)
+      w = w0 * det->weights[ii];
+    if (det_pair->weights_init)
+      w_p = w0_p * det_pair->weights[ii];
+    if (det->weights_init | det_pair->weights_init)
+      wd = 0.5 * (w + w_p);
+
+    alpha = p * cpp - p_p * cpp_p;
+    beta = p * spp - p_p * spp_p;
+
     if (det->tod_init && det_pair->tod_init && map->vec_init) {
+      delta = g * det->tod[ii] - g_p * det_pair->tod[ii];
+
       switch (map->vec_mode) {
       case QP_VEC_POL:
-	/*wp and wp_p should be the same here...set to lowest weight?*/
-	w = (w + w_p) * 0.5;
-	/*
-	  map->vec[1][ipix] += 0.5 * w * (wp * cpp - wp_p * cpp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);
-	map->vec[2][ipix] += 0.5 * w * (wp * spp - wp_p * spp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);
-	*/
-	map->vec[1][ipix] += 0.5 * w * w * (cpp - cpp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);                                                                                             
-        map->vec[2][ipix] += 0.5 * w * w * (spp - spp_p) * (g * det->tod[ii] - g_p * det_pair->tod[ii]);  
+        map->vec[1][ipix] += 0.5 * wd * alpha * delta;
+        map->vec[2][ipix] += 0.5 * wd * beta * delta;
 	/* fall through */
       case QP_VEC_TEMP:
-	//if(w_p < w) w = w_p;
-	w = (w + w_p) * 0.5;
-	map->vec[0][ipix] += 0.5 * w * w * (g * det->tod[ii] + g_p * det_pair->tod[ii]);
+        map->vec[0][ipix] += 0.5 * wd *
+          (g * det->tod[ii] + g_p * det_pair->tod[ii]);
 	break;
       default:
 	break;
@@ -720,21 +773,14 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
     if (map->proj_init) {
       switch(map->proj_mode) {
         case QP_PROJ_POL:
-	  w = (w + w_p) * 0.5;
           map->proj[1][ipix] += 0.;
           map->proj[2][ipix] += 0.;
-          /*
-	  map->proj[3][ipix] += 0.5 * w *(wp * cpp - wp_p * cpp_p) * (wp * cpp - wp_p * cpp_p);
-          map->proj[4][ipix] += 0.5 * w *(wp * spp - wp_p * spp_p) * (wp * cpp - wp_p * cpp_p);
-          map->proj[5][ipix] += 0.5 * w *(wp * spp - wp_p * spp_p) * (wp * spp - wp_p * spp_p);
-          */
-	  map->proj[3][ipix] += 0.5 * w * w * (cpp - cpp_p) * (cpp - cpp_p);                                                                                                               
-          map->proj[4][ipix] += 0.5 * w * w * (spp - spp_p) * (cpp - cpp_p);                                                                                                               
-          map->proj[5][ipix] += 0.5 * w * w * (spp - spp_p) * (spp - spp_p);    
+	  map->proj[3][ipix] += 0.5 * wd * alpha * alpha;
+          map->proj[4][ipix] += 0.5 * wd * alpha * beta;
+          map->proj[5][ipix] += 0.5 * wd * beta * beta;
 	  /* fall through */
         case QP_PROJ_TEMP:
-	  w = (w + w_p) * 0.5;
-          map->proj[0][ipix] += w * w;
+          map->proj[0][ipix] += wd;
           break;
         default:
           break;
@@ -750,10 +796,11 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
   double spp, cpp, ctime;
   long ipix;
   quat_t q;
-  double w = det->weight;
+  double w0 = det->weight;
   double g = det->gain;
-  double wp = w * det->poleff;
-  double wp2 = wp * det->poleff;
+  double wp0 = w0 * det->poleff;
+  double wp20 = wp0 * det->poleff;
+  double w = w0, wp = wp0, wp2 = wp20;
 
   if (qp_check_error(mem, !mem->init, QP_ERROR_INIT,
                      "qp_tod2map1: mem not initialized."))
@@ -778,7 +825,7 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
     if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
                        "qp_tod2map1: reshape error"))
       return mem->error_code;
-  // int jj = 0;
+
   for (int ii = 0; ii < pnt->n; ii++) {
     if (det->flag_init && det->flag[ii])
       continue;
@@ -806,10 +853,15 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
       }
     }
 
+    if (det->weights_init) {
+      w = w0 * det->weights[ii];
+      wp = wp0 * det->weights[ii];
+      wp2 = wp20 * det->weights[ii];
+    }
+
     if (det->tod_init && map->vec_init) {
       switch (map->vec_mode) {
         case QP_VEC_POL:
-	  //if(jj<1){jj++;printf("psi %d  %f \n",ii, atan2(spp,cpp)/2.0*180/3.1415);}
           map->vec[1][ipix] += wp * g * cpp * det->tod[ii];
           map->vec[2][ipix] += wp * g * spp * det->tod[ii];
           /* fall through */
