@@ -103,6 +103,7 @@ class qp_memory_t(ct.Structure):
         ('interp_pix', ct.c_int),
         ('fast_pix', ct.c_int),
         ('error_missing', ct.c_int),
+        ('nan_missing', ct.c_int),
         ('num_threads', ct.c_int),
         ('thread_num', ct.c_int),
         ]
@@ -573,6 +574,9 @@ check_get_fast_pix = check_get_bool
 check_set_error_missing = check_set_bool
 check_get_error_missing = check_get_bool
 
+check_set_nan_missing = check_set_bool
+check_get_nan_missing = check_get_bool
+
 check_set_interp_pix = check_set_bool
 check_get_interp_pix = check_get_bool
 
@@ -592,8 +596,9 @@ def check_set_thread_num(tn):
 def check_get_thread_num(tn):
     return tn
 
-options = ['accuracy','mean_aber','fast_math','polconv','pix_order',
-           'interp_pix','fast_pix','error_missing','num_threads','thread_num']
+options = ['accuracy', 'mean_aber', 'fast_math', 'polconv', 'pix_order',
+           'interp_pix', 'fast_pix', 'error_missing', 'nan_missing',
+           'num_threads', 'thread_num']
 option_funcs = dict()
 for p in options:
     option_funcs[p] = dict()

@@ -1076,6 +1076,8 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
           qp_set_error(mem, QP_ERROR_MAP,
                        "qp_map2tod1: pixel out of bounds");
           return mem->error_code;
+        } else if (mem->nan_missing) {
+          det->tod[ii] = 0.0 / 0.0;
         }
         continue;
       }
@@ -1088,6 +1090,8 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_set_error(mem, QP_ERROR_MAP,
                              "qp_map2tod1: neighbor pixel out of bounds");
                 return mem->error_code;
+              } else if (mem->nan_missing) {
+                det->tod[ii] = 0.0 / 0.0;
               }
               bad_pix = 1;
               break;

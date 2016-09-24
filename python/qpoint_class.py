@@ -99,6 +99,9 @@ class QPoint(object):
                        source map.
         fast_pix       If True, use vec2pix to get pixel number directly from
                        the quaternion instead of ang2pix from ra/dec.
+        error_missing  If True, raise an error if reading/writing missing pixels.
+        nan_missing    If True, fill samples from missing pixels with NaN.
+                       Only used if error_missing is False.
         num_threads    Number of threads for openMP bore2map computation
 
         * Weather:

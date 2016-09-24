@@ -31,6 +31,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->interp_pix = 0;
   mem->fast_pix = 0;
   mem->error_missing = 1;
+  mem->nan_missing = 0;
   mem->gal_init = 0;
   mem->dipole_init = 0;
   mem->thread_num = 0;
@@ -192,6 +193,7 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  opt: interp pix: %s\n", thread, mem->interp_pix ? "yes" : "no");
   printf("[%d]  opt: fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
   printf("[%d]  opt: error missing: %s\n", thread, mem->error_missing ? "yes" : "no");
+  printf("[%d]  opt: nan missing: %s\n", thread, mem->nan_missing ? "yes" : "no");
 
 #ifndef ENABLE_LITE
   printf("[%d]  opt: num threads: %d\n", thread, qp_get_opt_num_threads(mem));
@@ -293,6 +295,7 @@ OPTIONFUNCD(pix_order)
 OPTIONFUNCD(interp_pix)
 OPTIONFUNCD(fast_pix)
 OPTIONFUNCD(error_missing)
+OPTIONFUNCD(nan_missing)
 
 void qp_set_options(qp_memory_t *mem,
 		    int accuracy,
@@ -303,6 +306,7 @@ void qp_set_options(qp_memory_t *mem,
                     int interp_pix,
                     int fast_pix,
                     int error_missing,
+                    int nan_missing,
 		    int num_threads) {
   qp_set_opt_accuracy      (mem, accuracy);
   qp_set_opt_mean_aber     (mem, mean_aber);
@@ -312,6 +316,7 @@ void qp_set_options(qp_memory_t *mem,
   qp_set_opt_interp_pix    (mem, interp_pix);
   qp_set_opt_fast_pix      (mem, fast_pix);
   qp_set_opt_error_missing (mem, error_missing);
+  qp_set_opt_nan_missing   (mem, nan_missing);
 #ifndef ENABLE_LITE
   qp_set_opt_num_threads   (mem, num_threads);
 #endif
