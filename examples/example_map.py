@@ -80,7 +80,7 @@ print 'solving'
 # solve
 cond = Q.proj_cond()
 print cond.min(), cond.max()
-map_out = Q.solve_map_cho()
+map_out = Q.solve_map(fill=np.nan)
 print map_out.min(), map_out.max()
 
 print 'plotting'
