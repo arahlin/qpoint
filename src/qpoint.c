@@ -480,6 +480,20 @@ void qp_det_offsetn(double *delta_az, double *delta_el, double *delta_psi, quat_
     qp_det_offset(delta_az[ii], delta_el[ii], delta_psi[ii], q[ii]);
 }
 
+void qp_bore_offset(qp_memory_t *mem, quat_t *q_bore, double *ang1, double *ang2,
+                    double *ang3, int n, int post) {
+  quat_t q_off;
+  for (int ii=0; ii<n; ii++) {
+    if (!post) {
+      qp_det_offset(ang1[ii], ang2[ii], ang3[ii], q_off);
+      Quaternion_mul_right(q_bore[ii], q_off);
+    } else {
+      qp_radecpa2quat(mem, ang1[ii], ang2[ii], ang3[ii], q_off);
+      Quaternion_mul_left(q_off, q_bore[ii]);
+    }
+  }
+}
+
 void qp_bore2det(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
 		 quat_t q_det) {
   Quaternion_copy(q_det,q_off);

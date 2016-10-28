@@ -377,6 +377,32 @@ class QPoint(object):
             return quat[0]
         return quat
 
+    def bore_offset(self, q_bore, ang1=None, ang2=None, ang3=None,
+                    post=False, inplace=False):
+        """
+        Apply a fixed or variable offset to the boresight quaternion.
+
+        Arguments:
+
+        q_bore    boresight pointing quaternion
+        ang1      azimuthal or ra offset (degrees), scalar or array
+        ang2      elevation or dec offset (degrees), scalar or array
+        ang3      position angle offset (degrees), scalar or array
+        post      If False, apply offset as an az/el/pa pre-rotation
+                  If True, apply offset as an ra/dec/pa post-rotation
+        inplace   If True, apply the rotation in-place in memory.
+
+        Outputs:
+
+        q_bore    Offset boresight quaternion
+        """
+        q_bore = check_input('q_bore', np.atleast_2d(q_bore), inplace=inplace)
+        n = q_bore.shape[0]
+        ang1, ang2, ang3 = \
+            check_inputs(ang1, ang2, ang3, shape=(n,))
+        qp.qp_bore_offset(self._memory, q_bore, ang1, ang2, ang3, n, int(post))
+        return q_bore
+
     def hwp_quat(self, theta):
         """
         Return quaternion corresponding to rotation by 2*theta,

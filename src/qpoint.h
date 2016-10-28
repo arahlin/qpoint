@@ -367,6 +367,10 @@ extern "C" {
   void qp_det_offsetn(double *delta_az, double *delta_el, double *delta_psi,
 		      quat_t *q, int n);
 
+  /* Adjust boresight pointing by a variable quaternion */
+  void qp_bore_offset(qp_memory_t *mem, quat_t *q_bore, double *ang1, double *ang2,
+                      double *ang3, int n, int post);
+
   /* Compute ra/dec/pa from quaternion */
   void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
                        double *pa);

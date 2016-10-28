@@ -254,6 +254,8 @@ setargs('qp_azel2bore',
              wquat_t_p, ct.c_int))
 
 setargs('qp_det_offsetn', arg=(arr, arr, arr, wquat_t_p, ct.c_int))
+setargs('qp_bore_offset', arg=(qp_memory_t_p, wquat_t_p, arr, arr, arr,
+                               ct.c_int, ct.c_int))
 setargs('qp_hwp_quatn', arg=(arr, wquat_t_p, ct.c_int))
 setargs('qp_gmstn', arg=(qp_memory_t_p, arr, warr, ct.c_int))
 setargs('qp_lmstn', arg=(qp_memory_t_p, arr, arr, warr, ct.c_int))
