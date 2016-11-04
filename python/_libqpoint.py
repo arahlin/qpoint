@@ -646,8 +646,9 @@ def check_flags(arg):
             arg.flags['WRITEABLE'] << 2 |
             arg.flags['ALIGNED'] << 3)
 
-def check_input(name, arg, shape=None, dtype=np.double, inplace=True,
-                fill=0, allow_transpose=True, allow_tuple=True, output=False):
+def check_input(name, arg, shape=None, quat=False, dtype=np.double,
+                inplace=True, fill=0, allow_transpose=True,
+                allow_tuple=True, output=False):
     """
     Ensure input argument is an aligned array of the right type and shape.
 
@@ -659,6 +660,8 @@ def check_input(name, arg, shape=None, dtype=np.double, inplace=True,
         The argument itself
     shape : tuple, optional
         If supplied, ensure `arg` has this shape.
+    quat : bool, optional
+        If True, ensure that the last dimension of the array has length 4.
     dtype : numpy.dtype, optional
         Ensure `arg` is of this dtype.  Default: numpy.double.
     inplace : bool, optional
@@ -697,6 +700,8 @@ def check_input(name, arg, shape=None, dtype=np.double, inplace=True,
         arg = np.array(arg)
     if not isinstance(arg, np.ndarray):
         raise TypeError,'input {} must be of type numpy.ndarray'.format(name)
+    if quat and arg.shape[-1] != 4:
+        raise ValueError('input {} is not a valid quaternion array')
     if shape is not None:
         if arg.shape != shape:
             if arg.T.shape == shape and allow_transpose:

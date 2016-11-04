@@ -488,7 +488,7 @@ class QMap(QPoint):
             if point.init:
                 self.reset_point()
             point = self._point.contents
-            q_bore = lib.check_input('q_bore', q_bore)
+            q_bore = lib.check_input('q_bore', np.atleast_2d(q_bore), quat=True)
             n = q_bore.size / 4
             point.n = n
             self.depo['q_bore'] = q_bore
@@ -514,7 +514,7 @@ class QMap(QPoint):
             point.q_hwp_init = 0
             point.q_hwp = None
         elif q_hwp is not None:
-            q_hwp = lib.check_input('q_hwp', q_hwp, shape=(n, 4))
+            q_hwp = lib.check_input('q_hwp', q_hwp, shape=(n, 4), quat=True)
             self.depo['q_hwp'] = q_hwp
             point.q_hwp_init = lib.QP_ARR_INIT_PTR
             point.q_hwp = lib.as_ctypes(q_hwp)
@@ -572,7 +572,7 @@ class QMap(QPoint):
         self.reset_detarr()
 
         # check inputs
-        q_off = lib.check_input('q_off', np.atleast_2d(q_off))
+        q_off = lib.check_input('q_off', np.atleast_2d(q_off), quat=True)
         n = q_off.size / 4
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
         gain = lib.check_input('gain', gain, shape=(n,), fill=1)

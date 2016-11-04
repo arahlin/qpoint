@@ -338,10 +338,10 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off = check_input('q_off', q_off, shape=(4,))
+        q_off = check_input('q_off', q_off, shape=(4,), quat=True)
         ctime = check_input('ctime', ctime)
         n = ctime.size
-        q_bore = check_input('q_bore', q_bore, shape=(n, 4))
+        q_bore = check_input('q_bore', q_bore, shape=(n, 4), quat=True)
 
         dipole = check_output('dipole', shape=ctime.shape, **kwargs)
         qp.qp_bore2dipole(self._memory, q_off, ctime, q_bore, dipole, n)
@@ -396,7 +396,8 @@ class QPoint(object):
 
         q_bore    Offset boresight quaternion
         """
-        q_bore = check_input('q_bore', np.atleast_2d(q_bore), inplace=inplace)
+        q_bore = check_input('q_bore', np.atleast_2d(q_bore), quat=True,
+                             inplace=inplace)
         n = q_bore.shape[0]
         ang1, ang2, ang3 = \
             check_inputs(ang1, ang2, ang3, shape=(n,))
@@ -507,8 +508,8 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off  = check_input('q_off', q_off)
-        q_bore = check_input('q_bore', np.atleast_2d(q_bore))
+        q_off  = check_input('q_off', q_off, quat=True)
+        q_bore = check_input('q_bore', np.atleast_2d(q_bore), quat=True)
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError,'ctime required if mean_aber is False'
@@ -638,8 +639,7 @@ class QPoint(object):
 
         ra, dec, pa = check_inputs(ra, dec, pa)
         n = ra.size
-        quat = check_output('quat', shape=(n,4), dtype=np.double,
-                                **kwargs)
+        quat = check_output('quat', shape=(n,4), dtype=np.double, **kwargs)
         qp.qp_radecpa2quatn(self._memory, ra, dec, pa, quat, n)
 
         if n == 1:
@@ -652,7 +652,7 @@ class QPoint(object):
         """
         self.set(**kwargs)
 
-        quat = check_input('quat', np.atleast_2d(quat))
+        quat = check_input('quat', np.atleast_2d(quat), quat=True)
         n = quat.shape[0]
         ra = check_output('ra', shape=(n,), dtype=np.double, **kwargs)
         dec = check_output('dec', shape=(n,), dtype=np.double, **kwargs)
@@ -708,7 +708,8 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        quat = check_input('quat', np.atleast_2d(quat), inplace=inplace)
+        quat = check_input('quat', np.atleast_2d(quat), quat=True,
+                           inplace=inplace)
         n = quat.size / 4
 
         if coord[0] == 'C' and coord[1] == 'G':
@@ -851,7 +852,7 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        quat = check_input('quat', np.atleast_2d(quat))
+        quat = check_input('quat', np.atleast_2d(quat), quat=True)
 
         n = quat.shape[0]
         shape = (n,)
@@ -901,8 +902,8 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off  = check_input('q_off', q_off)
-        q_bore = check_input('q_bore', q_bore)
+        q_off  = check_input('q_off', q_off, quat=True)
+        q_bore = check_input('q_bore', q_bore, quat=True)
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError,'ctime required if mean_aber is False'
