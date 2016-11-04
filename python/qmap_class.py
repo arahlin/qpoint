@@ -150,7 +150,7 @@ class QMap(QPoint):
         return True
 
     def init_source(self, source_map, pol=True, pixels=None, nside=None,
-                    reset=False):
+                    reset=False, update=False):
         """
         Initialize the source map structure.  Timestreams are
         produced by scanning this map.
@@ -174,6 +174,10 @@ class QMap(QPoint):
             it is reset and re-initialized with the new map.  If False,
             a RuntimeError is raised if the structure has already been
             initialized.
+        update : bool, optional
+            If True, and if the structure has already been initialized,
+            the supplied vec and proj are replaced in the existing dest
+            structure rather than reinitializing from scratch.
 
         Notes
         -----
@@ -194,6 +198,19 @@ class QMap(QPoint):
         if self.source_is_init():
             if reset:
                 self.reset_source()
+
+            elif update:
+                source = self._source.contents
+                if source_map.squeeze().shape != \
+                        self.depo['source_map'].squeeze().shape:
+                    raise ValueError, 'source_map shape mismatch'
+                source_map, _ = check_map(source_map, partial=True)
+                source.vec1d = lib.as_ctypes(source_map.ravel())
+                self.depo['source_map'] = source_map
+                if qp.qp_reshape_map(self._source):
+                    raise RuntimeError, 'Error reshaping source map'
+                return
+
             else:
                 raise RuntimeError, 'source already initialized'
 
@@ -283,7 +300,7 @@ class QMap(QPoint):
         return True
 
     def init_dest(self, nside=None, pol=True, vec=None, proj=None, pixels=None,
-                  copy=False, reset=False):
+                  copy=False, reset=False, update=False):
         """
         Initialize the destination map structure.  Timestreams are binned
         and projection matrices accumulated into this structure.
@@ -315,6 +332,10 @@ class QMap(QPoint):
             it is reset and re-initialized with the new map.  If False,
             a RuntimeError is raised if the structure has already been
             initialized.
+        update : bool, optional
+            If True, and if the structure has already been initialized,
+            the supplied vec and proj are replaced in the existing dest
+            structure rather than reinitializing from scratch.
         """
 
         if vec is False and proj is False:
@@ -323,6 +344,40 @@ class QMap(QPoint):
         if self.dest_is_init():
             if reset:
                 self.reset_dest()
+
+            elif update:
+                # update map data with same shape
+
+                dest = self._dest.contents
+                ret = ()
+
+                if self.depo['vec'] is not False:
+                    if vec is None:
+                        vec = np.zeros_like(self.depo['vec'])
+                    if vec.squeeze().shape != self.depo['vec'].squeeze().shape:
+                        raise ValueError, 'vec shape mismatch'
+                    vec, _ = check_map(vec, partial=True)
+                    dest.vec1d = lib.as_ctypes(vec.ravel())
+                    self.depo['vec'] = vec
+                    ret += (vec.squeeze(),)
+
+                if self.depo['proj'] is not False:
+                    if proj is None:
+                        proj = np.zeros_like(self.depo['proj'])
+                    if proj.squeeze().shape != self.depo['proj'].squeeze().shape:
+                        raise ValueError, 'proj shape mismatch'
+                    proj, _ = check_map(proj, partial=True)
+                    dest.proj1d = lib.as_ctypes(proj.ravel())
+                    self.depo['proj'] = proj
+                    ret += (proj.squeeze(),)
+
+                if qp.qp_reshape_map(self._dest):
+                    raise RuntimeError, 'Error reshaping dest map'
+
+                if len(ret) == 1:
+                    return ret[0]
+                return ret
+
             else:
                 raise RuntimeError,'dest already initialized'
 
