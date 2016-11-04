@@ -85,7 +85,7 @@ class QMap(QPoint):
     on-the-fly.
     """
 
-    def __init__(self, nside=256, pol=True,
+    def __init__(self, nside=None, pol=True,
                  source_map=None, source_pol=True,
                  q_bore=None, ctime=None, q_hwp=None, **kwargs):
         """
@@ -95,7 +95,8 @@ class QMap(QPoint):
         Arguments
         ---------
         nside : int, optional
-            Resolution of the output maps. Default: 256
+            Resolution of the output maps. Default: None
+            If None, dest is not initialized.
         pol : bool, optional
             If True, output maps are polarized.
         source_map : array_like, optional
@@ -129,7 +130,8 @@ class QMap(QPoint):
 
         self.reset()
 
-        self.init_dest(nside=nside, pol=pol)
+        if nside is not None:
+            self.init_dest(nside=nside, pol=pol)
 
         if source_map is not None:
             self.init_source(source_map, pol=source_pol)
