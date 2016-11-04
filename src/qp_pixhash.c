@@ -93,14 +93,16 @@ qp_pixhash_t * qp_copy_pixhash(qp_pixhash_t *pixhash) {
 
 void qp_free_pixhash(qp_pixhash_t *pixhash) {
   qp_pix_bucket_t * bucket;
-  for (int ii = 0; ii < pixhash->count; ii++) {
-    bucket = pixhash->buckets + ii;
-    if (bucket->count == 0)
-      continue;
-    free(bucket->pairs);
+  if (pixhash->init & QP_STRUCT_MALLOC) {
+    for (int ii = 0; ii < pixhash->count; ii++) {
+      bucket = pixhash->buckets + ii;
+      if (bucket->count == 0)
+        continue;
+      free(bucket->pairs);
+    }
+    free(pixhash->buckets);
+    free(pixhash);
   }
-  free(pixhash->buckets);
-  free(pixhash);
 }
 
 long qp_repixelize(qp_pixhash_t *pixhash, long pix) {
