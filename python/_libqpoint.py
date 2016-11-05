@@ -744,9 +744,9 @@ def check_inputs(*args, **kwargs):
     return [check_input('input', np.atleast_1d(x), **kwargs)
             for x in np.broadcast_arrays(*args)]
 
-def check_output(name, arg=None, shape=None, dtype=np.double,
+def check_output(name, arg=None, shape=None, quat=False, dtype=np.double,
                  inplace=True, fill=None, allow_transpose=True,
-                  allow_tuple=True, **kwargs):
+                 allow_tuple=True, **kwargs):
     """
     Ensure that the output argument is properly aligned/shaped/typed.
     Check input kwargs to see if a pointer to the output array
@@ -788,5 +788,5 @@ def check_output(name, arg=None, shape=None, dtype=np.double,
     """
     if arg is None:
         arg = kwargs.pop(name, None)
-    return check_input(name, arg, shape, dtype, inplace, fill,
+    return check_input(name, arg, shape, quat, dtype, inplace, fill,
                        allow_transpose, allow_tuple, True)
