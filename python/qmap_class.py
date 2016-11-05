@@ -176,7 +176,7 @@ class QMap(QPoint):
             initialized.
         update : bool, optional
             If True, and if the structure has already been initialized,
-            the supplied vec and proj are replaced in the existing dest
+            the supplied source_map is replaced in the existing source
             structure rather than reinitializing from scratch.
 
         Notes
