@@ -539,28 +539,46 @@ qp_map_t * qp_init_map_from_map(qp_map_t *map, int blank, int copy) {
 // convert 1d map to 2d
 int qp_reshape_map(qp_map_t *map) {
   if (map->vec1d_init) {
+    int nvec = 1;
+    if (map->vec_init & QP_ARR_MALLOC_1D)
+      nvec = sizeof(map->vec) / sizeof(double *);
+    if (map->vec_init & QP_ARR_MALLOC_2D) {
+      for (int ii = 0; ii < nvec; ii++)
+        free(map->vec[ii]);
+      map->vec_init &= ~QP_ARR_MALLOC_2D;
+    }
+    if (map->vec_init & QP_ARR_MALLOC_1D) {
+      if (nvec != map->num_vec) {
+        free(map->vec);
+        map->vec_init &= ~QP_ARR_MALLOC_1D;
+      }
+    }
     if (!(map->vec_init & QP_ARR_MALLOC_1D)) {
       map->vec = malloc(map->num_vec * sizeof(double *));
       map->vec_init |= QP_ARR_MALLOC_1D;
-    }
-    if (map->vec_init & QP_ARR_MALLOC_2D) {
-      for (int ii = 0; ii < map->num_vec; ii++)
-        free(map->vec[ii]);
-      map->vec_init &= ~QP_ARR_MALLOC_2D;
     }
     for (int ii = 0; ii < map->num_vec; ii++)
       map->vec[ii] = map->vec1d + ii * map->npix;
   }
 
   if (map->proj1d_init) {
+    int nproj = 1;
+    if (map->proj_init & QP_ARR_MALLOC_1D)
+      nproj = sizeof(map->proj) / sizeof(double *);
+    if (map->proj_init & QP_ARR_MALLOC_2D) {
+      for (int ii = 0; ii < nproj; ii++)
+        free(map->proj[ii]);
+      map->proj_init &= ~QP_ARR_MALLOC_2D;
+    }
+    if (map->proj_init & QP_ARR_MALLOC_1D) {
+      if (nproj != map->num_proj) {
+        free(map->proj);
+        map->proj_init &= ~QP_ARR_MALLOC_1D;
+      }
+    }
     if (!(map->proj_init & QP_ARR_MALLOC_1D)) {
       map->proj = malloc(map->num_proj * sizeof(double *));
       map->proj_init |= QP_ARR_MALLOC_1D;
-    }
-    if (map->proj_init & QP_ARR_MALLOC_2D) {
-      for (int ii = 0; ii < map->num_proj; ii++)
-        free(map->proj[ii]);
-      map->proj_init &= ~QP_ARR_MALLOC_2D;
     }
     for (int ii = 0; ii < map->num_proj; ii++)
       map->proj[ii] = map->proj1d + ii * map->npix;

@@ -333,6 +333,8 @@ setargs('qp_update_ref', arg=(qp_memory_t_p, quat_t, ct.c_double),
         res=ct.c_double)
 
 def get_vec_mode(map_in=None, pol=True):
+    if pol is None:
+        pol = True
     if map_in is False:
         return QP_VEC_NONE
     if map_in is None:
@@ -346,6 +348,8 @@ def get_vec_mode(map_in=None, pol=True):
     return mode
 
 def get_proj_mode(proj_in=None, pol=True):
+    if pol is None:
+        pol = True
     if proj_in is False:
         return QP_PROJ_NONE
     if proj_in is None:

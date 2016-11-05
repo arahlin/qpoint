@@ -201,10 +201,12 @@ class QMap(QPoint):
 
             elif update:
                 source = self._source.contents
-                if source_map.squeeze().shape != \
-                        self.depo['source_map'].squeeze().shape:
+                if source_map.squeeze().shape[-1] != \
+                        self.depo['source_map'].squeeze().shape[-1]:
                     raise ValueError, 'source_map shape mismatch'
                 source_map, _ = check_map(source_map, partial=True)
+                source.num_vec = len(source_map)
+                source.vec_mode = lib.get_vec_mode(source_map, pol)
                 source.vec1d = lib.as_ctypes(source_map.ravel())
                 self.depo['source_map'] = source_map
                 if qp.qp_reshape_map(self._source):
@@ -354,9 +356,12 @@ class QMap(QPoint):
                 if self.depo['vec'] is not False:
                     if vec is None:
                         vec = np.zeros_like(self.depo['vec'])
-                    if vec.squeeze().shape != self.depo['vec'].squeeze().shape:
+                    if vec.squeeze().shape[-1] != \
+                            self.depo['vec'].squeeze().shape[-1]:
                         raise ValueError, 'vec shape mismatch'
-                    vec, _ = check_map(vec, partial=True)
+                    vec, _ = check_map(vec, copy=copy, partial=True)
+                    dest.num_vec = len(vec)
+                    dest.vec_mode = lib.get_vec_mode(vec, pol)
                     dest.vec1d = lib.as_ctypes(vec.ravel())
                     self.depo['vec'] = vec
                     ret += (vec.squeeze(),)
@@ -364,9 +369,12 @@ class QMap(QPoint):
                 if self.depo['proj'] is not False:
                     if proj is None:
                         proj = np.zeros_like(self.depo['proj'])
-                    if proj.squeeze().shape != self.depo['proj'].squeeze().shape:
+                    if proj.squeeze().shape[-1] != \
+                            self.depo['proj'].squeeze().shape[-1]:
                         raise ValueError, 'proj shape mismatch'
-                    proj, _ = check_map(proj, partial=True)
+                    proj, _ = check_map(proj, copy=copy, partial=True)
+                    dest.num_proj = len(proj)
+                    destl.proj_mode = lib.get_proj_mode(proj, pol)
                     dest.proj1d = lib.as_ctypes(proj.ravel())
                     self.depo['proj'] = proj
                     ret += (proj.squeeze(),)
