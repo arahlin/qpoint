@@ -1,4 +1,4 @@
-VPATH=../sofa:.
+VPATH=../sofa:../chealpix:.
 DEBUG = -g
 # DEBUG =
 CC = gcc
@@ -8,32 +8,11 @@ CC = gcc
 ifneq ($(shell which gfortran), )
 ifeq ($(DISABLE_SLAREFRO), )
 ifeq ($(ENABLE_LITE), )
-VPATH = ../sofa:../slarefro:.
+VPATH = ../sofa:../chealpix:../slarefro:.
 SLAINC = -I../slarefro -DENABLE_SLAREFRO
 SLALIB = -L../slarefro -lslarefro
 endif
 endif
-endif
-
-ifeq ($(HEALPIX), )
-HPXINC =
-HPXLIB = -lchealpix
-else
-HPXINC = -I$(HEALPIX)/include
-HPXLIB = -L$(HEALPIX)/lib -lchealpix
-endif
-
-ifeq ($(EXTERNAL_CFITSIO), yes)
-ifeq ($(CFITSIO_EXT_PREFIX), )
-CFITSINC = -I$(CFITSIO_EXT_INC)
-CFITSLIB = -L$(dir $(CFITSIO_EXT_LIB)) -l$(notdir $(CFITSIO_EXT_LIB))
-else
-CFITSINC = -I$(CFITSIO_EXT_PREFIX)/include
-CFITSLIB = -L$(CFITSIO_EXT_PREFIX)/lib -lcfitsio
-endif
-else
-CFITSINC =
-CFITSLIB = -lcfitsio
 endif
 
 LIBNAME_FULL = libqpoint
@@ -42,14 +21,14 @@ LIBNAME_LITE = libqpntlt
 QP_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 ifneq ($(ENABLE_LITE), )
-CFITSINC =
-CFITSLIB =
 HPXINC =
 HPXLIB =
 PFLAGS = -DENABLE_LITE
 LIBNAME = $(LIBNAME_LITE)
 OBJNAME = -lt.o
 else
+HPXINC = -I../chealpix
+HPXLIB = -L../chealpix -lchealpix_qp
 PFLAGS =
 LIBNAME = $(LIBNAME_FULL)
 OBJNAME = .o
@@ -65,8 +44,8 @@ endif
 
 CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -DQP_VERSION=\"$(QP_VERSION)\"
 # add some options even when CFLAGS overridden on command line
-override CFLAGS += -std=c99 -I. -I../sofa $(SLAINC) $(PFLAGS) -I/usr/local/include -I/opt/local/include $(HPXINC) $(CFITSINC) -fPIC $(OPENMP)
-LDFLAGS = -L../sofa -lsofa_c $(SLALIB) -L/opt/local/lib $(HPXLIB) $(CFITSLIB) $(OPENMP_LD)
+override CFLAGS += -std=c99 -I. -I../sofa $(SLAINC) $(HPXINC) $(PFLAGS) -fPIC $(OPENMP)
+LDFLAGS = -L../sofa -lsofa_c $(SLALIB) $(HPXLIB) $(OPENMP_LD)
 
 SRCS = $(filter-out %iers_bulletin_a.c, $(wildcard *.c)) qp_iers_bulletin_a.c
 

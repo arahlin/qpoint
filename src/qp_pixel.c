@@ -6,7 +6,7 @@
 #include "fast_math.h"
 #include "vec3.h"
 #include "quaternion.h"
-#include <chealpix.h>
+#include "chealpix.h"
 
 /* Compute healpix pixel number for given nside and ra/dec */
 long qp_radec2pix(qp_memory_t *mem, double ra, double dec, int nside) {
@@ -367,7 +367,7 @@ int get_interpol_ring(qp_pixinfo_t *pixinfo, double theta, double phi,
   }
   long ir2 = ir1 + 1;
 
-  double theta1, theta2, w1, tmp, dphi;
+  double theta1=0, theta2=0, w1, tmp, dphi;
   long sp, nr;
   int shift;
   long i1, i2;

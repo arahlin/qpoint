@@ -6,7 +6,7 @@
 #include "fast_math.h"
 #include "vec3.h"
 #include "quaternion.h"
-#include <chealpix.h>
+#include "chealpix.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
