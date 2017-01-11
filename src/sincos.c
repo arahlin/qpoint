@@ -23,10 +23,10 @@ static const double two_over_pi= 2.0/M_PI;		// 2/pi
 static const double halfpi=M_PI/2.0;			// pi divided by 2
 static const double threehalfpi=3.0*M_PI/2.0;  	// pi times 3/2, used in tan routines
 static const double four_over_pi=4.0/M_PI;		// 4/pi, used in tan routines
-static const double qtrpi=M_PI/4.0;			// pi/4.0, used in tan routines
+// static const double qtrpi=M_PI/4.0;			// pi/4.0, used in tan routines
 static const double sixthpi=M_PI/6.0;			// pi/6.0, used in atan routines
 static const double tansixthpi=0.57735026918962562;	// tan(pi/6), used in atan routines
-static const double twelfthpi=M_PI/12.0;		// pi/12.0, used in atan routines
+// static const double twelfthpi=M_PI/12.0;		// pi/12.0, used in atan routines
 static const double tantwelfthpi=0.2679491924311227;	// tan(pi/12), used in atan routines
 
 // *********************************************************
