@@ -19,12 +19,16 @@ libsofa_file = 'sofa/libsofa_c.a'
 if not os.path.exists(libsofa_file):
     os.system('make -C sofa')
 
+libchealpix_file = 'chealpix/libchealpix_qp.a'
+if not os.path.exists(libchealpix_file):
+    os.system('make -C chealpix')
+
 sp.check_call('make -C src qp_iers_bulletin_a.c'.split())
 src = [x for x in glob.glob('src/*.c')]
 src = filter(lambda x: not x.endswith('iers_bulletin_a.c'), src)
 src += ['src/qp_iers_bulletin_a.c']
-incl_dirs = ['src','sofa']
-extra_obj = [libsofa_file]
+incl_dirs = ['src','sofa','chealpix']
+extra_obj = [libsofa_file, libchealpix_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC', varg]
 
 # do different stuff if using intel copmilers
@@ -40,37 +44,6 @@ if os.path.exists(libslarefro_file):
     incl_dirs.append('slarefro')
     extra_obj.append(libslarefro_file)
     extra_args.append('-DENABLE_SLAREFRO')
-
-hpx = os.getenv('HEALPIX','').strip()
-if hpx:
-    extra_obj.append(os.path.join(hpx,'lib/libchealpix.a'))
-    incl_dirs.append(os.path.join(hpx,'include'))
-
-    # deal with cfitsio library using the standard environment variables
-    ext_cfits = os.getenv('EXTERNAL_CFITSIO','').strip()
-    if ext_cfits == 'yes':
-        ext_pref = os.getenv('CFITSIO_EXT_PREFIX','').strip()
-        if ext_pref:
-            extra_obj.append(os.path.join(ext_pref,'lib/libcfitsio.a'))
-            incl_dirs.append(os.path.join(ext_pref,'include'))
-        else:
-            ext_lib = os.getenv('CFITSIO_EXT_LIB','').strip()
-            if ext_lib:
-                extra_obj.append(ext_lib)
-            ext_inc = os.getenv('CFITSIO_EXT_INC','').strip()
-            if ext_inc:
-                incl_dirs.append(ext_inc)
-    else:
-        # location on Feynman if no CFITS variable set
-        warn('Hardcoded path to libcfitsio, consider using the appropriate ' \
-             'environment variables (see README)', Warning)
-        cflib = '/usr/lib64/libcfitsio.so'
-        if os.path.exists(cflib):
-            extra_obj.append(cflib)
-else:
-    warn('Blindly trying to link against chealpix, consider using the ' \
-         'appropriate environment variables (see README)', Warning)
-    libs.append('chealpix')
 
 # this isn't technically an extension...
 # hack to make a shared library to install with the package
