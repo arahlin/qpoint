@@ -374,7 +374,7 @@ class QMap(QPoint):
                         raise ValueError, 'proj shape mismatch'
                     proj, _ = check_map(proj, copy=copy, partial=True)
                     dest.num_proj = len(proj)
-                    destl.proj_mode = lib.get_proj_mode(proj, pol)
+                    dest.proj_mode = lib.get_proj_mode(proj, pol)
                     dest.proj1d = lib.as_ctypes(proj.ravel())
                     self.depo['proj'] = proj
                     ret += (proj.squeeze(),)
