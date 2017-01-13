@@ -721,8 +721,7 @@ class QMap(QPoint):
         self.reset_dest()
         self.reset_point()
         self.reset_detarr()
-        for k in self.depo:
-            self.depo.pop(k)
+        self.depo.clear()
 
     def from_tod(self, q_off, tod=None, count_hits=True, weight=None,
                  gain=None, poleff=None, flag=None, weights=None, do_diff=False,
