@@ -102,6 +102,8 @@ class QPoint(object):
         error_missing  If True, raise an error if reading/writing missing pixels.
         nan_missing    If True, fill samples from missing pixels with NaN.
                        Only used if error_missing is False.
+        interp_missing If True and interp_pix is True, drop missing neighbors
+                       and reweight remaining neighbors.  Overrides nan_missing.
         num_threads    Number of threads for openMP bore2map computation
 
         * Weather:

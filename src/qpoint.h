@@ -88,6 +88,7 @@ extern "C" {
     int fast_pix;          // use vec2pix instead of ang2pix in binners
     int error_missing;     // raise an error when reading/writing missing pixels
     int nan_missing;       // set missing samples to NaN (used if !error_missing)
+    int interp_missing;    // drop missing neighbors when interp_pix=1
     int num_threads;       // number of parallel threads
     int thread_num;        // current thread number
 
@@ -163,6 +164,7 @@ extern "C" {
                       int fast_pix,
                       int error_missing,
                       int nan_missing,
+                      int interp_missing,
 		      int num_threads);
 
 #define OPTIONFUNC(opt)                                 \
@@ -177,6 +179,7 @@ extern "C" {
   OPTIONFUNC(fast_pix);
   OPTIONFUNC(error_missing);
   OPTIONFUNC(nan_missing);
+  OPTIONFUNC(interp_missing);
 #ifndef ENABLE_LITE
   OPTIONFUNC(num_threads);
   OPTIONFUNC(thread_num);

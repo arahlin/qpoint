@@ -1053,7 +1053,8 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
   int do_interp = (mem->interp_pix &&               \
                    (map->vec_mode == QP_VEC_TEMP || \
                     map->vec_mode == QP_VEC_POL));
-  int jj, bad_pix = 0;
+  int jj, kk, bad_pix = 0;
+  double norm1, norm2;
 
   if (map->vec1d_init && !map->vec_init)
     if (qp_check_error(mem, qp_reshape_map(map), QP_ERROR_INIT,
@@ -1108,14 +1109,40 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_set_error(mem, QP_ERROR_MAP,
                              "qp_map2tod1: neighbor pixel out of bounds");
                 return mem->error_code;
-              } else if (mem->nan_missing) {
-                det->tod[ii] = 0.0 / 0.0;
+              } else if (mem->interp_missing) {
+                /* compute normalization with/without bad neighbors */
+                norm1 = 0.0;
+                norm2 = 0.0;
+                for (kk = 0; kk < 4; kk++) {
+                  norm1 += weight[kk];
+                  if (kk != jj)
+                    norm2 += weight[kk];
+                }
+                /* clear pix/weight for bad neighbor */
+                pix[jj] = 0;
+                weight[jj] = 0;
+                /* renormalize */
+                for (kk = 0; kk < 4; kk++) {
+                  if (kk != jj)
+                    weight[kk] *= norm1 / norm2;
+                }
+                /* count bad neighbors */
+                bad_pix += 1;
+              } else {
+                bad_pix = 1;
+                break;
               }
-              bad_pix = 1;
-              break;
             }
           }
-          if (bad_pix) continue;
+          /* at least one good neighbor remains, so this sample is ok */
+          if (mem->interp_missing && bad_pix < 4)
+            bad_pix = 0;
+          /* fill bad sample with nan or just skip it */
+          if (bad_pix) {
+            if (mem->nan_missing)
+              det->tod[ii] = 0.0 / 0.0;
+            continue;
+          }
       }
     }
 
