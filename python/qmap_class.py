@@ -595,7 +595,7 @@ class QMap(QPoint):
         self.depo.pop('q_hwp', None)
         self._point = ct.pointer(lib.qp_point_t())
 
-    def init_detarr(self, q_off, weight=None, gain=None, poleff=None, tod=None,
+    def init_detarr(self, q_off, weight=None, gain=None, mueller=None, tod=None,
                     flag=None, weights=None, do_diff=False, write=False):
         """
         Initialize the detector listing structure.  Detector properties and
@@ -611,9 +611,9 @@ class QMap(QPoint):
         gain : array_like, optional
             Per-channel gains, of shape (ndet,) or a constant.
             Default : 1.
-        poleff : array_like, optional
-            Per-channel polarization efficiencies, of shape(ndet,) or a constant.
-            Default: 1.
+        mueller : array_like, optional
+            Per-channel polarization efficiencies, of shape(ndet, 3).
+            Default : [1., 1., 0.] per det.
         tod : array_like, optional
             Timestream array, of shape (ndet, nsamp).  nsamp must match that of
             the pointing structure.  If not supplied and `write` is True, then
@@ -641,7 +641,8 @@ class QMap(QPoint):
         n = q_off.size / 4
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
         gain = lib.check_input('gain', gain, shape=(n,), fill=1)
-        poleff = lib.check_input('poleff', poleff, shape=(n,), fill=1)
+        mueller = lib.check_input('mueller', np.atleast_2d(mueller),
+                                  shape=(n, 3), fill=np.array([[1, 1, 0]]))
 
         ns = self._point.contents.n
         shape = (n, ns)
@@ -665,12 +666,12 @@ class QMap(QPoint):
 
         # populate array
         dets = (lib.qp_det_t * n)()
-        for idx, (q, w, g, p) in enumerate(zip(q_off, weight, gain, poleff)):
+        for idx, (q, w, g, m) in enumerate(zip(q_off, weight, gain, mueller)):
             dets[idx].init = lib.QP_STRUCT_INIT
             dets[idx].q_off = lib.as_ctypes(q)
             dets[idx].weight = w
             dets[idx].gain = g
-            dets[idx].poleff = p
+            dets[idx].mueller = lib.as_ctypes(m)
             if tod is not None:
                 dets[idx].n = ns
                 dets[idx].tod_init = lib.QP_ARR_INIT_PTR
@@ -724,7 +725,7 @@ class QMap(QPoint):
         self.depo.clear()
 
     def from_tod(self, q_off, tod=None, count_hits=True, weight=None,
-                 gain=None, poleff=None, flag=None, weights=None, do_diff=False,
+                 gain=None, mueller=None, flag=None, weights=None, do_diff=False,
                  **kwargs):
         """
         Calculate signal and hits maps for given detectors.
@@ -744,9 +745,9 @@ class QMap(QPoint):
         gain : array_like, optional
             Per-channel gains, of shape (ndet,) or a constant.
             Default : 1.
-        poleff : array_like, optional
-          array of polarization efficiencies, of shape (ndet,).  Defaults to 1
-          if not supplied.
+        mueller : array_like, optional
+          array of Mueller matrix A/B/C elements, of shape (ndet,3).  Defaults to
+          [1, 1, 0] per channel if not supplied.
         flag : array_like, optional
           array of flag timestreams for each channel, of shape (ndet, nsamp).
         weights : array_like, optional
@@ -767,7 +768,7 @@ class QMap(QPoint):
         self.set(**kwargs)
 
         # initialize detectors
-        self.init_detarr(q_off, weight=weight, gain=gain, poleff=poleff,
+        self.init_detarr(q_off, weight=weight, gain=gain, mueller=mueller,
                          tod=tod, flag=flag, weights=weights, do_diff=do_diff)
 
         # check modes
@@ -810,7 +811,7 @@ class QMap(QPoint):
             return ret[0]
         return ret
 
-    def to_tod(self, q_off, gain=None, poleff=None, tod=None, flag=None, **kwargs):
+    def to_tod(self, q_off, gain=None, mueller=None, tod=None, flag=None, **kwargs):
         """
         Calculate signal TOD from source map for multiple channels.
 
@@ -821,9 +822,9 @@ class QMap(QPoint):
         gain : array_like, optional
             Per-channel gains, of shape (ndet,) or a constant.
             Default : 1.
-        poleff : array_like, optional
-          array of polarization efficiencies, of shape (ndet,).  Defaults to 1
-          if not supplied.
+        mueller : array_like, optional
+          array of Mueller matrix A/B/C elements, of shape (ndet, 3).  Defaults t
+          [1, 1, 0] per channel if not supplied.
         tod : array_like, optional
           output array for timestreams, of shape (ndet, nsamp)
           use this keyword argument for in-place computation.
@@ -840,7 +841,7 @@ class QMap(QPoint):
         self.set(**kwargs)
 
         # initialize detectors
-        self.init_detarr(q_off, gain=gain, poleff=poleff, tod=tod, flag=flag,
+        self.init_detarr(q_off, gain=gain, mueller=mueller, tod=tod, flag=flag,
                          write=True)
 
         # run

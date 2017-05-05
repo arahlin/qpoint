@@ -13,6 +13,9 @@ extern "C" {
   /* Quaternion */
   typedef double quat_t[4];
 
+  /* Mueller element vector */
+  typedef double mueller_t[3];
+
   /* 3-vector */
   typedef double vec3_t[3];
 
@@ -546,7 +549,7 @@ extern "C" {
     quat_t q_off;    // offset quaternion
     double weight;   // det weight
     double gain;     // det gain
-    double poleff;   // polarization efficiency
+    mueller_t mueller;  // mueller matrix parameters
 
     size_t n;        // samples
 
@@ -666,7 +669,7 @@ extern "C" {
   } qp_map_t;
 
   /* initialize detectors */
-  qp_det_t * qp_init_det(quat_t q_off, double weight, double gain, double poleff);
+  qp_det_t * qp_init_det(quat_t q_off, double weight, double gain, mueller_t mueller);
   qp_det_t * qp_default_det(void);
   void qp_init_det_tod(qp_det_t *det, size_t n);
   void qp_init_det_tod_from_array(qp_det_t *det, double *tod, size_t n, int copy);
@@ -677,7 +680,7 @@ extern "C" {
                                       int copy);
   void qp_free_det(qp_det_t *det);
   qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *gain,
-                               double *poleff, size_t n);
+                               mueller_t *mueller, size_t n);
   void qp_init_detarr_tod(qp_detarr_t *dets, size_t n);
   void qp_init_detarr_tod_from_array(qp_detarr_t *dets, double **tod,
                                      size_t n, int copy);
