@@ -14,7 +14,7 @@ extern "C" {
   typedef double quat_t[4];
 
   /* Mueller element vector */
-  typedef double mueller_t[3];
+  typedef double mueller_t[4];
 
   /* 3-vector */
   typedef double vec3_t[3];
@@ -567,7 +567,7 @@ extern "C" {
     int init;        // initialized?
     size_t n;        // number of dets
     int arr_init;    // array init?
-    size_t diff; //do differencing?
+    size_t diff;     //do differencing?
     qp_det_t *arr;   // array
 
   } qp_detarr_t;
@@ -591,6 +591,7 @@ extern "C" {
     QP_VEC_NONE = 0,  // no map
     QP_VEC_TEMP,      // unpolarized (T-only)
     QP_VEC_POL,       // polarized
+    QP_VEC_VPOL,      // polarized + V-pol
     QP_VEC_D1,        // unpolarized + 1st derivs
     QP_VEC_D1_POL,    // polarized + 1st derivs
     QP_VEC_D2,        // unpolarized + 2nd derivs
@@ -601,7 +602,8 @@ extern "C" {
   typedef enum {
     QP_PROJ_NONE = 0, // no projection
     QP_PROJ_TEMP,     // unpolarized (hits-only)
-    QP_PROJ_POL       // polarized
+    QP_PROJ_POL,      // polarized
+    QP_PROJ_VPOL      // polarized + V-pol
   } qp_proj_mode;
 
   typedef struct {

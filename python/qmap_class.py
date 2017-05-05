@@ -74,7 +74,7 @@ def check_proj(proj_in, copy=False, partial=False):
         error if an integer solution is not found.
     """
     proj_out, nside = check_map(proj_in, copy=copy, partial=partial)
-    nmap = int(np.roots([1, 1, - 2 * len(proj_out)]).max())
+    nmap = int((np.sqrt(8 * len(proj_out) + 1) - 1) / 2)
     if (nmap * (nmap + 1) /2 != len(proj_out)):
         raise ValueError, 'proj has incompatible shape'
     return proj_out, nside, nmap
@@ -85,8 +85,8 @@ class QMap(QPoint):
     on-the-fly.
     """
 
-    def __init__(self, nside=None, pol=True,
-                 source_map=None, source_pol=True,
+    def __init__(self, nside=None, pol=True, vpol=False,
+                 source_map=None, source_pol=True, source_vpol=False,
                  q_bore=None, ctime=None, q_hwp=None, **kwargs):
         """
         Initialize the internal structures and data depo for
@@ -99,12 +99,16 @@ class QMap(QPoint):
             If None, dest is not initialized.
         pol : bool, optional
             If True, output maps are polarized.
+        vpol : bool, optional
+            If True, output maps contain V polarization.
         source_map : array_like, optional
             If supplied, passed to `init_source()` to initialize
             the source map structure.
         source_pol : bool, optional
             If True, source_map is polarized.  See `init_source()`
             for details.
+        source_vpol : bool, optional
+            If True, source_map contains V polarization.
         q_bore, ctime, q_hwp : array_like, optional
             Boresight pointing data.  See `init_point()` for details.
             If not supplied, the pointing structure is left
@@ -131,10 +135,10 @@ class QMap(QPoint):
         self.reset()
 
         if nside is not None:
-            self.init_dest(nside=nside, pol=pol)
+            self.init_dest(nside=nside, pol=pol, vpol=vpol)
 
         if source_map is not None:
-            self.init_source(source_map, pol=source_pol)
+            self.init_source(source_map, pol=source_pol, vpol=source_vpol)
 
         if q_bore is not None:
             self.init_point(q_bore, ctime=ctime, q_hwp=q_hwp)
@@ -150,7 +154,7 @@ class QMap(QPoint):
         return True
 
     def init_source(self, source_map, pol=True, pixels=None, nside=None,
-                    reset=False, update=False):
+                    vpol=False, reset=False, update=False):
         """
         Initialize the source map structure.  Timestreams are
         produced by scanning this map.
@@ -169,6 +173,9 @@ class QMap(QPoint):
         nside : int, optional
             map dimension.  If `pixels` is supplied, this argument is required.
             Otherwise, the nside is determined from the input map.
+        vpol : bool, optional
+            If True, and the input map shape is (4, npix), then input is
+            a polarized map that includes V polarization.
         reset : bool, optional
             If True, and if the structure has already been initialized,
             it is reset and re-initialized with the new map.  If False,
@@ -189,6 +196,7 @@ class QMap(QPoint):
         N     map_in contents
         1  :  T
         3  :  (T, Q, U) --or-- (T, dTdt, dTdp)
+        4  :  (T, Q, U, V)
         6  :  (T, dTdt, dTdp) + (dT2dt2, dT2dpdt, dT2dp2)
         9  :  (T, Q, U) + (dTdt, dQdt, dUdt, dTdp, dQdp, dUdp)
         18 :  (N=9) + (dT2dt2, dQ2dt2, dU2dt2, dT2dpdt, dQ2dpdt, dU2dpdt,
@@ -206,7 +214,7 @@ class QMap(QPoint):
                     raise ValueError, 'source_map shape mismatch'
                 source_map, _ = check_map(source_map, partial=True)
                 source.num_vec = len(source_map)
-                source.vec_mode = lib.get_vec_mode(source_map, pol)
+                source.vec_mode = lib.get_vec_mode(source_map, pol, vpol)
                 source.vec1d = lib.as_ctypes(source_map.ravel())
                 self.depo['source_map'] = source_map
                 if qp.qp_reshape_map(self._source):
@@ -247,7 +255,7 @@ class QMap(QPoint):
         source.pixhash_init = 0
         source.pixhash = None
         source.num_vec = len(source_map)
-        source.vec_mode = lib.get_vec_mode(smap, pol)
+        source.vec_mode = lib.get_vec_mode(smap, pol, vpol)
         source.vec1d = lib.as_ctypes(smap.ravel())
         source.vec1d_init = lib.QP_ARR_INIT_PTR
         source.vec = None
@@ -287,9 +295,20 @@ class QMap(QPoint):
         if not self.source_is_init():
             raise RuntimeError, 'source map not initialized'
 
-        if self._source.contents.vec_mode in [2,4,6]:
+        if self._source.contents.vec_mode in [2,3,5,7]:
             return True
         return False
+
+    def source_is_vpol(self):
+        """
+        Return True if the source map contains V polarization,
+        otherwise False.
+        Raise an error if source map is not initialized.
+        """
+        if not self.source_is_init():
+            raise RuntimeError, 'source map not initialized'
+
+        return self._source.contents.vec_mode == 3
 
     def dest_is_init(self):
         """
@@ -302,7 +321,7 @@ class QMap(QPoint):
         return True
 
     def init_dest(self, nside=None, pol=True, vec=None, proj=None, pixels=None,
-                  copy=False, reset=False, update=False):
+                  vpol=False, copy=False, reset=False, update=False):
         """
         Initialize the destination map structure.  Timestreams are binned
         and projection matrices accumulated into this structure.
@@ -326,6 +345,8 @@ class QMap(QPoint):
         pixels : 1D array_like, optional
             Array of pixel numbers for each map index, if `vec` and `proj` are
             partial maps.
+        vpol : bool, optional
+            If True, a polarized map including V polarization will be created.
         copy : bool, optional
             If True and vec/proj are supplied, make copies of these inputs
             to avoid in-place operations.
@@ -361,7 +382,7 @@ class QMap(QPoint):
                         raise ValueError, 'vec shape mismatch'
                     vec, _ = check_map(vec, copy=copy, partial=True)
                     dest.num_vec = len(vec)
-                    dest.vec_mode = lib.get_vec_mode(vec, pol)
+                    dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
                     dest.vec1d = lib.as_ctypes(vec.ravel())
                     self.depo['vec'] = vec
                     ret += (vec.squeeze(),)
@@ -374,7 +395,7 @@ class QMap(QPoint):
                         raise ValueError, 'proj shape mismatch'
                     proj, _ = check_map(proj, copy=copy, partial=True)
                     dest.num_proj = len(proj)
-                    dest.proj_mode = lib.get_proj_mode(proj, pol)
+                    dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
                     dest.proj1d = lib.as_ctypes(proj.ravel())
                     self.depo['proj'] = proj
                     ret += (proj.squeeze(),)
@@ -401,7 +422,9 @@ class QMap(QPoint):
             partial = True
 
         if vec is None:
-            if pol:
+            if vpol:
+                vec = np.zeros((4, npix), dtype=np.double)
+            elif pol:
                 vec = np.zeros((3, npix), dtype=np.double)
             else:
                 vec = np.zeros((1, npix), dtype=np.double)
@@ -412,13 +435,20 @@ class QMap(QPoint):
                 npix = hp.nside2npix(nside)
             if len(vec) == 1:
                 pol = False
+                vpol = False
             elif len(vec) == 3:
                 pol = True
+                vpol = False
+            elif len(vec) == 4:
+                pol = True
+                vpol = True
             else:
                 raise ValueError('vec has incompatible shape')
 
         if proj is None:
-            if pol:
+            if vpol:
+                proj = np.zeros((10, npix), dtype=np.double)
+            elif pol:
                 proj = np.zeros((6, npix), dtype=np.double)
             else:
                 proj = np.zeros((1, npix), dtype=np.double)
@@ -428,15 +458,20 @@ class QMap(QPoint):
             if vec is not False:
                 if pnmap != len(vec):
                     raise ValueError('proj has incompatible shape')
-                if len(proj) != [1,6][pol]:
+                if len(proj) != [[1,6][pol],10][vpol]:
                     raise ValueError('proj has incompatible shape')
                 if pnside != nside:
                     raise ValueError('proj has incompatible nside')
             else:
                 if len(proj) == 1:
                     pol = False
+                    vpol = False
                 elif len(proj) == 6:
                     pol = True
+                    vpol = False
+                elif len(proj) == 10:
+                    pol = True
+                    vpol = True
                 else:
                     raise ValueError('proj has incompatible shape')
                 if not partial:
@@ -463,13 +498,13 @@ class QMap(QPoint):
         dest.pixhash = None
         if vec is not False:
             dest.num_vec = len(vec)
-            dest.vec_mode = lib.get_vec_mode(vec, pol)
+            dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
             dest.vec1d = lib.as_ctypes(vec.ravel())
             dest.vec1d_init = lib.QP_ARR_INIT_PTR
             ret += (vec.squeeze(),)
         if proj is not False:
             dest.num_proj = len(proj)
-            dest.proj_mode = lib.get_proj_mode(proj, pol)
+            dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
             dest.proj1d = lib.as_ctypes(proj.ravel())
             dest.proj1d_init = lib.QP_ARR_INIT_PTR
             ret += (proj.squeeze(),)
@@ -513,6 +548,21 @@ class QMap(QPoint):
             raise RuntimeError, 'dest map not initialized'
 
         if 2 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
+            return True
+        if 3 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
+            return True
+        return False
+
+    def dest_is_vpol(self):
+        """
+        Return True if the destination map contains V polarization,
+        otherwise False.
+        Raise an error if destination map is not initialized.
+        """
+        if not self.dest_is_init():
+            raise RuntimeError, 'dest map not initialized'
+
+        if 3 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
             return True
         return False
 
@@ -642,7 +692,7 @@ class QMap(QPoint):
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
         gain = lib.check_input('gain', gain, shape=(n,), fill=1)
         mueller = lib.check_input('mueller', np.atleast_2d(mueller),
-                                  shape=(n, 3), fill=np.array([[1, 1, 0]]))
+                                  shape=(n, 4), fill=np.array([[1, 1, 0, 0]]))
 
         ns = self._point.contents.n
         shape = (n, ns)

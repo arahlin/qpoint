@@ -14,7 +14,7 @@ NDP = np.ctypeslib.ndpointer
 
 quat_t = NDP(np.double, ndim=1, shape=(4,), flags=['A','C'])
 quat_t_p = NDP(np.double, ndim=2, flags=['A','C'])
-mueller_t = NDP(np.double, ndim=1, shape=(3,), flags=['A','C'])
+mueller_t = NDP(np.double, ndim=1, shape=(4,), flags=['A','C'])
 mueller_t_p = NDP(np.double, ndim=2, flags=['A', 'C'])
 vec3_t = NDP(np.double, ndim=1, shape=(3,), flags=['A','C'])
 vec3_t_p = NDP(np.double, ndim=2, flags=['A','C'])
@@ -125,7 +125,7 @@ class qp_det_t(ct.Structure):
         ('q_off', ct.c_double * 4),
         ('weight', ct.c_double),
         ('gain', ct.c_double),
-        ('mueller', ct.c_double * 3),
+        ('mueller', ct.c_double * 4),
         ('n', ct.c_size_t),
         ('tod_init', ct.c_int),
         ('tod', ct.POINTER(ct.c_double)),
@@ -163,13 +163,15 @@ qp_vec_mode = ct.c_uint
 QP_VEC_NONE = 0
 QP_VEC_TEMP = 1
 QP_VEC_POL = 2
-QP_VEC_D1 = 3
-QP_VEC_D1_POL = 4
-QP_VEC_D2 = 5
-QP_VEC_D2_POL = 6
+QP_VEC_VPOL = 3
+QP_VEC_D1 = 4
+QP_VEC_D1_POL = 5
+QP_VEC_D2 = 6
+QP_VEC_D2_POL = 7
 vec_modes = {1  : QP_VEC_TEMP,
              3  : {True  : QP_VEC_POL,
                    False : QP_VEC_D1},
+             4  : QP_VEC_VPOL,
              6  : QP_VEC_D2,
              9  : QP_VEC_D1_POL,
              18 : QP_VEC_D2_POL}
@@ -178,8 +180,10 @@ qp_proj_mode = ct.c_uint
 QP_PROJ_NONE = 0
 QP_PROJ_TEMP = 1
 QP_PROJ_POL = 2
-proj_modes = {1 : QP_PROJ_TEMP,
-              6 : QP_PROJ_POL}
+QP_PROJ_VPOL = 3
+proj_modes = {1  : QP_PROJ_TEMP,
+              6  : QP_PROJ_POL,
+              10 : QP_PROJ_VPOL}
 
 class qp_map_t(ct.Structure):
     _fields_ = [
@@ -335,13 +339,13 @@ setargs('qp_refraction', arg=(ct.c_double,) * 9, res=ct.c_double)
 setargs('qp_update_ref', arg=(qp_memory_t_p, quat_t, ct.c_double),
         res=ct.c_double)
 
-def get_vec_mode(map_in=None, pol=True):
+def get_vec_mode(map_in=None, pol=True, vpol=False):
     if pol is None:
         pol = True
     if map_in is False:
         return QP_VEC_NONE
     if map_in is None:
-        return QP_VEC_POL if pol else QP_VEC_TEMP
+        return QP_VEC_VPOL if vpol else QP_VEC_POL if pol else QP_VEC_TEMP
     n = len(map_in)
     if n not in vec_modes:
         raise ValueError, 'Unrecognized map'
@@ -350,13 +354,13 @@ def get_vec_mode(map_in=None, pol=True):
         mode = mode[bool(pol)]
     return mode
 
-def get_proj_mode(proj_in=None, pol=True):
+def get_proj_mode(proj_in=None, pol=True, vpol=False):
     if pol is None:
         pol = True
     if proj_in is False:
         return QP_PROJ_NONE
     if proj_in is None:
-        return QP_PROJ_POL if pol else QP_PROJ_TEMP
+        return QP_PROJ_VPOL if vpol else QP_PROJ_POL if pol else QP_PROJ_TEMP
     n = len(proj_in)
     if n not in proj_modes:
         raise ValueError, 'Unrecognized proj'

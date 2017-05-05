@@ -36,7 +36,7 @@ qp_det_t * qp_init_det(quat_t q_off, double weight, double gain, mueller_t muell
 
 qp_det_t * qp_default_det(void) {
   quat_t q = {1, 0, 0, 0};
-  mueller_t m = {1, 1, 0};
+  mueller_t m = {1, 1, 0, 0};
   return qp_init_det(q, 1.0, 1.0, m);
 }
 
@@ -292,6 +292,9 @@ void qp_num_maps(qp_vec_mode vec_mode, qp_proj_mode proj_mode,
     case QP_VEC_POL:
       nm = 3;
       break;
+    case QP_VEC_VPOL:
+      nm = 4;
+      break;
     case QP_VEC_D1_POL:
       nm = 6;
       break;
@@ -313,6 +316,9 @@ void qp_num_maps(qp_vec_mode vec_mode, qp_proj_mode proj_mode,
       break;
     case QP_PROJ_POL:
       np = 6;
+      break;
+    case QP_PROJ_VPOL:
+      np = 10;
       break;
     default:
       np = 0;
@@ -676,7 +682,9 @@ int qp_add_map(qp_memory_t *mem, qp_map_t *map, qp_map_t *maploc) {
 int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
                      qp_point_t *pnt, qp_map_t *map) {
 
-  double spp, cpp, spp_p, cpp_p, ctime, alpha, beta, delta, walpha, wbeta;
+  double spp, cpp, spp_p, cpp_p, ctime, delta;
+  double alpha = 0, beta = 0, gamma = 0;
+  double walpha = 0, wbeta = 0, wgamma = 0;
   long ipix, ipix_p;
   quat_t q,q_p;
   double w0 = det->weight;
@@ -766,17 +774,27 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
     if (det->weights_init | det_pair->weights_init)
       wd = 0.5 * (w + w_p);
 
-    alpha = m[1] * cpp - m[2] * spp - (m_p[1] * cpp_p - m_p[2] * spp_p);
-    beta = m[2] * cpp + m[1] * spp - (m_p[2] * cpp_p + m_p[1] * spp_p);
-    if (!mem->polconv)
-      beta *= -1;
-    walpha = 0.5 * wd * alpha;
-    wbeta = 0.5 * wd * beta;
+    if ((map->vec_mode >= QP_VEC_POL) || (map->proj_mode >= QP_PROJ_POL)) {
+      alpha = m[1] * cpp - m[2] * spp - (m_p[1] * cpp_p - m_p[2] * spp_p);
+      beta = m[2] * cpp + m[1] * spp - (m_p[2] * cpp_p + m_p[1] * spp_p);
+      if (!mem->polconv)
+        beta *= -1;
+      walpha = 0.5 * wd * alpha;
+      wbeta = 0.5 * wd * beta;
+    }
+
+    if ((map->vec_mode == QP_VEC_VPOL) || (map->proj_mode == QP_PROJ_VPOL)) {
+      gamma = m[3] * cpp - m_p[3] * cpp_p;
+      wgamma = 0.5 * wd * gamma;
+    }
 
     if (det->tod_init && det_pair->tod_init && map->vec_init) {
       delta = g * det->tod[ii] - g_p * det_pair->tod[ii];
 
       switch (map->vec_mode) {
+      case QP_VEC_VPOL:
+        map->vec[3][ipix] += wgamma * delta;
+        /* fall through */
       case QP_VEC_POL:
         map->vec[1][ipix] += walpha * delta;
         map->vec[2][ipix] += wbeta * delta;
@@ -789,9 +807,21 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
 	break;
       }
     }
-    
+
     if (map->proj_init) {
       switch(map->proj_mode) {
+        case QP_PROJ_VPOL:
+          map->proj[0][ipix] += wd * mtd;
+          map->proj[1][ipix] += 0.;
+          map->proj[2][ipix] += 0.;
+          map->proj[3][ipix] += 0.;
+          map->proj[4][ipix] += walpha * alpha;
+          map->proj[5][ipix] += walpha * beta;
+          map->proj[6][ipix] += walpha * gamma;
+          map->proj[7][ipix] += wbeta * beta;
+          map->proj[8][ipix] += wbeta * gamma;
+          map->proj[9][ipix] += wgamma * gamma;
+          break;
         case QP_PROJ_POL:
           map->proj[1][ipix] += 0.;
           map->proj[2][ipix] += 0.;
@@ -819,7 +849,8 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
   double w0 = det->weight;
   double g = det->gain, gd;
   double *m = det->mueller;
-  double w1, mt = m[0], mq, mu, wmt = w0 * m[0], wmq, wmu;
+  double w1, mt = m[0], mq = 0, mu = 0, mv = m[3];
+  double wmt = w0 * m[0], wmq = 0, wmu = 0, wmv = w0 * m[3];
 
   if (qp_check_error(mem, !mem->init, QP_ERROR_INIT,
                      "qp_tod2map1: mem not initialized."))
@@ -873,21 +904,29 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
     if (det->weights_init) {
       w1 = w0 * det->weights[ii];
       wmt = w1 * m[0];
+      if ((map->vec_mode == QP_VEC_VPOL) || (map->proj_mode == QP_PROJ_VPOL)) {
+        wmv = w1 * m[3];
+      }
     } else {
       w1 = w0;
     }
 
-    mq = m[1] * cpp - m[2] * spp;
-    mu = m[2] * cpp + m[1] * spp;
-    if (!mem->polconv)
-      mu *= -1;
-    wmq = w1 * mq;
-    wmu = w1 * mu;
+    if ((map->vec_mode >= QP_VEC_POL) || (map->proj_mode >= QP_PROJ_POL)) {
+      mq = m[1] * cpp - m[2] * spp;
+      mu = m[2] * cpp + m[1] * spp;
+      if (!mem->polconv)
+        mu *= -1;
+      wmq = w1 * mq;
+      wmu = w1 * mu;
+    }
 
     if (det->tod_init && map->vec_init) {
       gd = g * det->tod[ii];
 
       switch (map->vec_mode) {
+        case QP_VEC_VPOL:
+          map->vec[3][ipix] += wmv * gd;
+          /* fall through */
         case QP_VEC_POL:
           map->vec[1][ipix] += wmq * gd;
           map->vec[2][ipix] += wmu * gd;
@@ -902,6 +941,18 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
 
     if (map->proj_init) {
       switch(map->proj_mode) {
+        case QP_PROJ_VPOL:
+          map->proj[0][ipix] += wmt * mt;
+          map->proj[1][ipix] += wmt * mq;
+          map->proj[2][ipix] += wmt * mu;
+          map->proj[3][ipix] += wmt * mv;
+          map->proj[4][ipix] += wmq * mq;
+          map->proj[5][ipix] += wmq * mu;
+          map->proj[6][ipix] += wmq * mv;
+          map->proj[7][ipix] += wmu * mu;
+          map->proj[8][ipix] += wmu * mv;
+          map->proj[9][ipix] += wmv * mv;
+          break;
         case QP_PROJ_POL:
           map->proj[1][ipix] += wmt * mq;
           map->proj[2][ipix] += wmt * mu;
@@ -1021,6 +1072,8 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 #define DATUM(n) (mt * _DATUM(n))
 #define POLDATUM(n) \
   (mt * _DATUM(n) + mq * _DATUM(n+1) + mu * _DATUM(n+2))
+#define VPOLDATUM(n) \
+  (POLDATUM(n) + mv * _DATUM(n+3))
 #define _IDATUM(n) \
   (map->vec[n][pix[0]] * weight[0] + \
    map->vec[n][pix[1]] * weight[1] + \
@@ -1029,6 +1082,8 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 #define IDATUM(n) (mt * _IDATUM(n))
 #define IPOLDATUM(n) \
   (mt * _IDATUM(n) + mq * _IDATUM(n+1) + mu * _IDATUM(n+2))
+#define IVPOLDATUM(n) \
+  (IPOLDATUM(n) + mv * _IDATUM(n+3))
 
 int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                 qp_map_t *map) {
@@ -1062,10 +1117,11 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
   double weight[4];
   double g = det->gain;
   double *m = det->mueller;
-  double mt = m[0], mq, mu;
+  double mt = m[0], mq = 0, mu = 0, mv = m[3];
   int do_interp = (mem->interp_pix &&               \
                    (map->vec_mode == QP_VEC_TEMP || \
-                    map->vec_mode == QP_VEC_POL));
+                    map->vec_mode == QP_VEC_POL ||  \
+                    map->vec_mode == QP_VEC_VPOL));
   int jj, kk, bad_pix = 0;
   double norm1, norm2;
 
@@ -1157,12 +1213,20 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
       }
     }
 
-    mq = m[1] * cpp - m[2] * spp;
-    mu = m[2] * cpp + m[1] * spp;
-    if (!mem->polconv)
-      mu *= -1;
+    if ((map->vec_mode >= QP_VEC_POL) || (map->proj_mode >= QP_PROJ_POL)) {
+      mq = m[1] * cpp - m[2] * spp;
+      mu = m[2] * cpp + m[1] * spp;
+      if (!mem->polconv)
+        mu *= -1;
+    }
 
     switch (map->vec_mode) {
+      case QP_VEC_VPOL:
+        if (do_interp)
+          det->tod[ii] += g * IVPOLDATUM(0);
+        else
+          det->tod[ii] += g * VPOLDATUM(0);
+        break;
       case QP_VEC_D2_POL:
         det->tod[ii] += g * (dphi * dphi * POLDATUM(15)
                              + dtheta * dphi * POLDATUM(12)
