@@ -18,7 +18,13 @@ INSTALL_SLAR_USER = install-$(SLAR)-user
 UNINSTALL_SLAR = uninstall-$(SLAR)
 endif
 
-LOCALPREFIX=$(HOME)/.local
+LOCALPREFIX = $(HOME)/.local
+
+ifeq ($(PREFIX), )
+PYTHONPREFIX = 
+else
+PYTHONPREFIX = --prefix=$(PREFIX)
+endif
 
 default: all
 
@@ -68,7 +74,7 @@ python: sofa $(SLAR) chealpix
 	CC=$(CC) python setup.py build
 
 install-python: python
-	python setup.py install
+	python setup.py install $(PYTHONPREFIX)
 
 install-qpoint: qpoint install-sofa $(INSTALL_SLAR) install-chealpix
 	make -C src install
@@ -84,7 +90,7 @@ install: install-qpoint install-python
 install-all: install-qpoint install-python
 
 install-python-user: python
-	python setup.py install --user
+	python setup.py install --prefix=$(LOCALPREFIX)
 
 install-sofa-user: sofa
 	PREFIX=$(LOCALPREFIX) make -C sofa install
