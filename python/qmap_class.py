@@ -692,7 +692,7 @@ class QMap(QPoint):
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
         gain = lib.check_input('gain', gain, shape=(n,), fill=1)
         mueller = lib.check_input('mueller', np.atleast_2d(mueller),
-                                  shape=(n, 4), fill=np.array([[1, 1, 0, 0]]))
+                                  shape=(n, 4), fill=np.array([[1, 1, 0, 1]]))
 
         ns = self._point.contents.n
         shape = (n, ns)

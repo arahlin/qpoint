@@ -36,7 +36,7 @@ qp_det_t * qp_init_det(quat_t q_off, double weight, double gain, mueller_t muell
 
 qp_det_t * qp_default_det(void) {
   quat_t q = {1, 0, 0, 0};
-  mueller_t m = {1, 1, 0, 0};
+  mueller_t m = {1, 1, 0, 1};
   return qp_init_det(q, 1.0, 1.0, m);
 }
 
