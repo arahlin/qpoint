@@ -348,7 +348,7 @@ def get_vec_mode(map_in=None, pol=True, vpol=False):
         return QP_VEC_VPOL if vpol else QP_VEC_POL if pol else QP_VEC_TEMP
     n = len(map_in)
     if n not in vec_modes:
-        raise ValueError, 'Unrecognized map'
+        raise ValueError('Unrecognized map')
     mode = vec_modes[n]
     if isinstance(mode, dict):
         mode = mode[bool(pol)]
@@ -363,7 +363,7 @@ def get_proj_mode(proj_in=None, pol=True, vpol=False):
         return QP_PROJ_VPOL if vpol else QP_PROJ_POL if pol else QP_PROJ_TEMP
     n = len(proj_in)
     if n not in proj_modes:
-        raise ValueError, 'Unrecognized proj'
+        raise ValueError('Unrecognized proj')
     mode = proj_modes[n]
     if isinstance(mode, dict):
         mode = mode[bool(pol)]
@@ -439,12 +439,12 @@ setargs('qp_map2tod',
 
 def check_set_float(val):
     if not np.isscalar(val):
-        raise TypeError,'val must be a scalar value'
+        raise TypeError('val must be a scalar value')
     return float(val)
 
 def check_set_int(val):
     if not np.isscalar(val):
-        raise TypeError,'val must be a scalar value'
+        raise TypeError('val must be a scalar value')
     return int(val)
 
 def check_pass(val):
@@ -703,7 +703,7 @@ def check_input(name, arg, shape=None, quat=False, dtype=np.double,
     """
     if arg is None:
         if shape is None:
-            raise ValueError,'need shape to initialize input!'
+            raise ValueError('need shape to initialize input!')
         if fill is None:
             arg = np.empty(shape, dtype=dtype)
         else:
@@ -713,7 +713,7 @@ def check_input(name, arg, shape=None, quat=False, dtype=np.double,
     if np.isscalar(arg):
         arg = np.array(arg)
     if not isinstance(arg, np.ndarray):
-        raise TypeError,'input {} must be of type numpy.ndarray'.format(name)
+        raise TypeError('input {} must be of type numpy.ndarray'.format(name))
     if quat and arg.shape[-1] != 4:
         raise ValueError('input {} is not a valid quaternion array')
     if shape is not None:

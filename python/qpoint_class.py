@@ -45,7 +45,7 @@ class QPoint(object):
         of parameter names.
         """
         if key not in self._all_funcs:
-            raise KeyError,'Unknown parameter {}'.format(key)
+            raise KeyError('Unknown parameter {}'.format(key))
         val = self._all_funcs[key]['check_set'](val)
         self._all_funcs[key]['set'](self._memory, val)
 
@@ -55,7 +55,7 @@ class QPoint(object):
         parameter names.
         """
         if key not in self._all_funcs:
-            raise KeyError,'Unknown parameter {}'.format(key)
+            raise KeyError('Unknown parameter {}'.format(key))
         val = self._all_funcs[key]['get'](self._memory)
         return self._all_funcs[key]['check_get'](val)
 
@@ -514,7 +514,7 @@ class QPoint(object):
         q_bore = check_input('q_bore', np.atleast_2d(q_bore), quat=True)
         if ctime is None:
             if not self.get('mean_aber'):
-                raise ValueError,'ctime required if mean_aber is False'
+                raise ValueError('ctime required if mean_aber is False')
             ctime = np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = check_input('ctime', ctime)
         pars = dict(shape=ctime.shape, dtype=np.double)
@@ -835,7 +835,7 @@ class QPoint(object):
             coord_in = coord[0]
             coord_out = coord[1]
         except:
-            raise ValueError,'unable to parse coord'
+            raise ValueError('unable to parse coord')
 
         map_in_p = lib.pointer_2d(map_in)
         map_out_p = lib.pointer_2d(map_out)
@@ -908,7 +908,7 @@ class QPoint(object):
         q_bore = check_input('q_bore', q_bore, quat=True)
         if ctime is None:
             if not self.get('mean_aber'):
-                raise ValueError,'ctime required if mean_aber is False'
+                raise ValueError('ctime required if mean_aber is False')
             ctime = np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
         ctime  = check_input('ctime', ctime)
         pix  = check_output('pix', shape=ctime.shape,

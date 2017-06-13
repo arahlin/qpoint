@@ -76,7 +76,7 @@ def check_proj(proj_in, copy=False, partial=False):
     proj_out, dim2 = check_map(proj_in, copy=copy, partial=partial)
     nmap = int((np.sqrt(8 * len(proj_out) + 1) - 1) / 2)
     if (nmap * (nmap + 1) /2 != len(proj_out)):
-        raise ValueError, 'proj has incompatible shape'
+        raise ValueError('proj has incompatible shape')
     return proj_out, dim2, nmap
 
 class QMap(QPoint):
@@ -211,25 +211,25 @@ class QMap(QPoint):
                 source = self._source.contents
                 if source_map.squeeze().shape[-1] != \
                         self.depo['source_map'].squeeze().shape[-1]:
-                    raise ValueError, 'source_map shape mismatch'
+                    raise ValueError('source_map shape mismatch')
                 source_map, _ = check_map(source_map, partial=True)
                 source.num_vec = len(source_map)
                 source.vec_mode = lib.get_vec_mode(source_map, pol, vpol)
                 source.vec1d = lib.as_ctypes(source_map.ravel())
                 self.depo['source_map'] = source_map
                 if qp.qp_reshape_map(self._source):
-                    raise RuntimeError, 'Error reshaping source map'
+                    raise RuntimeError('Error reshaping source map')
                 return
 
             else:
-                raise RuntimeError, 'source already initialized'
+                raise RuntimeError('source already initialized')
 
         if pixels is None:
             partial = False
         else:
             partial = True
             if nside is None:
-                raise ValueError, 'nside required for partial maps'
+                raise ValueError('nside required for partial maps')
 
         # check map shape and create pointer
         smap, snside = check_map(source_map, partial=partial)
@@ -270,10 +270,10 @@ class QMap(QPoint):
 
         if partial:
             if qp.qp_init_map_pixhash(self._source, pixels, npix):
-                raise RuntimeError, 'Error initializing source pixhash'
+                raise RuntimeError('Error initializing source pixhash')
 
         if qp.qp_reshape_map(self._source):
-            raise RuntimeError, 'Error reshaping source map'
+            raise RuntimeError('Error reshaping source map')
 
     def reset_source(self):
         """
@@ -293,7 +293,7 @@ class QMap(QPoint):
         Raise an error if source map is not initialized.
         """
         if not self.source_is_init():
-            raise RuntimeError, 'source map not initialized'
+            raise RuntimeError('source map not initialized')
 
         if self._source.contents.vec_mode in [2,3,5,7]:
             return True
@@ -306,7 +306,7 @@ class QMap(QPoint):
         Raise an error if source map is not initialized.
         """
         if not self.source_is_init():
-            raise RuntimeError, 'source map not initialized'
+            raise RuntimeError('source map not initialized')
 
         return self._source.contents.vec_mode == 3
 
@@ -379,7 +379,7 @@ class QMap(QPoint):
                         vec = np.zeros_like(self.depo['vec'])
                     if vec.squeeze().shape[-1] != \
                             self.depo['vec'].squeeze().shape[-1]:
-                        raise ValueError, 'vec shape mismatch'
+                        raise ValueError('vec shape mismatch')
                     vec, _ = check_map(vec, copy=copy, partial=True)
                     dest.num_vec = len(vec)
                     dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
@@ -392,7 +392,7 @@ class QMap(QPoint):
                         proj = np.zeros_like(self.depo['proj'])
                     if proj.squeeze().shape[-1] != \
                             self.depo['proj'].squeeze().shape[-1]:
-                        raise ValueError, 'proj shape mismatch'
+                        raise ValueError('proj shape mismatch')
                     proj, _ = check_map(proj, copy=copy, partial=True)
                     dest.num_proj = len(proj)
                     dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
@@ -401,14 +401,14 @@ class QMap(QPoint):
                     ret += (proj.squeeze(),)
 
                 if qp.qp_reshape_map(self._dest):
-                    raise RuntimeError, 'Error reshaping dest map'
+                    raise RuntimeError('Error reshaping dest map')
 
                 if len(ret) == 1:
                     return ret[0]
                 return ret
 
             else:
-                raise RuntimeError,'dest already initialized'
+                raise RuntimeError('dest already initialized')
 
         if pixels is None:
             if nside is None:
@@ -417,7 +417,7 @@ class QMap(QPoint):
             partial = False
         else:
             if nside is None:
-                raise ValueError, 'nside required for partial maps'
+                raise ValueError('nside required for partial maps')
             npix = len(pixels)
             partial = True
 
@@ -522,10 +522,10 @@ class QMap(QPoint):
 
         if partial:
             if qp.qp_init_map_pixhash(self._dest, pixels, npix):
-                raise RuntimeError, 'Error initializing dest pixhash'
+                raise RuntimeError('Error initializing dest pixhash')
 
         if qp.qp_reshape_map(self._dest):
-            raise RuntimeError, 'Error reshaping dest map'
+            raise RuntimeError('Error reshaping dest map')
 
         # return
         if len(ret) == 1:
@@ -551,7 +551,7 @@ class QMap(QPoint):
         Raise an error if destination map is not initialized.
         """
         if not self.dest_is_init():
-            raise RuntimeError, 'dest map not initialized'
+            raise RuntimeError('dest map not initialized')
 
         if 2 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
             return True
@@ -566,7 +566,7 @@ class QMap(QPoint):
         Raise an error if destination map is not initialized.
         """
         if not self.dest_is_init():
-            raise RuntimeError, 'dest map not initialized'
+            raise RuntimeError('dest map not initialized')
 
         if 3 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
             return True
@@ -618,7 +618,7 @@ class QMap(QPoint):
             point.init = lib.QP_STRUCT_INIT
 
         if not point.init:
-            raise RuntimeError, 'point not initialized'
+            raise RuntimeError('point not initialized')
 
         n = point.n
 
@@ -834,7 +834,7 @@ class QMap(QPoint):
         return_proj = True
         if not count_hits or self.depo['proj'] is False:
             if return_vec is False:
-                raise RuntimeError, 'Nothing to do'
+                raise RuntimeError('Nothing to do')
             return_proj = False
 
         # cache modes
@@ -848,7 +848,7 @@ class QMap(QPoint):
 
         # run
         if qp.qp_tod2map(self._memory, self._detarr, self._point, self._dest):
-            raise RuntimeError, qp.qp_get_error_string(self._memory)
+            raise RuntimeError(qp.qp_get_error_string(self._memory))
 
         # reset modes
         dest.vec_mode = vec_mode
@@ -902,7 +902,7 @@ class QMap(QPoint):
 
         # run
         if qp.qp_map2tod(self._memory, self._detarr, self._point, self._source):
-            raise RuntimeError, qp.qp_get_error_string(self._memory)
+            raise RuntimeError(qp.qp_get_error_string(self._memory))
         tod = self.depo.pop('tod')
 
         # clean up
@@ -937,7 +937,7 @@ class QMap(QPoint):
         if proj is None:
             proj = self.depo['proj']
         if proj is None or proj is False:
-            raise ValueError, 'missing proj'
+            raise ValueError('missing proj')
         proj, _, nmap = check_proj(proj, copy=True, partial=partial)
         nproj = len(proj)
 
@@ -1050,13 +1050,13 @@ class QMap(QPoint):
         if vec is None:
             vec = self.depo['vec']
         if vec is None or vec is False:
-            raise ValueError, 'missing vec'
+            raise ValueError('missing vec')
         vec, nside = check_map(vec, copy=copy, partial=partial)
 
         if proj is None:
             proj = self.depo['proj']
         if proj is None or proj is False:
-            raise ValueError, 'missing proj'
+            raise ValueError('missing proj')
         pcopy = True if not return_proj else copy
         proj, pnside, nmap = check_proj(proj, copy=pcopy, partial=partial)
 
