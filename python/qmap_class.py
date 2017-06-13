@@ -36,13 +36,13 @@ def check_map(map_in, copy=False, partial=False, dtype=np.double):
     if np.argmax(map_out.shape) == 0:
         map_out = map_out.T
     if partial:
-        nside = len(map_out[0])
+        dim2 = len(map_out[0])
     else:
-        nside = hp.get_nside(map_out)
+        dim2 = hp.get_nside(map_out)
     map_out = lib.check_input('map', map_out, dtype=dtype)
     if copy and np.may_share_memory(map_in, map_out):
         map_out = map_out.copy()
-    return map_out, nside
+    return map_out, dim2
 
 def check_proj(proj_in, copy=False, partial=False):
     """
@@ -73,11 +73,11 @@ def check_proj(proj_in, copy=False, partial=False):
         the solution to `len(proj) = nmap * (nmap + 1) / 2`.  Raises an
         error if an integer solution is not found.
     """
-    proj_out, nside = check_map(proj_in, copy=copy, partial=partial)
+    proj_out, dim2 = check_map(proj_in, copy=copy, partial=partial)
     nmap = int((np.sqrt(8 * len(proj_out) + 1) - 1) / 2)
     if (nmap * (nmap + 1) /2 != len(proj_out)):
         raise ValueError, 'proj has incompatible shape'
-    return proj_out, nside, nmap
+    return proj_out, dim2, nmap
 
 class QMap(QPoint):
     """
@@ -428,11 +428,14 @@ class QMap(QPoint):
                 vec = np.zeros((3, npix), dtype=np.double)
             else:
                 vec = np.zeros((1, npix), dtype=np.double)
+            vdim2 = npix if partial else nside
         elif vec is not False:
-            vec, vnside = check_map(vec, copy=copy, partial=partial)
+            vec, vdim2 = check_map(vec, copy=copy, partial=partial)
             if not partial:
-                nside = vnside
+                nside = vdim2
                 npix = hp.nside2npix(nside)
+            elif vdim2 != npix:
+                raise ValueError('vec has incompatible shape')
             if len(vec) == 1:
                 pol = False
                 vpol = False
@@ -452,15 +455,16 @@ class QMap(QPoint):
                 proj = np.zeros((6, npix), dtype=np.double)
             else:
                 proj = np.zeros((1, npix), dtype=np.double)
+            pdim2 = npix if partial else nside
         elif proj is not False:
-            proj, pnside, pnmap = check_proj(proj, copy=copy, partial=partial)
+            proj, pdim2, pnmap = check_proj(proj, copy=copy, partial=partial)
 
             if vec is not False:
                 if pnmap != len(vec):
                     raise ValueError('proj has incompatible shape')
                 if len(proj) != [[1,6][pol],10][vpol]:
                     raise ValueError('proj has incompatible shape')
-                if pnside != nside:
+                if pdim2 != vdim2:
                     raise ValueError('proj has incompatible nside')
             else:
                 if len(proj) == 1:
@@ -475,8 +479,10 @@ class QMap(QPoint):
                 else:
                     raise ValueError('proj has incompatible shape')
                 if not partial:
-                    nside = pnside
+                    nside = pdim2
                     npix = hp.nside2npix(nside)
+                elif pdim2 != npix:
+                    raise ValueError('proj has incompatible shape')
 
         # store arrays for later retrieval
         self.depo['vec'] = vec
