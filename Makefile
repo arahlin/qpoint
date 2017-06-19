@@ -53,7 +53,7 @@ chealpix:
 	make -C chealpix
 
 chealpix-shared:
-	ENABLE_SHARED=yes make -C chealpix-shared
+	ENABLE_SHARED=yes make -C chealpix
 
 install-sofa: sofa
 	make -C sofa install
