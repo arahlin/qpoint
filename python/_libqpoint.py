@@ -1,5 +1,8 @@
 # ctypes wrapper for libqpoint
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import ctypes as ct
 import numpy as np
 import os
@@ -535,9 +538,10 @@ def check_set_dict(opt):
     def func(val):
         if val is None:
             return defaults[opt]
-        if isinstance(val, basestring):
+        if isinstance(val, str):
             val = val.lower()
-        for k,v in opts[opt].items():
+        for k in opts[opt]:
+            v = opts[opt][k]
             if isinstance(v, list):
                 if val in v:
                     return k
@@ -551,7 +555,8 @@ def check_set_dict(opt):
 
 def check_get_dict(opt):
     def func(val):
-        for k,v in opts[opt].items():
+        for k in opts[opt]:
+            v = opts[opt][k]
             if val == k:
                 if isinstance(v, list):
                     return v[0]

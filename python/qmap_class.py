@@ -1,10 +1,17 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+try:
+    import itertools.izip as zip
+except ImportError:
+    pass
 import numpy as np
-from qpoint_class import QPoint
+from .qpoint_class import QPoint
 import healpy as hp
 import ctypes as ct
 
-import _libqpoint as lib
-from _libqpoint import libqp as qp
+from . import _libqpoint as lib
+from ._libqpoint import libqp as qp
 
 __all__ = ['QMap', 'check_map', 'check_proj']
 
@@ -74,8 +81,8 @@ def check_proj(proj_in, copy=False, partial=False):
         error if an integer solution is not found.
     """
     proj_out, dim2 = check_map(proj_in, copy=copy, partial=partial)
-    nmap = int((np.sqrt(8 * len(proj_out) + 1) - 1) / 2)
-    if (nmap * (nmap + 1) /2 != len(proj_out)):
+    nmap = int((np.sqrt(8 * len(proj_out) + 1) - 1)) // 2
+    if (nmap * (nmap + 1) // 2 != len(proj_out)):
         raise ValueError('proj has incompatible shape')
     return proj_out, dim2, nmap
 
@@ -610,7 +617,7 @@ class QMap(QPoint):
                 self.reset_point()
             point = self._point.contents
             q_bore = lib.check_input('q_bore', np.atleast_2d(q_bore), quat=True)
-            n = q_bore.size / 4
+            n = q_bore.size // 4
             point.n = n
             self.depo['q_bore'] = q_bore
             point.q_bore = lib.as_ctypes(q_bore)
@@ -694,7 +701,7 @@ class QMap(QPoint):
 
         # check inputs
         q_off = lib.check_input('q_off', np.atleast_2d(q_off), quat=True)
-        n = q_off.size / 4
+        n = q_off.size // 4
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
         gain = lib.check_input('gain', gain, shape=(n,), fill=1)
         mueller = lib.check_input('mueller', np.atleast_2d(mueller),
@@ -963,7 +970,7 @@ class QMap(QPoint):
                 npv = [0,0,0]
             else:
                 npv = np.version.short_version.split('.')
-        npv = map(int, npv)
+        npv = [int(x) for x in npv]
         if npv >= [1,10,0]:
             proj[:, ~m] = 0
             cond = np.linalg.cond(proj[idx].transpose(2,0,1), p=mode)
@@ -1093,8 +1100,8 @@ class QMap(QPoint):
 
         # solve
         # faster if numpy.linalg handles broadcasting
-        if method == 'exact' and map(int, 
-                np.version.short_version.split('.')) >= [1,8,0]:
+        npv = [int(x) for x in np.version.short_version.split('.')]
+        if method == 'exact' and npv >= [1,8,0]:
             if cond is None:
                 cond = self.proj_cond(proj=proj)
             mask &= (cond < cond_thresh)

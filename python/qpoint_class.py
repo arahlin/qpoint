@@ -1,7 +1,14 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+try:
+    import itertools.izip as zip
+except ImportError:
+    pass
 import numpy as np
-import _libqpoint as lib
-from _libqpoint import libqp as qp
-from _libqpoint import check_input, check_inputs, check_output
+from . import _libqpoint as lib
+from ._libqpoint import libqp as qp
+from ._libqpoint import check_input, check_inputs, check_output
 
 __all__ = ['QPoint', 'check_input', 'check_inputs', 'check_output']
 
@@ -21,8 +28,8 @@ class QPoint(object):
         # collect all parameter functions
         self._funcs = lib.qp_funcs
         self._all_funcs = dict()
-        for k,v in self._funcs.items():
-            self._all_funcs.update(**v)
+        for k in self._funcs:
+            self._all_funcs.update(**self._funcs[k])
 
         # set any requested parameters
         self.set(**kwargs)
@@ -120,9 +127,9 @@ class QPoint(object):
         ref_delta      Refraction correction
         """
 
-        for k,v in kwargs.items():
+        for k in kwargs:
             try:
-                self._set(k ,v)
+                self._set(k, kwargs[k])
             except KeyError:
                 continue
 
@@ -202,7 +209,7 @@ class QPoint(object):
             self._set('ref_delta', v)
             return v
 
-        arg_names = ['q','lat'] + self._funcs['weather'].keys()
+        arg_names = ['q','lat'] + list(self._funcs['weather'])
         for idx,a in enumerate(args):
             kwargs[arg_names[idx]] = a
 
@@ -217,7 +224,7 @@ class QPoint(object):
                 q = np.ascontiguousarray([x0,x1,x2,x3])
                 return qp.qp_update_ref(self._memory, q, y)
             fvec = np.vectorize(func,[np.double])
-            if q.size / 4 > 1:
+            if q.size // 4 > 1:
                 q = q.transpose()
             delta = fvec(q[0], q[1], q[2], q[3], lat)
             if delta.shape == ():
@@ -515,7 +522,7 @@ class QPoint(object):
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError('ctime required if mean_aber is False')
-            ctime = np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
+            ctime = np.zeros((q_bore.size // 4,), dtype=q_bore.dtype)
         ctime  = check_input('ctime', ctime)
         pars = dict(shape=ctime.shape, dtype=np.double)
         ra = check_output('ra', ra, **pars)
@@ -712,7 +719,7 @@ class QPoint(object):
 
         quat = check_input('quat', np.atleast_2d(quat), quat=True,
                            inplace=inplace)
-        n = quat.size / 4
+        n = quat.size // 4
 
         if coord[0] == 'C' and coord[1] == 'G':
             qp.qp_radec2gal_quatn(self._memory, quat, n)
@@ -826,7 +833,7 @@ class QPoint(object):
         interp_orig = self.get('interp_pix')
         self.set(interp_pix=interp_pix, **kwargs)
 
-        from qmap_class import check_map
+        from .qmap_class import check_map
         map_in, nside = check_map(map_in)
         map_out = check_output(
             'map_out', map_out, shape=map_in.shape, dtype=map_in.dtype, fill=0)
@@ -909,7 +916,7 @@ class QPoint(object):
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError('ctime required if mean_aber is False')
-            ctime = np.zeros((q_bore.size/4,), dtype=q_bore.dtype)
+            ctime = np.zeros((q_bore.size // 4,), dtype=q_bore.dtype)
         ctime  = check_input('ctime', ctime)
         pix  = check_output('pix', shape=ctime.shape,
                                 dtype=np.int, **kwargs)
@@ -965,7 +972,7 @@ class QPoint(object):
         ra, dec = check_inputs(ra, dec)
         n = ra.size
 
-        from qmap_class import check_map
+        from .qmap_class import check_map
         map_in, nside = check_map(map_in)
 
         val = check_output('value', shape=(len(map_in), n))

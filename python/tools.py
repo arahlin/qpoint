@@ -1,5 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import numpy as _np
-from _libqpoint import libqp as _libqp
+from ._libqpoint import libqp as _libqp
 
 def refraction(el, lat, height, temp, press, hum,
                freq=150., lapse=0.0065, tol=1e-8):

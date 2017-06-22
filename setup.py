@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 # numpy.distutils handles intel compiler
 # need to pass --compiler=intel (or add to [build_ext] section of setup.cfg)
 from numpy.distutils.core import setup, Extension
@@ -25,7 +28,7 @@ if not os.path.exists(libchealpix_file):
 
 sp.check_call('make -C src qp_iers_bulletin_a.c'.split())
 src = [x for x in glob.glob('src/*.c')]
-src = filter(lambda x: not x.endswith('iers_bulletin_a.c'), src)
+src = [x for x in src if not x.endswith('iers_bulletin_a.c')]
 src += ['src/qp_iers_bulletin_a.c']
 incl_dirs = ['src','sofa','chealpix']
 extra_obj = [libsofa_file, libchealpix_file]
