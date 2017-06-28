@@ -1103,7 +1103,7 @@ class QMap(QPoint):
         npv = [int(x) for x in np.version.short_version.split('.')]
         if method == 'exact' and npv >= [1,8,0]:
             if cond is None:
-                cond = self.proj_cond(proj=proj)
+                cond = self.proj_cond(proj=proj, partial=partial)
             mask &= (cond < cond_thresh)
             vec[:, ~mask] = 0
             proj[..., ~mask] = np.eye(nmap)[rtri, ctri][:, None]
@@ -1193,3 +1193,92 @@ class QMap(QPoint):
         """
         kwargs['method'] = 'cho'
         return self.solve_map(*args, **kwargs)
+
+    def unsolve_map(self, map_in, proj=None, mask=None, copy=True,
+                    return_proj=False, return_mask=False, partial=None,
+                    fill=0):
+        """
+        Invert the solved map to recover the binned vec array.
+
+        map_in : array_like
+            A map or list of N maps.
+        proj : array_like, optional
+            An array of upper-triangular projection matrices for each pixel,
+            of shape (N*(N+1)/2, npix).  Default to `depo['proj']`.
+        mask : array_like, optional
+            A mask of shape (npix,), evaluates to True where pixels are valid.
+            The input mask in converted to a boolean array if supplied.
+        copy : bool, optional
+            if False, do the computation in-place so that the input maps are
+            modified.  Otherwise, a copy is created prior to solving.
+            Default: False.
+        return_proj : bool, optional
+            if True, return the Cholesky-decomposed projection matrix.
+            if False, and inplace is True, the input projection matrix
+            is not modified.
+        return_mask : bool, optional
+            if True, return the mask array, updated with any pixels
+            that could not be solved.
+        partial : bool, optional
+            If True, the map is not checked to ensure a proper healpix nside.
+        fill : scalar, optional
+            Fill the solved map where proj == 0 with this value.  Default: 0.
+
+        Returns
+        -------
+        vec : array_like
+            A binned map or set of maps, in shape (N, npix).
+        proj_out : array_like
+            The upper triangular elements of the projection matrix,
+            if requested, in shape (N*(N+1)/2, npix).
+        mask : array_like
+            1-d array, True for valid pixels, if `return_mask` is True
+        """
+
+        # check if we're dealing with a partial map
+        if partial is None:
+            partial = 'dest_pixels' in self.depo
+
+        # ensure properly shaped arrays
+        map_in, nside = check_map(map_in, copy=copy, partial=partial)
+
+        if proj is None:
+            proj = self.depo['proj']
+        if proj is None or proj is False:
+            raise ValueError('missing proj')
+        pcopy = True if not return_proj else copy
+        proj, pnside, nmap = check_proj(proj, copy=pcopy, partial=partial)
+
+        if pnside != nside or nmap != len(map_in):
+            raise ValueError('map_in and proj have incompatible shapes')
+        nproj = len(proj)
+
+        # deal with mask
+        if mask is None:
+            mask = np.ones(len(map_in[0]), dtype=bool)
+        else:
+            mcopy = True if not return_mask else copy
+            mask, mnside = check_map(mask, copy=mcopy, partial=partial)
+            if mnside != nside:
+                raise ValueError('mask has incompatible shape')
+            mask = mask.squeeze().astype(bool)
+        mask &= proj[0].astype(bool)
+
+        if len(map_in) == 1:
+            # if unpolarized, just multiply
+            map_in = map_in.squeeze()
+            proj = proj.squeeze()
+            map_in[mask] *= proj[mask]
+            map_in[~mask] = fill
+        else:
+            # projection matrix indices
+            idx = np.zeros((nmap, nmap), dtype=int)
+            rtri, ctri = np.triu_indices(nmap)
+            idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
+            map_in[:] = np.einsum('ij...,j...->i...', proj[idx], map_in)
+
+        # return
+        ret = (map_in,) + (proj,) * return_proj + (mask,) * return_mask
+        if len(ret) == 1:
+            return ret[0]
+        return ret
