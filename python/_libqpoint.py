@@ -285,6 +285,12 @@ setargs('qp_bore2rasindec',
 setargs('qp_bore2rasindec_hwp',
         arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p,
              warr, warr, warr, warr, ct.c_int))
+setargs('qp_bore2radecpa',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p,
+             warr, warr, warr, ct.c_int))
+setargs('qp_bore2radecpa_hwp',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p,
+             warr, warr, warr, ct.c_int))
 
 setargs('qp_radecpa2quatn',
         arg=(qp_memory_t_p, arr, arr, arr, wquat_t_p, ct.c_int))

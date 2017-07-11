@@ -528,16 +528,19 @@ class QPoint(object):
         ra = check_output('ra', ra, **pars)
         dec = check_output('dec', dec, **pars)
         if return_pa:
+            if sindec:
+                raise ValueError('Cannot use sindec with return_pa=True')
             pa = check_output('pa', pa, **pars)
-            sin2psi = check_output('sin2psi', None, **pars)
-            cos2psi = check_output('cos2psi', None, **pars)
         else:
             sin2psi = check_output('sin2psi', sin2psi, **pars)
             cos2psi = check_output('cos2psi', cos2psi, **pars)
         n = ctime.size
 
         if q_hwp is None:
-            if sindec:
+            if return_pa:
+                qp.qp_bore2radecpa(self._memory, q_off, ctime, q_bore,
+                                   ra, dec, pa, n)
+            elif sindec:
                 qp.qp_bore2rasindec(self._memory, q_off, ctime, q_bore,
                                     ra, dec, sin2psi, cos2psi, n)
             else:
@@ -545,7 +548,10 @@ class QPoint(object):
                                  ra, dec, sin2psi, cos2psi, n)
         else:
             q_hwp = check_input('q_hwp', q_hwp, shape=q_bore.shape)
-            if sindec:
+            if return_pa:
+                qp.qp_bore2radecpa_hwp(self._memory, q_off, ctime, q_bore,
+                                       q_hwp, ra, dec, pa, n)
+            elif sindec:
                 qp.qp_bore2rasindec_hwp(self._memory, q_off, ctime, q_bore,
                                         q_hwp, ra, dec, sin2psi, cos2psi, n)
             else:
@@ -553,7 +559,6 @@ class QPoint(object):
                                      q_hwp, ra, dec, sin2psi, cos2psi, n)
 
         if return_pa:
-            pa[:] = np.degrees(np.arctan2(sin2psi, cos2psi + 1))
             if n == 1:
                 return ra[0], dec[0], pa[0]
             return ra, dec, pa

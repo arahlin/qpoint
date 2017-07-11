@@ -433,6 +433,17 @@ extern "C" {
 			    quat_t *q_bore, quat_t *q_hwp, double *ra, double *sindec,
 			    double *sin2psi, double *cos2psi, int n);
 
+  /* Calculate ra/dec/pa for a given detector offset,
+     from an array of boresight quaternions. */
+  void qp_bore2radecpa(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+                       double *ra, double *dec, double *pa, int n);
+
+  /* Calculate ra/dec/pa for a given detector offset,
+     from an array of boresight and waveplate quaternions. */
+  void qp_bore2radecpa_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
+                           quat_t *q_bore, quat_t *q_hwp, double *ra, double *dec,
+                           double *pa, int n);
+
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations. */
   void qp_azel2radec(qp_memory_t *mem,

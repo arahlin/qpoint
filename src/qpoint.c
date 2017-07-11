@@ -735,6 +735,26 @@ void qp_bore2rasindec_hwp(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t 
   }
 }
 
+void qp_bore2radecpa(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+                     double *ra, double *dec, double *pa, int n) {
+  quat_t q;
+
+  for (int i=0; i<n; i++) {
+    qp_bore2det(mem, q_off, ctime[i], q_bore[i], q);
+    qp_quat2radecpa(mem, q, ra+i, dec+i, pa+i);
+  }
+}
+
+void qp_bore2radecpa_hwp(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+                         quat_t *q_hwp, double *ra, double *dec, double *pa, int n) {
+  quat_t q;
+
+  for (int i=0; i<n; i++) {
+    qp_bore2det_hwp(mem, q_off, ctime[i], q_bore[i], q_hwp[i], q);
+    qp_quat2radecpa(mem, q, ra+i, dec+i, pa+i);
+  }
+}
+
 // NB: for all azel2radec functions below:
 // since the complete offset -> ra/dec operation is done in one go here,
 // we should not ignore annual aberration.  in this case,
