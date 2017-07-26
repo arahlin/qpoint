@@ -2,9 +2,6 @@
 #include <stdlib.h>
 #include <float.h>
 #include "sofa.h"
-#ifdef ENABLE_SLAREFRO
-#include "slarefro.h"
-#endif
 #include "qpoint.h"
 #include "fast_math.h"
 #include "vec3.h"
@@ -238,19 +235,10 @@ void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q) {
 double qp_refraction(double el, double lat, double height, double temp,
 		     double press, double hum, double freq, double lapse,
 		     double tol) {
-  double ref = 0;
-#ifdef ENABLE_SLAREFRO
-  slaf_refro(M_PI_2 - deg2rad(el),
-	     height, temp + 273.15, // temperature, K
-	     press, hum, C_MS * 1e-3 / freq, // wavelength, um
-	     deg2rad(lat), lapse, tol, // precision, radians
-	     &ref);
-#else
   double A, B;
   iauRefco(press, temp, hum, C_MS * 1e-3 / freq, &A, &B);
   double tz = tan(M_PI_2 - deg2rad(el));
-  ref = tz * (A + B * tz * tz);
-#endif
+  double ref = tz * (A + B * tz * tz);
   return rad2deg(ref);
 }
 

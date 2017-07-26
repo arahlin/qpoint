@@ -3,18 +3,6 @@ DEBUG = -g
 # DEBUG =
 CC = gcc
 
-# HACK
-# need gfortran for slarefro package
-ifneq ($(shell which gfortran), )
-ifeq ($(DISABLE_SLAREFRO), )
-ifeq ($(ENABLE_LITE), )
-VPATH = ../sofa:../chealpix:../slarefro:.
-SLAINC = -I../slarefro -DENABLE_SLAREFRO
-SLALIB = -L../slarefro -lslarefro
-endif
-endif
-endif
-
 LIBNAME_FULL = libqpoint
 LIBNAME_LITE = libqpntlt
 
@@ -44,8 +32,8 @@ endif
 
 CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -DQP_VERSION=\"$(QP_VERSION)\"
 # add some options even when CFLAGS overridden on command line
-override CFLAGS += -std=c99 -I. -I../sofa $(SLAINC) $(HPXINC) $(PFLAGS) -fPIC $(OPENMP)
-LDFLAGS = -L../sofa -lsofa_c $(SLALIB) $(HPXLIB) $(OPENMP_LD)
+override CFLAGS += -std=c99 -I. -I../sofa $(HPXINC) $(PFLAGS) -fPIC $(OPENMP)
+LDFLAGS = -L../sofa -lsofa_c $(HPXLIB) $(OPENMP_LD)
 
 SRCS = $(filter-out %iers_bulletin_a.c, $(wildcard *.c)) qp_iers_bulletin_a.c
 

@@ -42,12 +42,6 @@ else:
     extra_args.append('-fopenmp')
     libs = ['gomp']
 
-libslarefro_file = 'slarefro/libslarefro.a'
-if os.path.exists(libslarefro_file):
-    incl_dirs.append('slarefro')
-    extra_obj.append(libslarefro_file)
-    extra_args.append('-DENABLE_SLAREFRO')
-
 # this isn't technically an extension...
 # hack to make a shared library to install with the package
 ext_qp = Extension('qpoint.libqpoint', src,

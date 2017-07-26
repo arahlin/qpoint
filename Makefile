@@ -1,23 +1,5 @@
 CC=gcc
 
-# HACK
-# need gfortran to build slarefro package
-ifeq ($(shell which gfortran), )
-SLAR =
-else
-ifneq ($(DISABLE_SLAREFRO), )
-SLAR =
-else
-SLAR = slarefro
-endif
-endif
-
-ifneq ($(SLAR), )
-INSTALL_SLAR = install-$(SLAR)
-INSTALL_SLAR_USER = install-$(SLAR)-user
-UNINSTALL_SLAR = uninstall-$(SLAR)
-endif
-
 LOCALPREFIX = $(HOME)/.local
 
 ifeq ($(PREFIX), )
@@ -30,14 +12,14 @@ default: all
 
 all: qpoint python
 
-.PHONY: qpoint sofa slarefro chealpix python
-qpoint: sofa $(SLAR) chealpix
+.PHONY: qpoint sofa chealpix python
+qpoint: sofa chealpix
 	make -C src
 
-qpoint-shared: sofa-shared $(SLAR) chealpix-shared
+qpoint-shared: sofa-shared chealpix-shared
 	ENABLE_SHARED=yes make -C src
 
-qpoint-shared-lite: sofa-shared $(SLAR)
+qpoint-shared-lite: sofa-shared
 	ENABLE_SHARED=yes ENABLE_LITE=yes make -C src
 
 sofa:
@@ -45,9 +27,6 @@ sofa:
 
 sofa-shared:
 	ENABLE_SHARED=yes make -C sofa
-
-slarefro:
-	make -C slarefro
 
 chealpix:
 	make -C chealpix
@@ -61,22 +40,19 @@ install-sofa: sofa
 install-sofa-shared: sofa-shared
 	ENABLE_SHARED=yes make -C sofa install
 
-install-slarefro: slarefro
-	make -C slarefro install
-
 install-chealpix: chealpix
 	make -C chealpix install
 
 install-chealpix-shared: chealpix-shared
 	ENABLE_SHARED=yes make -C chealpix install
 
-python: sofa $(SLAR) chealpix
+python: sofa chealpix
 	CC=$(CC) python setup.py build
 
 install-python: python
 	python setup.py install $(PYTHONPREFIX)
 
-install-qpoint: qpoint install-sofa $(INSTALL_SLAR) install-chealpix
+install-qpoint: qpoint install-sofa install-chealpix
 	make -C src install
 
 install-qpoint-shared: qpoint-shared install-sofa-shared install-chealpix-shared
@@ -95,22 +71,16 @@ install-python-user: python
 install-sofa-user: sofa
 	PREFIX=$(LOCALPREFIX) make -C sofa install
 
-install-slarefro-user: slarefro
-	PREFIX=$(LOCALPREFIX) make -C slarefro install
-
 install-chealpix-user: chealpix
 	PREFIX=$(LOCALPREFIX) make -C chealpix install
 
-install-qpoint-user: install-sofa-user $(INSTALL_SLAR_USER) install-chealpix-user
+install-qpoint-user: install-sofa-user install-chealpix-user
 	PREFIX=$(LOCALPREFIX) make -C src install
 
 install-user: install-qpoint-user install-python-user
 
 uninstall-sofa:
 	make -C sofa uninstall
-
-uninstall-slarefro:
-	make -C slarefro uninstall
 
 uninstall-chealpix:
 	make -C chealpix uninstall
@@ -120,13 +90,10 @@ uninstall-qpoint:
 
 uninstall: uninstall-qpoint
 
-uninstall-all: uninstall-sofa $(UNINSTALL_SLAR) uninstall-slarefro uninstall-chealpix uninstall-qpoint
+uninstall-all: uninstall-sofa uninstall-chealpix uninstall-qpoint
 
 clean-sofa:
 	make -C sofa clean
-
-clean-slarefro:
-	make -C slarefro clean
 
 clean-chealpix:
 	make -C chealpix clean
@@ -139,4 +106,4 @@ clean-qpoint:
 
 clean: clean-qpoint clean-python
 
-clean-all: clean clean-python clean-sofa clean-slarefro clean-chealpix
+clean-all: clean clean-python clean-sofa clean-chealpix

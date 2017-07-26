@@ -1,4 +1,0 @@
-C wrapper for Fortran SLALIB function REFRO, for calculating the refraction correction
-to the elevation angle.
-
-Copied from Matthew Hasselfield's moby2 package for ACTPol.
