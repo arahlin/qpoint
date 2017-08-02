@@ -47,12 +47,10 @@ class qp_state_t(ct.Structure):
 
 class qp_weather_t(ct.Structure):
     _fields_ = [
-        ('height', ct.c_double),
         ('temperature', ct.c_double),
         ('pressure', ct.c_double),
         ('humidity', ct.c_double),
         ('frequency', ct.c_double),
-        ('lapse_rate', ct.c_double),
         ]
 
 class qp_bulletina_entry_t(ct.Structure):
@@ -83,7 +81,6 @@ class qp_memory_t(ct.Structure):
         ('state_ref', qp_state_t),
 
         ('weather', qp_weather_t),
-        ('ref_tol', ct.c_double),
         ('ref_delta', ct.c_double),
         ('q_ref', ct.c_double * 4),
         ('dut1', ct.c_double),
@@ -344,8 +341,8 @@ def qp_get_bulletin_a(mem, mjd):
                               ct.byref(x), ct.byref(y))
     return dut1.value, x.value, y.value
 
-setargs('qp_refraction', arg=(ct.c_double,) * 9, res=ct.c_double)
-setargs('qp_update_ref', arg=(qp_memory_t_p, quat_t, ct.c_double),
+setargs('qp_refraction', arg=(ct.c_double,) * 5, res=ct.c_double)
+setargs('qp_update_ref', arg=(qp_memory_t_p, quat_t),
         res=ct.c_double)
 
 def get_vec_mode(map_in=None, pol=True, vpol=False):
@@ -508,8 +505,7 @@ def get_wfunc(par):
     f.restype = ct.c_double
     return f
 
-weather_params = ['height','temperature','pressure','humidity',
-                  'frequency','lapse_rate']
+weather_params = ['temperature', 'pressure', 'humidity', 'frequency']
 weather_funcs = dict()
 for w in weather_params:
     weather_funcs[w] = dict()
@@ -646,7 +642,7 @@ def get_pfunc(par):
     f.restype = ct.c_double
     return f
 
-double_params = ['ref_tol','ref_delta','dut1']
+double_params = ['ref_delta','dut1']
 double_funcs = dict()
 for p in double_params:
     double_funcs[p] = dict()

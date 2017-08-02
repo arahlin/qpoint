@@ -232,9 +232,8 @@ void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q) {
 }
 
 /* Calculate atmospheric refraction */
-double qp_refraction(double el, double lat, double height, double temp,
-		     double press, double hum, double freq, double lapse,
-		     double tol) {
+double qp_refraction(double el, double temp, double press, double hum,
+                     double freq) {
   double A, B;
   iauRefco(press, temp, hum, C_MS * 1e-3 / freq, &A, &B);
   double tz = tan(M_PI_2 - deg2rad(el));
@@ -242,7 +241,7 @@ double qp_refraction(double el, double lat, double height, double temp,
   return rad2deg(ref);
 }
 
-double qp_update_ref(qp_memory_t *mem, quat_t q, double lat) {
+double qp_update_ref(qp_memory_t *mem, quat_t q) {
   qp_weather_t *W = &mem->weather;
   double el;
 
@@ -251,16 +250,15 @@ double qp_update_ref(qp_memory_t *mem, quat_t q, double lat) {
   else
     el = rad2deg(asin(q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]));
 
-  double ref = qp_refraction(el, lat, W->height, W->temperature,
-                             W->pressure, W->humidity, W->frequency,
-                             W->lapse_rate, mem->ref_tol);
+  double ref = qp_refraction(el, W->temperature, W->pressure, W->humidity,
+                             W->frequency);
   mem->ref_delta = ref;
   return ref;
 }
 
-void qp_apply_refraction(qp_memory_t *mem, double ctime, double lat, quat_t q) {
+void qp_apply_refraction(qp_memory_t *mem, double ctime, quat_t q) {
   if (qp_check_update(&mem->state_ref, ctime)) {
-    double delta = qp_update_ref(mem, q, lat);
+    double delta = qp_update_ref(mem, q);
     quat_t q_delta;
     Quaternion_r2(q_delta, -deg2rad(delta));
     Quaternion_copy(mem->q_ref, q_delta);
@@ -352,7 +350,7 @@ void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
   // NB: per-detector refraction is not fully implemented!
   // can only be done properly using the azel2radec functions
   // otherwise, this is treated as a mean correction
-  qp_apply_refraction(mem, ctime, lat, q);
+  qp_apply_refraction(mem, ctime, q);
 
   // apply diurnal aberration
   // NB: same issue as refraction

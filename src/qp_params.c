@@ -39,13 +39,10 @@ qp_memory_t * qp_init_memory(void) {
 #ifndef ENABLE_LITE
   qp_set_opt_num_threads(mem, 0);
 #endif
-  mem->weather.height = 35000.;
   mem->weather.temperature = 0.;
   mem->weather.pressure = 10.;
   mem->weather.humidity = 0.;
   mem->weather.frequency = 150.;
-  mem->weather.lapse_rate = 0.0065;
-  mem->ref_tol = 1.0e-8;
   mem->ref_delta = 0.;
   mem->dut1 = 0.;
   memset(mem->q_lonlat,   0, sizeof(quat_t));
@@ -115,12 +112,10 @@ void qp_print_state(const char *tag, qp_state_t *state) {
 }
 
 void qp_print_weather(qp_weather_t *w) {
-  printf("Height [m]: %.6g\n", w->height);
   printf("Temperature [C]: %.6g\n", w->temperature);
   printf("Pressure [mbar]: %.6g\n", w->pressure);
   printf("Humidity [%%]: %.6g\n", w->humidity * 100);
   printf("Frequency [GHz]: %.6g\n", w->frequency);
-  printf("Lapse rate [K/m]: %.6g\n", w->lapse_rate);
 }
 
 void qp_print_quat_mp(int th, const char *tag, quat_t q) {
@@ -139,12 +134,10 @@ void qp_print_state_mp(int th, const char *tag, qp_state_t *state) {
 }
 
 void qp_print_weather_mp(int th, qp_weather_t *w) {
-  printf("[%d]  weather: height [m]: %.6g\n", th, w->height);
   printf("[%d]  weather: temperature [C]: %.6g\n", th, w->temperature);
   printf("[%d]  weather: pressure [mbar]: %.6g\n", th, w->pressure);
   printf("[%d]  weather: humidity [%%]: %.6g\n", th, w->humidity * 100);
   printf("[%d]  weather: frequency [GHz]: %.6g\n", th, w->frequency);
-  printf("[%d]  weather: lapse rate [K/m]: %.6g\n", th, w->lapse_rate);
 }
 
 void qp_print_memory(qp_memory_t *mem) {
@@ -157,7 +150,6 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  ========== QPOINT MEMORY ==========\n", thread);
   qp_print_state_mp(thread, "ref", &mem->state_ref);
   qp_print_quat_mp(thread, "ref", mem->q_ref);
-  printf("[%d]  ref tol %.6g\n", thread, mem->ref_tol);
   printf("[%d]  ref delta %.6g\n", thread, mem->ref_delta);
 
   qp_print_state_mp(thread, "daber", &mem->state_daber);
@@ -328,15 +320,12 @@ void qp_set_options(qp_memory_t *mem,
 }
 
 // update all ref_data parameters
-void qp_set_weather(qp_memory_t *mem,
-		    double height, double temperature, double pressure,
-		    double humidity, double frequency, double lapse_rate) {
-  qp_set_weather_height     (mem, height);
+void qp_set_weather(qp_memory_t *mem, double temperature, double pressure,
+		    double humidity, double frequency) {
   qp_set_weather_temperature(mem, temperature);
   qp_set_weather_pressure   (mem, pressure);
   qp_set_weather_humidity   (mem, humidity);
   qp_set_weather_frequency  (mem, frequency);
-  qp_set_weather_lapse_rate (mem, lapse_rate);
 }
 
 // set/get refraction parameters
@@ -350,12 +339,10 @@ void qp_set_weather(qp_memory_t *mem,
   double qp_get_weather_##param(qp_memory_t *mem) {	      \
     return mem->weather.param;				      \
   }
-WEATHFUNCD(height)
 WEATHFUNCD(temperature)
 WEATHFUNCD(pressure)
 WEATHFUNCD(humidity)
 WEATHFUNCD(frequency)
-WEATHFUNCD(lapse_rate)
 
 #define DOUBLEFUNCS(param)			      \
   void qp_set_##param(qp_memory_t *mem, double val) { \
@@ -390,6 +377,5 @@ WEATHFUNCD(lapse_rate)
   DOUBLEFUNCSRR(param, rate1, rate2)	   \
   DOUBLEFUNCG(param)
 
-DOUBLEFUNCDR(ref_tol, ref)
 DOUBLEFUNCD(ref_delta)
 DOUBLEFUNCDRR(dut1, erot, wobble)

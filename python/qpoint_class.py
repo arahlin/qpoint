@@ -114,16 +114,13 @@ class QPoint(object):
         num_threads    Number of threads for openMP bore2map computation
 
         * Weather:
-        height         height above sea level, meters
         temperature    temperature, Celcius
         pressure       pressure, mbar
         humidity       relative humidity, fraction
         frequency      observer frequency, GHz
-        lapse_rate     tropospheric lapse rate, K/m
 
         * Parameters:
         dut1           UT1 correction
-        ref_tol        Tolerance on refraction correction, in radians
         ref_delta      Refraction correction
         """
 
@@ -176,17 +173,13 @@ class QPoint(object):
         Arguments (positional or keyword):
 
         q            observer orientation in horizon coordinates
-        lat          latitude, degrees
-        height       height above sea level, meters
         temperature  temperature, Celcius
         pressure     pressure, mbar
         humidity     humidity, fraction
         frequency    array frequency, GHz
-        lapse_rate   tropospheric lapse rate, K/m
-        tolerance    tolerance on convergence, radians
         delta        the refraction correction itself, in degrees
 
-        If both el and lat are given, then the refraction correction in degrees
+        If el is given, then the refraction correction in degrees
         is calculated, stored and returned after updating any other given
         parameters. Otherwise, the correction is returned w/out recalculating.
 
@@ -194,7 +187,7 @@ class QPoint(object):
         argument is given, then the correction is stored with this value
         instead of being recalculated.
 
-        Numpy-vectorized for el and lat arguments.  Note that this is not
+        Numpy-vectorized for el argument.  Note that this is not
         an efficient vectorization, and only the last calculated value is
         stored for use in the coordinate conversion functions.
         """
@@ -209,7 +202,7 @@ class QPoint(object):
             self._set('ref_delta', v)
             return v
 
-        arg_names = ['q','lat'] + list(self._funcs['weather'])
+        arg_names = ['q'] + list(self._funcs['weather'])
         for idx,a in enumerate(args):
             kwargs[arg_names[idx]] = a
 
@@ -218,15 +211,14 @@ class QPoint(object):
                 self._set(w, kwargs.get(w))
 
         q = kwargs.get('q',None)
-        lat = kwargs.get('lat',None)
-        if q is not None and lat is not None:
-            def func(x0, x1, x2, x3, y):
+        if q is not None:
+            def func(x0, x1, x2, x3):
                 q = np.ascontiguousarray([x0,x1,x2,x3])
-                return qp.qp_update_ref(self._memory, q, y)
+                return qp.qp_update_ref(self._memory, q)
             fvec = np.vectorize(func,[np.double])
             if q.size // 4 > 1:
                 q = q.transpose()
-            delta = fvec(q[0], q[1], q[2], q[3], lat)
+            delta = fvec(q[0], q[1], q[2], q[3])
             if delta.shape == ():
                 return delta[()]
             return delta

@@ -27,12 +27,10 @@ extern "C" {
 
   /* structure for storing refraction data */
   typedef struct {
-    double height;      // height, m
     double temperature; // temperature, C
     double pressure;    // pressure, mbar
     double humidity;    // humidity, fraction
     double frequency;   // frequency, ghz
-    double lapse_rate;  // tropospheric lapse rate, K/m
   } qp_weather_t;
 
   /* structures for storing Bulletin A data (for wobble correction) */
@@ -64,7 +62,6 @@ extern "C" {
 
     // state data
     qp_weather_t weather;     // weather
-    double ref_tol;           // refraction tolerance, rad
     double ref_delta;         // refraction correction, deg
     quat_t q_ref;             // refraction quaternion
     double dut1;              // UT1 correction
@@ -189,24 +186,20 @@ extern "C" {
 #endif
 
   /* Set weather data */
-  void qp_set_weather(qp_memory_t *mem,
-		      double height, double temperature, double pressure,
-		      double humidity, double frequency, double lapse_rate);
+  void qp_set_weather(qp_memory_t *mem, double temperature, double pressure,
+		      double humidity, double frequency);
 
 #define WEATHFUNC(param)                                        \
   void qp_set_weather_##param(qp_memory_t *mem, double val);    \
   double qp_get_weather_##param(qp_memory_t *mem);
-  WEATHFUNC(height)
   WEATHFUNC(temperature)
   WEATHFUNC(pressure)
   WEATHFUNC(humidity)
   WEATHFUNC(frequency)
-  WEATHFUNC(lapse_rate)
 
 #define DOUBLEFUNC(param)                               \
   void qp_set_##param(qp_memory_t *mem, double val);    \
   double qp_get_##param(qp_memory_t *mem);
-  DOUBLEFUNC(ref_tol)
   DOUBLEFUNC(ref_delta)
   DOUBLEFUNC(dut1)
 
@@ -340,15 +333,14 @@ extern "C" {
   void qp_hwp_quatn(double *ang, quat_t *q, int n);
 
   /* Calculate atmospheric refraction */
-  double qp_refraction(double el, double lat, double height, double temp,
-		       double press, double hum, double freq, double lapse,
-		       double tol);
+  double qp_refraction(double el, double temp, double press, double hum,
+                       double freq);
 
   /* Update atmospheric refraction using stored parameters */
-  double qp_update_ref(qp_memory_t *mem, quat_t q, double lat);
+  double qp_update_ref(qp_memory_t *mem, quat_t q);
 
   /* Apply refraction correction */
-  void qp_apply_refraction(qp_memory_t *mem, double ctime, double lat, quat_t q);
+  void qp_apply_refraction(qp_memory_t *mem, double ctime, quat_t q);
 
   /* *************************************************************************
      Output functions
