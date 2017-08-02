@@ -8,15 +8,24 @@ LIBNAME_LITE = libqpntlt
 
 QP_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
+SOFAINC = -I../sofa
+SOFALIB = # -L../sofa -lsofa_c
+SOFAOBJS = $(wildcard ../sofa/*.o)
+SOFAHDRS = $(wildcard ../sofa/*.h)
+
 ifneq ($(ENABLE_LITE), )
 HPXINC =
 HPXLIB =
+HPXOBJS =
+HPXHDRS =
 PFLAGS = -DENABLE_LITE
 LIBNAME = $(LIBNAME_LITE)
 OBJNAME = -lt.o
 else
 HPXINC = -I../chealpix
-HPXLIB = -L../chealpix -lchealpix_qp
+HPXLIB = # -L../chealpix -lchealpix_qp
+HPXOBJS = $(wildcard ../chealpix/*.o)
+HPXHDRS = $(wildcard ../chealpix/*.h)
 PFLAGS =
 LIBNAME = $(LIBNAME_FULL)
 OBJNAME = .o
@@ -32,8 +41,8 @@ endif
 
 CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -DQP_VERSION=\"$(QP_VERSION)\"
 # add some options even when CFLAGS overridden on command line
-override CFLAGS += -std=c99 -I. -I../sofa $(HPXINC) $(PFLAGS) -fPIC $(OPENMP)
-LDFLAGS = -L../sofa -lsofa_c $(HPXLIB) $(OPENMP_LD)
+override CFLAGS += -std=c99 -I. $(SOFAINC) $(HPXINC) $(PFLAGS) -fPIC $(OPENMP)
+LDFLAGS = $(SOFALIB) $(HPXLIB) $(OPENMP_LD)
 
 SRCS = $(filter-out %iers_bulletin_a.c, $(wildcard *.c)) qp_iers_bulletin_a.c
 
@@ -63,15 +72,15 @@ qp_iers_bulletin_a.c: make_iers_bulletin_a_dot_c.py
 $(OBJS): %$(OBJNAME): %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-$(LIB): $(OBJS)
+$(LIB): $(SOFAOBJS) $(HPXOBJS) $(OBJS)
 ifneq ($(ENABLE_SHARED), )
-	$(CC) $(LDFLAGS) $(OBJS) -o $@
+	$(CC) $(LDFLAGS) $(SOFAOBJS) $(HPXOBJS) $(OBJS) -o $@
 else
-	ar ru $@ $(OBJS)
+	ar ru $@ $(SOFAOBJS) $(HPXOBJS) $(OBJS)
 endif
 
-install: $(LIB) $(HEADER)
-	install $(HEADER) $(INCPREFIX)
+install: $(LIB) $(SOFAHDRS) $(HPXHDRS) $(HEADER)
+	install $(SOFAHDRS) $(HPXHDRS) $(HEADER) $(INCPREFIX)
 	install $(LIB) $(LIBPREFIX)
 
 uninstall:

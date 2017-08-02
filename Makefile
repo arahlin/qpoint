@@ -16,6 +16,9 @@ all: qpoint python
 qpoint: sofa chealpix
 	make -C src
 
+qpoint-lite: sofa
+	ENABLE_LITE=yes make -C src
+
 qpoint-shared: sofa-shared chealpix-shared
 	ENABLE_SHARED=yes make -C src
 
@@ -52,18 +55,20 @@ python: sofa chealpix
 install-python: python
 	python setup.py install $(PYTHONPREFIX)
 
-install-qpoint: qpoint install-sofa install-chealpix
+install-qpoint: qpoint
 	make -C src install
 
-install-qpoint-shared: qpoint-shared install-sofa-shared install-chealpix-shared
+install-qpoint-lite: qpoint-lite
+
+install-qpoint-shared: qpoint-shared
 	ENABLE_SHARED=yes make -C src install
 
-install-qpoint-shared-lite: qpoint-shared install-sofa-shared
+install-qpoint-shared-lite: qpoint-shared
 	ENABLE_SHARED=yes ENABLE_LITE=yes make -C src install
 
 install: install-qpoint install-python
 
-install-all: install-qpoint install-python
+install-all: install-sofa install-chealpix install-qpoint install-python
 
 install-python-user: python
 	python setup.py install --prefix=$(LOCALPREFIX)
@@ -74,7 +79,7 @@ install-sofa-user: sofa
 install-chealpix-user: chealpix
 	PREFIX=$(LOCALPREFIX) make -C chealpix install
 
-install-qpoint-user: install-sofa-user install-chealpix-user
+install-qpoint-user: qpoint
 	PREFIX=$(LOCALPREFIX) make -C src install
 
 install-user: install-qpoint-user install-python-user
