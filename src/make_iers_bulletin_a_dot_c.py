@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 #
-# The file:
-#
-#   iers_bulletin_a.dat
-#
-# is from:
-#
-#   http://maia.usno.navy.mil/search/search.html
-#
-# with options:
+# The following IERS data are stored:
 #
 #   * Bull. A PM-x (sec. of arc)
 #   * Bull. A PM-y (sec. of arc)
@@ -16,12 +8,16 @@
 #
 # 2012 Mike Nolta <mike@nolta.net>
 # 2015 ASR <arahlin@princeton.edu>
+# 2017 ASR <arahlin@fnal.gov> -- use astropy utilities for auto update
+
+import numpy as np
 
 header = """
 /*
  IERS Bulletin A interpolation
  2012 Mike Nolta <mike@nolta.net>
  2015 ASR <arahlin@princeton.edu>
+ 2017 ASR <arahlin@fnal.gov>
  */
 
 #include <math.h>
@@ -132,22 +128,48 @@ if __name__ == '__main__':
     f = open( "qp_iers_bulletin_a.c", "w" )
     f.write( header )
 
-    mjds = []
     f.write( "static qp_bulletina_entry_t bulletinA_factory[] = {\n" )
 
-    for line in open('iers_bulletin_a.dat'):
-        stripped_line = line.strip()
-        if len(stripped_line) == 0 or stripped_line[0] == "#":
-            continue
-        s = line.rsplit( None, 4 )
-        mjd = int(float(s[1]))
-        mjds.append( mjd )
-        f.write( "  {%sf, %sf, %sf},  // %s\n" % (s[2],s[3],s[4],s[0].strip()) )
+    try:
+        from astropy.utils import iers
+
+    except ImportError:
+        from warnings import warn
+        warn('Astropy not found, creating an empty IERS-A table. '
+             'Install astropy for accurate polar motion and UT1 corrections',
+             ImportWarning)
+
+        f.write( " {0., 0., 0.}, // NULL\n")
+        mjd_min = 0
+        mjd_max = 0
+
+    else:
+        columns = ['year', 'month', 'day', 'MJD', 'PM_x', 'PM_y', 'UT1_UTC']
+        iers_table = iers.IERS_Auto.open()[columns].as_array()
+
+        # check year
+        year = iers_table['year'] + 1900
+        wraps, = np.where(np.ediff1d(year) < 0)
+        for idx in wraps:
+            year[idx + 1:] += 100
+        iers_table['year'] = year
+        iers_table = iers_table[year >= 2000]
+
+        # check MJD
+        mjds = iers_table['MJD']
+        mjd_min = int(mjds.min())
+        mjd_max = int(mjds.max())
+
+        # populate factory table
+        for row in iers_table:
+            f.write( "  {%.6f, %.6f, %.7f},  // %d-%02d-%02d\n" % (
+                row['PM_x'], row['PM_y'], row['UT1_UTC'],
+                row['year'], row['month'], row['day']) )
 
     f.write( "};\n\n" )
     
-    f.write( "static const int mjd_min_factory = %d;\n" % min(mjds) )
-    f.write( "static const int mjd_max_factory = %d;\n" % max(mjds) )
+    f.write( "static const int mjd_min_factory = %d;\n" % mjd_min )
+    f.write( "static const int mjd_max_factory = %d;\n" % mjd_max )
     
     f.write( footer )
     f.close()

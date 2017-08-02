@@ -57,7 +57,7 @@ LIBPREFIX=$(PREFIX)/lib
 default: all
 all: $(LIB)
 
-qp_iers_bulletin_a.c: iers_bulletin_a.dat make_iers_bulletin_a_dot_c.py
+qp_iers_bulletin_a.c: make_iers_bulletin_a_dot_c.py
 	python make_iers_bulletin_a_dot_c.py
 
 $(OBJS): %$(OBJNAME): %.c
