@@ -1,0 +1,3 @@
+* use CBLAS for speedup?
+* expose all the other C functions in the python API?
+* add HWP-enabled versions of functions
