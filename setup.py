@@ -4,37 +4,62 @@ from __future__ import print_function
 # numpy.distutils handles intel compiler
 # need to pass --compiler=intel (or add to [build_ext] section of setup.cfg)
 from numpy.distutils.core import setup, Extension
+from numpy.distutils.command.build import build
+import sphinx.setup_command
 import os, glob
-from warnings import warn
+import sys
+import sysconfig
 
 # get version from git tag
 import subprocess as sp
 version = sp.check_output(
     'git describe --abbrev=4 --dirty --always --tags'.split()).strip()
-vtup = tuple(int(x) for x in version.split('-')[0].split('.'))
-print('qpoint version {}'.format(vtup))
-with open('python/_version.py', 'w') as f:
-    f.write('__version__ = ({:d}, {:d}, {:d})\n'.format(*vtup))
+version_simple = version.split('-')[0]
+vtup = tuple(int(x) for x in version_simple.split('.'))
+print('qpoint version {}'.format(version_simple))
 varg = '-DQP_VERSION=\"{}\"'.format(version)
 
-# hack to avoid recompiling sofa every time
-libsofa_file = 'sofa/libsofa_c.a'
-if not os.path.exists(libsofa_file):
-    os.system('make -C sofa')
+# build directory names
+def build_dir_name(name):
+    path = 'build/{name}.{platform}-{version[0]}.{version[1]}'.format(
+        name=name, platform=sysconfig.get_platform(), version=sys.version_info)
+    return os.path.abspath(path)
 
-libchealpix_file = 'chealpix/libchealpix_qp.a'
-if not os.path.exists(libchealpix_file):
-    os.system('make -C chealpix')
+# build classes
+class BuildLib(build):
 
-sp.check_call('make -C src qp_iers_bulletin_a.c'.split())
+    def run(self):
+        # build dependencies
+        print('make -C sofa')
+        sp.check_call('make -C sofa'.split())
+        print('make -C chealpix')
+        sp.check_call('make -C chealpix'.split())
+        print('make -C src')
+        sp.check_call('make -C src'.split())
+
+        # write version files
+        with open('python/_version.py', 'w') as f:
+            f.write('__version__ = ({:d}, {:d}, {:d})\n'.format(*vtup))
+
+        build.run(self)
+
+class BuildDoc(sphinx.setup_command.BuildDoc):
+
+    def run(self):
+        sys.path.insert(0, build_dir_name('lib'))
+        sphinx.setup_command.BuildDoc.run(self)
+
+# setup extension arguments
 src = [x for x in glob.glob('src/*.c')]
 src = [x for x in src if not x.endswith('iers_bulletin_a.c')]
 src += ['src/qp_iers_bulletin_a.c']
 incl_dirs = ['src','sofa','chealpix']
+libsofa_file = 'sofa/libsofa_c.a'
+libchealpix_file = 'chealpix/libchealpix_qp.a'
 extra_obj = [libsofa_file, libchealpix_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC', varg]
 
-# do different stuff if using intel copmilers
+# do different stuff if using intel compilers
 if os.getenv("CC", "") == "icc":
     extra_args.append('-qopenmp')
     libs = []
@@ -50,11 +75,25 @@ ext_qp = Extension('qpoint.libqpoint', src,
                    libraries=libs,
                    extra_objects=extra_obj)
 
+# run setup
 setup(name='qpoint',
       version=version,
       description='Pointing for SPIDER',
-      author='ASR',
+      author='Alexandra Rahlin',
       packages=['qpoint'],
       package_dir = {'qpoint': 'python'},
-      ext_modules=[ext_qp]
-      )
+      ext_modules=[ext_qp],
+      cmdclass={
+          'build': BuildLib,
+          'build_sphinx': BuildDoc,
+      },
+      command_options={
+          'build_sphinx': {
+              'project': ('setup.py', 'qpoint'),
+              'version': ('setup.py', version_simple),
+              'release': ('setup.py', version_simple),
+              'source_dir': ('setup.py', 'docs'),
+              'build_dir': ('setup.py', build_dir_name('docs')),
+              }
+      }
+)

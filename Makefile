@@ -12,7 +12,7 @@ default: all
 
 all: qpoint python
 
-.PHONY: qpoint sofa chealpix python
+.PHONY: qpoint sofa chealpix python docs
 qpoint: sofa chealpix
 	make -C src
 
@@ -49,11 +49,14 @@ install-chealpix: chealpix
 install-chealpix-shared: chealpix-shared
 	ENABLE_SHARED=yes make -C chealpix install
 
-python: sofa chealpix
+python:
 	CC=$(CC) python setup.py build
 
+docs:
+	python setup.py build_sphinx
+
 install-python: python
-	python setup.py install $(PYTHONPREFIX)
+	CC=$(CC) python setup.py install $(PYTHONPREFIX)
 
 install-qpoint: qpoint
 	make -C src install
