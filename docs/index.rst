@@ -6,11 +6,17 @@
 Welcome to qpoint's documentation!
 ==================================
 
+.. automodule:: qpoint
+    :undoc-members:
+    :show-inheritance:
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   qpoint
+   qpoint_class
+   qmap_class
+   tools
 
 Indices and tables
 ==================
