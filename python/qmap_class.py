@@ -121,10 +121,11 @@ class QMap(QPoint):
             If not supplied, the pointing structure is left
             uninitialized.
 
-        Remaining arguments are passed to `QPoint.set()`.
-
         Notes
         -----
+        Remaining keyword arguments are passed to the
+        :meth:`qpoint.qpoint_class.QPoint.set` method.
+
         An internal `depo` dictionary attribute stores the source and output
         maps, timestreams, and pointing data for retrieval by the user.
         Only pointers to these arrays in memory are passed to the C
@@ -169,11 +170,11 @@ class QMap(QPoint):
         Arguments
         ---------
         source_map : array_like
-            Input map.  Must be of shape (N, npix), where N can be
+            Input map.  Must be of shape `(N, npix)`, where `N` can be
             1, 3, 6, 9, or 18.
         pol : bool, optional
-            If True, and the map shape is (3, npix), then input is a
-            polarized map (and not T + 1st derivatives).
+            If `True`, and the map shape is `(3, npix)`, then input is a
+            polarized map (and not T + first derivatives).
         pixels : 1D array_like, optional
             Array of pixel numbers for each map index, if `source_map` is
             a partial map.
@@ -181,33 +182,36 @@ class QMap(QPoint):
             map dimension.  If `pixels` is supplied, this argument is required.
             Otherwise, the nside is determined from the input map.
         vpol : bool, optional
-            If True, and the input map shape is (4, npix), then input is
+            If `True`, and the input map shape is `(4, npix)`, then input is
             a polarized map that includes V polarization.
         reset : bool, optional
-            If True, and if the structure has already been initialized,
-            it is reset and re-initialized with the new map.  If False,
-            a RuntimeError is raised if the structure has already been
+            If `True`, and if the structure has already been initialized,
+            it is reset and re-initialized with the new map.  If `False`,
+            a `RuntimeError` is raised if the structure has already been
             initialized.
         update : bool, optional
-            If True, and if the structure has already been initialized,
-            the supplied source_map is replaced in the existing source
+            If `True`, and if the structure has already been initialized,
+            the supplied `source_map` is replaced in the existing source
             structure rather than reinitializing from scratch.
 
         Notes
         -----
         This method will automatically determine the type of map
-        given its shape.  Note that for N=3, the pol keyword argument
+        given its shape.  Note that for `N=3`, the `pol` keyword argument
         should be used to disambiguate the two map types.  By default,
-        a polarized map with (T,Q,U) components is assumed.
+        a polarized map with `(T,Q,U)` components is assumed.
 
-        N     map_in contents
-        1  :  T
-        3  :  (T, Q, U) --or-- (T, dTdt, dTdp)
-        4  :  (T, Q, U, V)
-        6  :  (T, dTdt, dTdp) + (dT2dt2, dT2dpdt, dT2dp2)
-        9  :  (T, Q, U) + (dTdt, dQdt, dUdt, dTdp, dQdp, dUdp)
-        18 :  (N=9) + (dT2dt2, dQ2dt2, dU2dt2, dT2dpdt, dQ2dpdt, dU2dpdt,
-                       dT2dp2, dQ2dp2, dU2dp2)
+        * A map of shape `(1, npix)` or `(npix,)` contains only a `T` map.
+        * A map of shape `(3, npix)` contains `(T, Q, U)` if `pol` is `True`,
+          or `(T, dTdt, dTdp)` if `pol` is `False`.
+        * A map of shape `(4, npix)` contains `(T, Q, U, V)`.
+        * A map of shape `(6, npix)` contains `(T, dTdt, dTdp, dT2dt2,
+          dT2dpdt, dT2dp2)`.
+        * A map of shape `(9, npix)` contains `(T, Q, U, dTdt, dQdt, dUdt,
+          dTdp, dQdp, dUdp)`.
+        * A map of shape `(18, npix)` contains all the columns of the
+          9-column map, followed by `(dT2dt2, dQ2dt2, dU2dt2, dT2dpdt,
+          dQ2dpdt, dU2dpdt, dT2dp2, dQ2dp2, dU2dp2)`.
         """
 
         if self.source_is_init():
@@ -596,15 +600,15 @@ class QMap(QPoint):
         Arguments
         ---------
         q_bore : array_like, optional
-             Boresight pointing quaternion, of shape (nsamp, 4).
-             If supplied, the pointing structure is reset if already
-             initialized.
+            Boresight pointing quaternion, of shape (nsamp, 4).
+            If supplied, the pointing structure is reset if already
+            initialized.
         ctime : array_like, optional
-             time since the UTC epoch.  If not None, the time array
-             is updated to this. Shape must be (nsamp,)
+            time since the UTC epoch.  If not None, the time array
+            is updated to this. Shape must be (nsamp,)
         q_hwp : array_like, optional
-             Waveplate quaternion.  If not None, the quaternion is
-             updated to this. Shape must be (nsamp, 4)
+            Waveplate quaternion.  If not None, the quaternion is
+            updated to this. Shape must be (nsamp, 4)
         """
 
         if not hasattr(self, '_point'):
@@ -675,8 +679,8 @@ class QMap(QPoint):
             Per-channel gains, of shape (ndet,) or a constant.
             Default : 1.
         mueller : array_like, optional
-            Per-channel polarization efficiencies, of shape(ndet, 3).
-            Default : [1., 1., 0.] per det.
+            Per-channel polarization efficiencies, of shape(ndet, 4).
+            Default : [1., 1., 0., 1.] per det.
         tod : array_like, optional
             Timestream array, of shape (ndet, nsamp).  nsamp must match that of
             the pointing structure.  If not supplied and `write` is True, then
@@ -693,8 +697,8 @@ class QMap(QPoint):
         do_diff : bool, optional
             If True, initialize pairs of arrays for pair-differenced mapmaking.
         write : bool, optional
-             If True, the timestreams are ensured writable and created if
-             necessary.
+            If True, the timestreams are ensured writable and created if
+            necessary.
         """
 
         self.reset_detarr()
@@ -796,29 +800,27 @@ class QMap(QPoint):
         Arguments
         ---------
         q_off : array_like
-          quaternion offset array, of shape (ndet, 4)
+            quaternion offset array, of shape (ndet, 4)
         tod : array_like, optional
-          output array for timestreams, of shape (ndet, nsamp)
-          if not supplied, only the projection map is populated.
+            output array for timestreams, of shape (ndet, nsamp)
+            if not supplied, only the projection map is populated.
         count_hits : bool, optional
-          if True (default), populate projection map.
+            if True (default), populate projection map.
         weight : array_like, optional
-          array of channel weights, of shape (ndet,).  Defaults to 1 if not
-          supplied.
+            array of channel weights, of shape (ndet,).  Defaults to 1 if not
+            supplied.
         gain : array_like, optional
             Per-channel gains, of shape (ndet,) or a constant.
             Default : 1.
         mueller : array_like, optional
-          array of Mueller matrix A/B/C elements, of shape (ndet,3).  Defaults to
-          [1, 1, 0] per channel if not supplied.
+            array of Mueller matrix A/B/C elements, of shape (ndet,3).  Defaults to
+            [1, 1, 0] per channel if not supplied.
         flag : array_like, optional
-          array of flag timestreams for each channel, of shape (ndet, nsamp).
+            array of flag timestreams for each channel, of shape (ndet, nsamp).
         weights : array_like, optional
-          array of weight timestreams for each channel, of shape (ndet, nsamp).
+            array of weight timestreams for each channel, of shape (ndet, nsamp).
         do_diff: do timestream differencing. Assumes first half of tods are
-          one pair and the second half are the other.
-
-        The remaining keyword arguments are passed to the QPoint.set method.
+            one pair and the second half are the other.
 
         Returns
         -------
@@ -826,6 +828,11 @@ class QMap(QPoint):
             binned signal map, if tod is supplied
         proj : array_like, optional
             binned projection matrix map, if count_hits is True
+
+        Notes
+        -----
+        The remaining keyword arguments are passed to the
+        :meth:`qpoint.qpoint_class.QPoint.set` method.
         """
 
         self.set(**kwargs)
@@ -881,24 +888,27 @@ class QMap(QPoint):
         Arguments
         ---------
         q_off : array_like
-          quaternion offset array, of shape (ndet, 4)
+            quaternion offset array, of shape (ndet, 4)
         gain : array_like, optional
             Per-channel gains, of shape (ndet,) or a constant.
             Default : 1.
         mueller : array_like, optional
-          array of Mueller matrix A/B/C elements, of shape (ndet, 3).  Defaults t
-          [1, 1, 0] per channel if not supplied.
+            array of Mueller matrix A/B/C/D elements, of shape (ndet, 4).  Defaults t
+            [1, 1, 0, 1] per channel if not supplied.
         tod : array_like, optional
-          output array for timestreams, of shape (ndet, nsamp)
-          use this keyword argument for in-place computation.
-
-        The remaining keyword arguments are passed to the QPoint.set method.
+            output array for timestreams, of shape (ndet, nsamp)
+            use this keyword argument for in-place computation.
 
         Returns
         -------
         tod : array_like
-          A timestream sampled from the input map for each requested detector.
-          The output array shape is (ndet, nsamp).
+            A timestream sampled from the input map for each requested detector.
+            The output array shape is (ndet, nsamp).
+
+        Notes
+        -----
+        The remaining keyword arguments are passed to the
+        :meth:`qpoint.qpoint_class.QPoint.set` method.
         """
 
         self.set(**kwargs)

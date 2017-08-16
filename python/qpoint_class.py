@@ -16,10 +16,11 @@ class QPoint(object):
 
     def __init__(self, **kwargs):
         """
-        Initialize a QPoint memory instance for keeping track of pointing
+        Initialize a `QPoint` memory instance for keeping track of pointing
         corrections over time.
 
-        Any keyword arguments are passed to QPoint.set to update memory.
+        Any keyword arguments are passed to
+        :meth:`qpoint.qpoint_class.QPoint.set` to update memory.
         """
 
         # initialize memory
@@ -48,8 +49,8 @@ class QPoint(object):
 
     def _set(self, key, val):
         """
-        Set a single parameter to the given value.  See QPoint.set for a list
-        of parameter names.
+        Set a single parameter to the given value.  See
+        :meth:`qpoint.qpoint_class.QPoint.set` for a list of parameter names.
         """
         if key not in self._all_funcs:
             raise KeyError('Unknown parameter {}'.format(key))
@@ -58,8 +59,8 @@ class QPoint(object):
 
     def _get(self, key):
         """
-        Get the value for a single parameter.  See QPoint.set for a list of
-        parameter names.
+        Get the value for a single parameter.  See
+        :meth:`qpoint.qpoint_class.QPoint.set` for a list of parameter names.
         """
         if key not in self._all_funcs:
             raise KeyError('Unknown parameter {}'.format(key))
@@ -68,60 +69,72 @@ class QPoint(object):
 
     def set(self, **kwargs):
         """
-        Available keywords are:
+        Set computation options.
 
-        * Correction rates:
-          NB: these can be 'never' (-999), 'once' (-1), 'always' (0) or seconds
-        rate_daber     Rate at which the diurnal aberration correction is
-                       applied (NB: this can only be applied always or never)
-        rate_lonlat    Rate at which observer's lon and lat are updated
-        rate_wobble    Rate at which the polar motion correction is updated
-                       (NB: these are not estimated for dates beyond a year
-                       from now)
-        rate_dut1      Rate at which the ut1-utc correction is updated
-                       (NB: this is not estimated for dates beyond a year from
-                       now)
-        rate_erot      Rate at which the earth's rotation angle is updated
-        rate_npb       Rate at which the nutation/precession/frame-bias terms
-                       are updated
-        rate_aaber     Rate at which the annual aberration correction
-                       (due to the earth's orbital velocity) is updated
-        rate_ref       Rate at which the refaction correction is updated
-                       (NB: this correction can also be updated manually -- see
-                       refraction)
-
-        * Options:
-        accuracy       If 'low', use a truncated form (2000b) for the NPB
-                       correction, which is much faster but less accurate.
-                       If 'high' (default), use the full 2006/2000a form.
-        mean_aber      If True, apply the aberration correction as an average
-                       for the entire field of view.  This is gives a 1-2
-                       arcsec deviation at the edges of the SPIDER field of
-                       view.
-        fast_math      If True, use polynomial approximations for trig
-                       functions
-        polconv        Specify the 'cosmo' or 'iau' polarization convention
-        pix_order      'nest' or 'ring' for healpix pixel ordering
-        interp_pix     If True, interpolate between pixels in scanning the
-                       source map.
-        fast_pix       If True, use vec2pix to get pixel number directly from
-                       the quaternion instead of ang2pix from ra/dec.
-        error_missing  If True, raise an error if reading/writing missing pixels.
-        nan_missing    If True, fill samples from missing pixels with NaN.
-                       Only used if error_missing is False.
-        interp_missing If True and interp_pix is True, drop missing neighbors
-                       and reweight remaining neighbors.  Overrides nan_missing.
-        num_threads    Number of threads for openMP bore2map computation
-
-        * Weather:
-        temperature    temperature, Celcius
-        pressure       pressure, mbar
-        humidity       relative humidity, fraction
-        frequency      observer frequency, GHz
-
-        * Parameters:
-        dut1           UT1 correction
-        ref_delta      Refraction correction
+        Arguments
+        ---------
+        rate_daber : {'never', 'once', 'always'}, or float
+            Rate at which the diurnal aberration correction is applied in seconds
+            (NB: this can only be applied always or never)
+        rate_lonlat : {'never', 'once', 'always'}, or float
+            Rate at which observer's lon and lat are updated
+        rate_wobble : {'never', 'once', 'always'}, or float
+            Rate at which the polar motion correction is updated
+            (NB: these are not estimated for dates beyond a year from now)
+        rate_dut1 : {'never', 'once', 'always'}, or float
+            Rate at which the ut1-utc correction is updated
+            (NB: this is not estimated for dates beyond a year from now)
+        rate_erot : {'never', 'once', 'always'}, or float
+            Rate at which the earth's rotation angle is updated
+        rate_npb : {'never', 'once', 'always'}, or float
+            Rate at which the nutation/precession/frame-bias terms are updated
+        rate_aaber : {'never', 'once', 'always'}, or float
+            Rate at which the annual aberration correction
+            (due to the earth's orbital velocity) is updated
+        rate_ref : {'never', 'once', 'always'}, or float
+            Rate at which the refaction correction is updated
+            (NB: this correction can also be updated manually -- see `refraction`)
+        accuracy : 'low' or 'high'
+            If 'low', use a truncated form (2000b) for the NPB correction,
+            which is much faster but less accurate. If 'high' (default), use
+            the full 2006/2000a form.
+        mean_aber : bool
+            If True, apply the aberration correction as an average for the
+            entire field of view.  This is gives a 1-2 arcsec deviation 
+            at the edges of the SPIDER field of view.
+        fast_math : bool
+            If True, use polynomial approximations for trig functions
+        polconv : 'cosmo' or 'iau'
+            Specify the 'cosmo' or 'iau' polarization convention
+        pix_order : 'nest' or 'ring'
+            HEALPix pixel ordering
+        interp_pix : bool
+            If True, interpolate between pixels in scanning the source map.
+        fast_pix : bool
+            If True, use `vec2pix` to get pixel number directly from the
+            quaternion instead of `ang2pix` from ra/dec.
+        error_missing : bool
+            If True, raise an error if reading/writing missing pixels.
+        nan_missing : bool
+            If True, fill samples from missing pixels with NaN.
+            Only used if `error_missing` is False.
+        interp_missing : bool
+            If True and `interp_pix` is True, drop missing neighbors
+            and reweight remaining neighbors.  Overrides `nan_missing`.
+        num_threads : bool
+             Number of openMP threads to use for mapmaking.
+        temperature : float
+            Ambient temperature, Celcius. For computing refraction corrections.
+        pressure : float
+            Ambient pressure, mbar. For computing refraction corrections.
+        humidity : float
+            Relative humidity, fraction. For computing refraction corrections.
+        frequency : float
+            Observer frequency, GHz. For computing refraction corrections.
+        dut1 : float
+            UT1 correction
+        ref_delta : float
+            Refraction correction
         """
 
         for k in kwargs:
@@ -130,12 +143,12 @@ class QPoint(object):
             except KeyError:
                 continue
 
-    def get(self,*args):
+    def get(self, *args):
         """
         Returns a dictionary of the requested state parameters.  If no
         parameters are supplied, then all are returned.  If a single parameter
-        is supplied, then just that value is returned.  See QPoint.set for a
-        list of parameter names.
+        is supplied, then just that value is returned.  See
+        :meth:`qpoint.qpoint_class.QPoint.set` for a list of parameter names.
 
         Can also select 'options', 'rates', 'weather', or 'params' to return
         all of that subset of parameters.
@@ -167,35 +180,51 @@ class QPoint(object):
         qp.qp_reset_rates(self._memory)
 
     def refraction(self, *args, **kwargs):
-        """
+        """refraction(q, **kwargs)
+        refraction(delta)
+
         Update refraction parameters
 
-        Arguments (positional or keyword):
+        Arguments
+        ---------
+        q : quaternion or array of quaternions
+            Observer orientation in horizon coordinates
+        temperature : float
+            Ambient temperature, Celcius
+        pressure : float
+            Ambient pressure, mbar
+        humidity : float
+            Ambient relative humidity, fraction
+        frequency : float
+            Observing frequency, GHz
+        delta : float
+            The refraction correction itself, in degrees
 
-        q            observer orientation in horizon coordinates
-        temperature  temperature, Celcius
-        pressure     pressure, mbar
-        humidity     humidity, fraction
-        frequency    array frequency, GHz
-        delta        the refraction correction itself, in degrees
+        Returns
+        -------
+        delta : array_like
+            Refraction correction computed at each input orientation
 
-        If el is given, then the refraction correction in degrees
+        Notes
+        -----
+        If `q` is given, then the refraction correction in degrees
         is calculated, stored and returned after updating any other given
         parameters. Otherwise, the correction is returned w/out recalculating.
 
-        Alternatively, if a single numerical argument, or the 'delta' keyword
+        Alternatively, if a single numerical argument, or the `delta` keyword
         argument is given, then the correction is stored with this value
         instead of being recalculated.
 
-        Numpy-vectorized for el argument.  Note that this is not
+        Numpy-vectorized for the `q` argument.  Note that this is not
         an efficient vectorization, and only the last calculated value is
         stored for use in the coordinate conversion functions.
         """
 
         if len(args) == 1 and len(kwargs) == 0:
             v = args[0]
-            self._set('ref_delta', v)
-            return v
+            if np.isscalar(v):
+                self._set('ref_delta', v)
+                return v
 
         if 'delta' in kwargs:
             v = kwargs.get('delta')
@@ -203,19 +232,19 @@ class QPoint(object):
             return v
 
         arg_names = ['q'] + list(self._funcs['weather'])
-        for idx,a in enumerate(args):
+        for idx, a in enumerate(args):
             kwargs[arg_names[idx]] = a
 
         for w in self._funcs['weather']:
             if w in kwargs:
                 self._set(w, kwargs.get(w))
 
-        q = kwargs.get('q',None)
+        q = kwargs.get('q', None)
         if q is not None:
             def func(x0, x1, x2, x3):
-                q = np.ascontiguousarray([x0,x1,x2,x3])
+                q = np.ascontiguousarray([x0, x1, x2, x3])
                 return qp.qp_update_ref(self._memory, q)
-            fvec = np.vectorize(func,[np.double])
+            fvec = np.vectorize(func, [np.double])
             if q.size // 4 > 1:
                 q = q.transpose()
             delta = fvec(q[0], q[1], q[2], q[3])
@@ -226,21 +255,24 @@ class QPoint(object):
 
     def gmst(self, ctime, **kwargs):
         """
-        Return Greenwich mean sidereal time for given ctimes and longitudes.
+        Return Greenwich mean sidereal time for given ctimes.
         Vectorized.
 
-        Arguments:
+        Arguments
+        ---------
+        ctime : array_like
+            Unix time in seconds UTC
 
-        ctime      unix time in seconds UTC
+        Returns
+        -------
+        gmst : array_like
+            Greenwich mean sidereal time of the observer
 
-        Keyword arguments:
-
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-
-        Outputs:
-
-        gmst       Greenwich mean sidereal time of the observer
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -260,19 +292,23 @@ class QPoint(object):
         Return local mean sidereal time for given ctimes and longitudes.
         Vectorized.
 
-        Arguments:
+        Arguments
+        ---------
+        ctime : array_like
+            Unix time in seconds UTC
+        lon : array_like
+            Observer longitude (degrees)
 
-        ctime      unix time in seconds UTC
-        lon        observer longitude (degrees)
+        Returns
+        -------
+        lmst : array_like
+            Local mean sidereal time of the observer
 
-        Keyword arguments:
-
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-
-        Outputs:
-
-        lmst       local mean sidereal time of the observer
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -292,20 +328,25 @@ class QPoint(object):
         Return dipole amplitude in the given equatorial direction.
         Vectorized.
 
-        Arguments:
+        Arguments
+        ---------
+        ctime : array_like
+            Unix time in seconds UTC
+        ra : array_like
+            Right ascension on the sky, in degrees.
+        dec : array_like
+            Declination on the sky, in degrees
 
-        ctime      unix time in seconds UTC
-        ra         right ascension on the sky
-        dec        declination on the sky
+        Returns
+        -------
+        dipole : array_like
+            Dipole amplitude in K
 
-        Keyword arguments:
-
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-
-        Outputs:
-
-        dipole     dipole amplitude in K
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -324,17 +365,28 @@ class QPoint(object):
         """
         Calculate dipole timestream for given offset and boresight pointing.
 
-        Arguments:
+        Arguments
+        ---------
+        q_off : quaternion
+            Detector offset quaternion for a single detector, calculated using
+            `det_offset`
+        ctime : array_like
+            Array of unix times in seconds UTC
+        q_bore : quaternion or array of quaternions
+            Array of quaternions encoding the boresight orientation
+            on the sky (as output by `azel2radec` or similar).
+            Same length as `ctime`.
 
-        q_off      Detector offset quaternion for a single detector,
-                   calculated using det_offset
-        ctime      array of unix times in seconds UTC
-        q_bore     Nx4 array of quaternions encoding the boresight orientation
-                   on the sky (as output by azel2radec)
+        Returns
+        -------
+        dipole : array_like
+            Dipole amplitude in K
 
-        Outputs:
-
-        dipole     dipole amplitude in K
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -353,18 +405,22 @@ class QPoint(object):
 
     def det_offset(self, delta_az, delta_el, delta_psi):
         """
-        Return quaternion corresponding to the requested detector offset.
-        Vectorized.
+        Return quaternion corresponding to the requested detector centroid
+        offset from boresight.  Vectorized.
 
-        Arguments:
+        Arguments
+        ---------
+        delta_az : array_like
+            Azimuthal centroid offset of the detector in degrees
+        delta_el : array_like
+            Elevation centroid offset of the detector in degrees
+        delta_psi : array_like
+            Polarization offset of the detector from vertical in degrees
 
-        delta_az   azimuthal offset of the detector (degrees)
-        delta_el   elevation offset of the detector (degrees)
-        delta_psi  polarization offset of the detector (degrees)
-
-        Outputs:
-
-        q          detector offset quaternion for each detector
+        Returns
+        -------
+        q : array_like
+            Detector centroid offset quaternion for each detector
         """
 
         delta_az, delta_el, delta_psi = \
@@ -383,23 +439,32 @@ class QPoint(object):
         """
         Apply a fixed or variable offset to the boresight quaternion.
 
-        Arguments:
+        Arguments
+        ---------
+        q_bore : array_like
+            boresight pointing quaternion
+        ang1 : array_like, optional
+            Azimuthal or ra offset in degrees
+        ang2 : array_like, optional
+            Elevation or dec offset in degrees
+        ang3 : array_like, optional
+            Position angle offset in degrees
+        post : bool, optional
+            If False, apply offset as an az/el/pa pre-rotation
+            If True, apply offset as an ra/dec/pa post-rotation
+        inplace : bool, optional
+            If True, apply the rotation in-place in memory.
 
-        q_bore    boresight pointing quaternion
-        ang1      azimuthal or ra offset (degrees), scalar or array
-        ang2      elevation or dec offset (degrees), scalar or array
-        ang3      position angle offset (degrees), scalar or array
-        post      If False, apply offset as an az/el/pa pre-rotation
-                  If True, apply offset as an ra/dec/pa post-rotation
-        inplace   If True, apply the rotation in-place in memory.
-
-        Outputs:
-
-        q_bore    Offset boresight quaternion
+        Returns
+        -------
+        q_bore : array_like
+            Offset boresight quaternion
         """
         q_bore = check_input('q_bore', np.atleast_2d(q_bore), quat=True,
                              inplace=inplace)
         n = q_bore.shape[0]
+        if all([a is None for a in [ang1, ang2, ang3]]):
+            raise ValueError('One of ang1, ang2, ang3 is required')
         ang1, ang2, ang3 = \
             check_inputs(ang1, ang2, ang3, shape=(n,))
         qp.qp_bore_offset(self._memory, q_bore, ang1, ang2, ang3, n, int(post))
@@ -407,17 +472,18 @@ class QPoint(object):
 
     def hwp_quat(self, theta):
         """
-        Return quaternion corresponding to rotation by 2*theta,
-        where theta is the physical waveplate angle.
-        Vectorized.
+        Return quaternion corresponding to rotation by 2 * theta,
+        where theta is the physical waveplate angle. Vectorized.
 
-        Arguments:
+        Arguments
+        ---------
+        theta : array_like
+            HWP physical angle in degrees
 
-        theta      hwp physical angle (degrees)
-
-        Outputs:
-
-        q          quaternion for each hwp angle
+        Returns
+        -------
+        q : array_like
+            Quaternion for each hwp angle
         """
         theta = check_input('theta', np.atleast_1d(theta))
         n = theta.size
@@ -436,25 +502,36 @@ class QPoint(object):
         the attitude (az/el/pitch/roll), location on the earth (lon/lat) and
         ctime. Input vectors must be numpy-array-like and of the same shape.
 
-        Arguments:
+        Arguments
+        ---------
+        az : array_like
+            Boresight azimuth in degrees
+        el : array_like
+            Boresight elevation in degrees
+        pitch : array_like
+            Boresight pitch in degrees.  If `None`, this term is ignored.
+        roll : array_like
+            Boresight roll in degrees.  If `None`, this term is ignored.
+        lon : array_like
+            Observer longitude in degrees
+        lat : array_like
+            Observer latitude in degrees
+        ctime : array_like
+            Unix time in seconds UTC
+        q : array_like, optional
+            Output quaternion array initialized by user.  Supply this
+            for in-place computation.
 
-        az         boresight azimuth (degrees)
-        el         boresight elevation (degrees)
-        pitch      boresight pitch (degrees); can be None
-        roll       boresight pitch (degrees); can be None
-        lon        observer longitude (degrees)
-        lat        observer latitude (degrees)
-        ctime      unix time in seconds UTC
-        q          output quaternion array initialized by user
+        Returns
+        -------
+        q : array_like
+            Nx4 numpy array of quaternions for each supplied timestamp.
 
-        Keywork arguments:
-
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-
-        Output:
-
-        q          Nx4 numpy array of quaternions for each supplied timestamp.
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -480,31 +557,45 @@ class QPoint(object):
         pointed toward the horizon, and that the boresight polarization axis is
         along the vertical.
 
-        Arguments:
+        Arguments
+        ---------
+        q_off : quaternion
+            Detector offset quaternion for a single detector, calculated using
+            `det_offset`.
+        ctime : array_like
+            Unix time in seconds UTC
+        q_bore : quaternion or array of quaternions
+            Nx4 array of quaternions encoding the boresight orientation
+            on the sky (as output by `azel2radec` or equivalent)
+        q_hwp : quaternion or array of quaternions, optional
+            HWP angle quaternions calculated using `hwp_quat`.
+            Must be same shape as `q_bore`.
+        sindec : bool, optional
+            If `True`, return sin(dec) instead of dec in degrees
+            (default False).
+        return_pa : bool, optional
+            If `True`, return pa instead of sin2psi / cos2psi
 
-        q_off      Detector offset quaternion for a single detector,
-                   calculated using det_offset
-        ctime      array of unix times in seconds UTC
-        q_bore     Nx4 array of quaternions encoding the boresight orientation
-                   on the sky (as output by azel2radec)
+        Returns
+        -------
+        ra : array_like
+            Detector right ascension in degrees
+        dec/sindec : array_like
+            Detector declination in degrees or sin(dec) if `sindec` is `True`.
+        pa/sin2psi : array_like
+            Detector polarization orientation if `return_pa` is `True`, or
+            sin(2*pa) if `return_pa` is `False`.
+        cos2psi : array_like
+            detector polarization orientation cos(2*pa), if `return_pa` is `False`.
 
-        Keyword arguments:
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
 
-        q_hwp      HWP angle quaternions calculated using hwp_quat
-                   must be same shape as q_bore
-        sindec     If True, return sin(dec) instead of dec in degrees
-                   (default False)
-        return_pa  If True, return pa instead of sin2psi / cos2psi
-
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-
-        Outputs:
-
-        ra         detector right ascension (degrees)
-        dec/sindec detector declination (degrees) or sin(dec)
-        sin2psi    detector polarization orientation
-        cos2psi    detector polarization orientation
+        Pre-allocated output arguments can also be supplied as input keywords
+        for in-place operation.
         """
 
         self.set(**kwargs)
@@ -571,34 +662,49 @@ class QPoint(object):
         assuming the boresight is pointed toward the horizon, and that the
         boresight polarization axis is along the horizontal.
 
-        Arguments:
+        Arguments
+        ---------
+        delta_az : float
+            Azimuthal offset of the detector in degrees
+        delta_el : float
+            Elevation offset of the detector in degrees
+        delta_psi : float
+            Polarization offset of the detector in degrees
+        az : array_like
+            Boresight azimuth in degrees
+        el : array_like
+            Boresight elevation in degrees
+        pitch : array_like
+            Boresight pitch in degrees.  If None, this term is ignored.
+        roll : array_like
+            Boresight roll in degrees.  If None, this term is ignored.
+        lon : array_like
+            Observer longitude in degrees.
+        lat : array_like
+            Observer latitude in degrees.
+        ctime : array_like
+            Unix time in seconds UTC
+        hwp : array_like, optional
+            HWP angles in degrees
+        sindec : bool, optional
+            If `True`, return sin(dec) instead of dec in degrees (default False)
 
-        delta_az   azimuthal offset of the detector (degrees)
-        delta_el   elevation offset of the detector (degrees)
-        delta_psi  polarization offset of the detector (degrees)
-        az         boresight azimuth (degrees)
-        el         boresight elevation (degrees)
-        pitch      boresight pitch (degrees); can be None
-        roll       boresight roll (degrees); can be None
-        lon        observer longitude (degrees)
-        lat        observer latitude (degrees)
-        ctime      unix time in seconds UTC
+        Returns
+        -------
+        ra : array_like
+            Detector right ascension in degrees
+        dec/sindec : array_like
+            Detector declination in degrees
+        sin2psi : array_like
+            Detector polarization orientation
+        cos2psi : array_like
+            Detector polarization orientation
 
-        Keyword arguments:
-
-        hwp        HWP angles (degrees)
-        sindec     If True, return sin(dec) instead of dec in degrees
-                   (default False)
-
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-
-        Outputs:
-
-        ra         detector right ascension (degrees)
-        dec/sindec detector declination (degrees)
-        sin2psi    detector polarization orientation
-        cos2psi    detector polarization orientation
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -640,6 +746,28 @@ class QPoint(object):
     def radecpa2quat(self, ra, dec, pa, **kwargs):
         """
         Calculate quaternion for input ra/dec/pa.
+
+        Arguments
+        ---------
+        ra : array_like
+            Right ascension angle
+        dec : array_like
+            Declination angle
+        pa : array_like
+            Position angle
+
+        Returns
+        -------
+        q : array_like
+            Quaternion constructed from the input angles.
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
+
+        Input arguments are broadcast to the same shape.
         """
         self.set(**kwargs)
 
@@ -655,6 +783,26 @@ class QPoint(object):
     def quat2radecpa(self, quat, **kwargs):
         """
         Calculate ra/dec/pa for input quaternion(s).
+
+        Arguments
+        ---------
+        q : array_like
+            Pointing quaternion
+
+        Returns
+        -------
+        ra : array_like
+            Right ascension angle
+        dec : array_like
+            Declination angle
+        pa : array_like
+            Position angle
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
         self.set(**kwargs)
 
@@ -671,7 +819,27 @@ class QPoint(object):
 
     def radec2pix(self, ra, dec, nside=256, **kwargs):
         """
-        Calculate healpix pixel number for given ra/dec and nside
+        Calculate HEALpix pixel number for given ra/dec and nside.
+
+        Arguments
+        ---------
+        ra : array_like
+            Right ascension angle
+        dec : array_like
+            Declination angle
+        nside : int
+            HEALpix resolution parameter
+
+        Returns
+        -------
+        pix : array_like
+            Pixel number(s) corresponding to the input positions(s).
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -704,12 +872,16 @@ class QPoint(object):
             If True, apply the rotation in-place on the input quaternion.
             Otherwise, return a copy of the input array.  Default: True.
 
-        Remaining keyword arguments are passed to the `QMap.set` method.
-
         Returns
         -------
         quat : array_like
             rotated quaternion array
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -751,14 +923,18 @@ class QPoint(object):
             If True, apply the rotation in-place on the input quaternion.
             Otherwise, return a copy of the input array.  Default: True.
 
-        Remaining keyword arguments are passed to the `QMap.set` method.
-
         Returns
         -------
         ra, dec, pa : array_like
           -- or --
         ra, dec, sin2psi, cos2psi : array_like
             rotated coordinate arrays, same form as input
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
         self.set(**kwargs)
 
@@ -801,7 +977,33 @@ class QPoint(object):
     def radec2gal(self, ra, dec, pa=None, sin2psi=None, cos2psi=None,
                   inplace=True, **kwargs):
         """
-        Rotate celestial coordinates to galactic coordinates.
+        Rotate celestial (equatorial) coordinates to galactic coordinates.
+        This is equivalent to calling `rotate_coord(..., coord=['C', 'G'])`.
+
+        Arguments
+        ---------
+        ra, dec, pa : array_like
+          -- or --
+        ra, dec, sin2psi, cos2psi : array_like
+            arrays of coordinates, of shape (n,)
+            If none of pa, sin2psi or cos2psi are supplied,
+            pa = 0 is assumed.
+        inplace : bool, optional
+            If True, apply the rotation in-place on the input quaternion.
+            Otherwise, return a copy of the input array.  Default: True.
+
+        Returns
+        -------
+        l, b, pa : array_like
+          -- or --
+        l, b, sin2psi, cos2psi : array_like
+            rotated coordinate arrays, same form as input
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
         return self.rotate_coord(ra, dec, pa, sin2psi, cos2psi,
                                  coord=['C','G'], inplace=inplace, **kwargs)
@@ -809,7 +1011,33 @@ class QPoint(object):
     def gal2radec(self, ra, dec, pa=None, sin2psi=None, cos2psi=None,
                   inplace=True, **kwargs):
         """
-        Rotate celestial coordinates to galactic coordinates.
+        Rotate galactic coordinates to celestial (equatorial) coordinates.
+        This is equivalent to calling `rotate_coord(..., coord=['G', 'C'])`.
+
+        Arguments
+        ---------
+        l, b, pa : array_like
+          -- or --
+        l, b, sin2psi, cos2psi : array_like
+            arrays of coordinates, of shape (n,)
+            If none of pa, sin2psi or cos2psi are supplied,
+            pa = 0 is assumed.
+        inplace : bool, optional
+            If True, apply the rotation in-place on the input quaternion.
+            Otherwise, return a copy of the input array.  Default: True.
+
+        Returns
+        -------
+        ra, dec, pa : array_like
+          -- or --
+        ra, dec, sin2psi, cos2psi : array_like
+            rotated coordinate arrays, same form as input
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
         return self.rotate_coord(ra, dec, pa, sin2psi, cos2psi,
                                  coord=['G','C'], inplace=inplace, **kwargs)
@@ -817,11 +1045,36 @@ class QPoint(object):
     def rotate_map(self, map_in, coord=['C','G'], map_out=None,
                    interp_pix=True, **kwargs):
         """
-        Rotate a polarized npix-x-3 map from one coordinate system to another.
+        Rotate a polarized 3-x-npix map from one coordinate system to another.
         Supported coordinates:
 
-        C = celestial (J2000)
+        C = celestial (equatorial J2000)
         G = galactic
+
+        Arguments
+        ---------
+        map_in : array_like
+            Input map, of shape (3, N)
+        coord : list, optional
+            2-element list of input and output coordinates.
+            Supported systems: C, G.
+        map_out : array_like, optional
+            Rotated output map, for inplace operation.  Same shape as `map_in`.
+        interp_pix : bool, optional
+            If True, interpolate the rotated map.
+
+        Returns
+        -------
+        map_out : array_like
+            Rotated output map.
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
+
+        Only full-sky maps are currently supported.
         """
 
         from warnings import warn
@@ -852,8 +1105,31 @@ class QPoint(object):
 
     def quat2pix(self, quat, nside=256, pol=True, **kwargs):
         """
-        Calculate healpix pixel number and polarization angle given
-        quaternion and nside
+        Calculate HEALpix pixel number and optional polarization angle
+        for a given orientation.
+
+        Arguments
+        ---------
+        quat : quaternion or array of quaternions
+            Pointing orientation(s)
+        nside : int, optional
+            HEALpix resolution parameter
+        pol : bool, optional
+            If True, return sin2psi and cos2psi along with the pixel number(s)
+
+        Returns
+        -------
+        pix : array_like
+            Pixel number(s) for the given input quaternion(s)
+        sin2psi : array_like
+        cos2psi : array_like
+            Polarization coefficients, if `pol` is `True`.
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -881,29 +1157,37 @@ class QPoint(object):
         pointed toward the horizon, and that the boresight polarization axis is
         along the vertical.
 
-        Arguments:
+        Arguments
+        ---------
+        q_off : quaternion
+            Detector offset quaternion for a single detector,
+            calculated using `det_offset`.
+        ctime : array_like
+            Unix times in seconds UTC
+        q_bore : quaternion or array of quaternions
+            Nx4 array of quaternions encoding the boresight orientation
+            on the sky (as output by `azel2radec` or equivalent)
+        q_hwp : quaternion or array of quaternions, optional
+            HWP angle quaternions calculated using `hwp_quat`.
+            Must be same shape as `q_bore`.
+        nside : int, optional
+            HEALpix map dimension.  Default: 256.
+        pol : bool, optional
+            If `False`, return only the pixel timestream
 
-        q_off      Detector offset quaternion for a single detector,
-                   calculated using det_offset
-        ctime      array of unix times in seconds UTC
-        q_bore     Nx4 array of quaternions encoding the boresight orientation
-                   on the sky (as output by azel2radec)
+        Returns
+        -------
+        pix : array_like
+            Detector pixel number
+        sin2psi : array_like
+        cos2psi : array_like
+            Detector polarization orientation, if `pol` is `True`.
 
-        Keyword arguments:
-
-        q_hwp      HWP angle quaternions calculated using hwp_quat
-                   must be same shape as q_bore
-        nside      map dimension
-        pol        if False, return only the pixel timestream
-
-        Any keywords accepted by the QPoint.set function can also be passed
-        here, and will be processed prior to calculation.
-
-        Outputs:
-
-        pix        detector pixel number
-        sin2psi    detector polarization orientation (if pol is True)
-        cos2psi    detector polarization orientation (if pol is True)
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
         """
 
         self.set(**kwargs)
@@ -987,20 +1271,29 @@ class QPoint(object):
     def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
         """
         Load IERS Bulletin A from file and store in memory.  The file must be
-        readable using numpy.loadtxt with unpack=True, and is assumed to be sorted
-        by mjd.
+        readable using `numpy.loadtxt` with `unpack=True`, and is assumed to be
+        sorted by mjd.
 
-        Keyword arguments:
+        Arguments
+        ---------
+        filename : string
+            Name of the text file containing IERS Bulletin A parameters.
+        columns : list of strings
+            list of columns as they appear in the file.
+            A KeyError is raise if the list does not contain
+            each of ['mjd', 'dut1', 'x', 'y'].
 
-        columns    list of columns as they appear in the file.
-                   A KeyError is raise if the list does not contain
-                   each of ['mjd', 'dut1', 'x', 'y']
+        Any other keyword arguments are passed to the `numpy.loadtxt` function
 
-        Any other keyword arguments are passed to the numpy.loadtxt function
-
-        Output:
-
-        mjd, dut1, x, y
+        Returns
+        -------
+        mjd : array_like
+            Modified Julian date
+        dut1 : array_like
+            UT1-UTC time correction
+        x : array_like
+        y : array_like
+            Polar motion corrections
         """
 
         req_columns = ['mjd','dut1','x','y']
