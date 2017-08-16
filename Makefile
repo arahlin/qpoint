@@ -53,7 +53,7 @@ python:
 	CC=$(CC) python setup.py build
 
 docs:
-	python setup.py build_sphinx
+	python setup.py build_sphinx -a
 
 install-python: python
 	CC=$(CC) python setup.py install $(PYTHONPREFIX)
