@@ -688,7 +688,7 @@ class QMap(QPoint):
         flag : array_like, optional
             Flag array, of shape (ndet, nsamp), for excluding data from
             mapmaking.  nsamp must match that of the pointing structure.
-            If not supplied, a zero-filled array is initialized (i.e. no 
+            If not supplied, a zero-filled array is initialized (i.e. no
             flagged samples).
         weights : array_like, optional
             Weight array, of shape (ndet, nsamp), for weighting each sample of
@@ -1210,6 +1210,8 @@ class QMap(QPoint):
         """
         Invert the solved map to recover the binned vec array.
 
+        Arguments
+        ---------
         map_in : array_like
             A map or list of N maps.
         proj : array_like, optional

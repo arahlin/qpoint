@@ -8,20 +8,26 @@ def refraction(el, temp, press, hum, freq=150.):
     """
     Standalone function for calculating the refraction correction without
     storing any parameters.  Useful for testing, numpy-vectorized.
-    
-    Arguments:
-    
-    el           elevation angle, degrees
-    temperature  temperature, Celcius
-    pressure     pressure, mbar
-    humidity     humidity, fraction
-    frequency    array frequency, GHz
-    
-    Output:
-    
-    delta        refraction correction, in degrees
+
+    Arguments
+    ---------
+    el : array_like
+        Observer elevation angle, degrees
+    temperature : array_like
+        Ambient temperature, Celcius
+    pressure : array_like
+        Ambient pressure, mbar
+    humidity : array_like
+        Relative humidity, fraction
+    frequency : array_like
+        Observing frequency, GHz
+
+    Returns
+    -------
+    delta : array_like
+        Refraction correction, in degrees
     """
-    
+
     fvec = _np.vectorize(_libqp.qp_refraction,[_np.double])
     delta = fvec(el, temp, press, hum, freq)
     if delta.shape == ():

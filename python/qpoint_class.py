@@ -100,7 +100,7 @@ class QPoint(object):
             the full 2006/2000a form.
         mean_aber : bool
             If True, apply the aberration correction as an average for the
-            entire field of view.  This is gives a 1-2 arcsec deviation 
+            entire field of view.  This is gives a 1-2 arcsec deviation
             at the edges of the SPIDER field of view.
         fast_math : bool
             If True, use polynomial approximations for trig functions
