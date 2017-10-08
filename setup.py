@@ -5,7 +5,11 @@ from __future__ import print_function
 # need to pass --compiler=intel (or add to [build_ext] section of setup.cfg)
 from numpy.distutils.core import setup, Extension
 from numpy.distutils.command.build import build
-import sphinx.setup_command
+try:
+    import sphinx.setup_command
+    sphinx_found = True
+except ImportError:
+    sphinx_found = False
 import os, glob
 import sys
 import sysconfig
@@ -43,11 +47,16 @@ class BuildLib(build):
 
         build.run(self)
 
-class BuildDoc(sphinx.setup_command.BuildDoc):
-
-    def run(self):
-        sys.path.insert(0, build_dir_name('lib'))
-        sphinx.setup_command.BuildDoc.run(self)
+if sphinx_found:
+    class BuildDoc(sphinx.setup_command.BuildDoc):
+        def run(self):
+            sys.path.insert(0, build_dir_name('lib'))
+            sphinx.setup_command.BuildDoc.run(self)
+else:
+    class BuildDoc(build):
+        user_options = [('all', 'a', '')]
+        def initialize_options(self):
+            raise ImportError('sphinx not found, cannot build docs')
 
 # setup extension arguments
 src = [x for x in glob.glob('src/*.c')]
