@@ -23,6 +23,14 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_npb   , 10);
   qp_init_state(&mem->state_aaber , 100);
   qp_init_state(&mem->state_ref   , QP_DO_NEVER);
+  qp_init_state(&mem->state_daber_inv , QP_DO_ALWAYS);
+  qp_init_state(&mem->state_lonlat_inv, QP_DO_ALWAYS);
+  qp_init_state(&mem->state_wobble_inv, QP_DO_NEVER);
+  qp_init_state(&mem->state_dut1_inv  , QP_DO_NEVER);
+  qp_init_state(&mem->state_erot_inv  , QP_DO_ALWAYS);
+  qp_init_state(&mem->state_npb_inv   , 10);
+  qp_init_state(&mem->state_aaber_inv , 100);
+  qp_init_state(&mem->state_ref_inv   , QP_DO_NEVER);
   mem->accuracy = 0;
   mem->mean_aber = 1;
   mem->fast_math = 0;
@@ -50,6 +58,11 @@ qp_memory_t * qp_init_memory(void) {
   memset(mem->q_npb,      0, sizeof(quat_t));
   memset(mem->q_erot,     0, sizeof(quat_t));
   memset(mem->q_ref,      0, sizeof(quat_t));
+  memset(mem->q_lonlat_inv,   0, sizeof(quat_t));
+  memset(mem->q_wobble_inv,   0, sizeof(quat_t));
+  memset(mem->q_npb_inv,      0, sizeof(quat_t));
+  memset(mem->q_erot_inv,     0, sizeof(quat_t));
+  memset(mem->q_ref_inv,      0, sizeof(quat_t));
   memset(mem->q_gal,      0, sizeof(quat_t));
   memset(mem->q_gal_inv,  0, sizeof(quat_t));
   memset(mem->v_dipole,   0, sizeof(vec3_t));
@@ -95,6 +108,14 @@ RATEFUNCD(erot)
 RATEFUNCD(npb)
 RATEFUNCD(aaber)
 RATEFUNCD(ref)
+RATEFUNCD(daber_inv)
+RATEFUNCD(lonlat_inv)
+RATEFUNCD(wobble_inv)
+RATEFUNCD(dut1_inv)
+RATEFUNCD(erot_inv)
+RATEFUNCD(npb_inv)
+RATEFUNCD(aaber_inv)
+RATEFUNCD(ref_inv)
 
 void qp_print_quat(const char *tag, quat_t q) {
   printf("%s quat: [%.6g, %.6g, %.6g, %.6g]\n",
@@ -153,24 +174,35 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  ref delta %.6g\n", thread, mem->ref_delta);
 
   qp_print_state_mp(thread, "daber", &mem->state_daber);
+  qp_print_state_mp(thread, "daber inv", &mem->state_daber_inv);
   qp_print_vec3_mp(thread, "daber beta rot", mem->beta_rot);
 
   qp_print_state_mp(thread, "lonlat", &mem->state_lonlat);
   qp_print_quat_mp(thread, "lonlat", mem->q_lonlat);
+  qp_print_state_mp(thread, "lonlat inv", &mem->state_lonlat_inv);
+  qp_print_quat_mp(thread, "lonlat inv", mem->q_lonlat_inv);
 
   qp_print_state_mp(thread, "wobble", &mem->state_wobble);
   qp_print_quat_mp(thread, "wobble", mem->q_wobble);
+  qp_print_state_mp(thread, "wobble inv", &mem->state_wobble_inv);
+  qp_print_quat_mp(thread, "wobble inv", mem->q_wobble_inv);
 
   qp_print_state_mp(thread, "dut1", &mem->state_dut1);
+  qp_print_state_mp(thread, "dut1 inv", &mem->state_dut1_inv);
   printf("[%d]  dut1 %.6g\n", thread, mem->dut1);
 
   qp_print_state_mp(thread, "erot", &mem->state_erot);
   qp_print_quat_mp(thread, "erot", mem->q_erot);
+  qp_print_state_mp(thread, "erot inv", &mem->state_erot_inv);
+  qp_print_quat_mp(thread, "erot inv", mem->q_erot_inv);
 
   qp_print_state_mp(thread, "npb", &mem->state_npb);
   qp_print_quat_mp(thread, "npb", mem->q_npb);
+  qp_print_state_mp(thread, "npb inv", &mem->state_npb_inv);
+  qp_print_quat_mp(thread, "npb inv", mem->q_npb_inv);
 
   qp_print_state_mp(thread, "aaber", &mem->state_aaber);
+  qp_print_state_mp(thread, "aaber inv", &mem->state_aaber_inv);
   qp_print_vec3_mp(thread, "aaber beta earth", mem->beta_earth);
 
   printf("[%d]  gal init: %s\n", thread, mem->gal_init ? "yes" : "no");
@@ -217,6 +249,25 @@ void qp_set_rates(qp_memory_t *mem,
   qp_set_rate_ref   (mem, ref_rate);
 }
 
+void qp_set_inv_rates(qp_memory_t *mem,
+		      double daber_rate,
+		      double lonlat_rate,
+		      double wobble_rate,
+		      double dut1_rate,
+		      double erot_rate,
+		      double npb_rate,
+		      double aaber_rate,
+		      double ref_rate) {
+  qp_set_rate_daber_inv (mem, daber_rate);
+  qp_set_rate_lonlat_inv(mem, lonlat_rate);
+  qp_set_rate_wobble_inv(mem, wobble_rate);
+  qp_set_rate_dut1_inv  (mem, dut1_rate);
+  qp_set_rate_erot_inv  (mem, erot_rate);
+  qp_set_rate_npb_inv   (mem, npb_rate);
+  qp_set_rate_aaber_inv (mem, aaber_rate);
+  qp_set_rate_ref_inv   (mem, ref_rate);
+}
+
 void qp_reset_rates(qp_memory_t *mem) {
   qp_reset_rate_daber (mem);
   qp_reset_rate_lonlat(mem);
@@ -226,6 +277,17 @@ void qp_reset_rates(qp_memory_t *mem) {
   qp_reset_rate_npb   (mem);
   qp_reset_rate_aaber (mem);
   qp_reset_rate_ref   (mem);
+}
+
+void qp_reset_inv_rates(qp_memory_t *mem) {
+  qp_reset_rate_daber_inv (mem);
+  qp_reset_rate_lonlat_inv(mem);
+  qp_reset_rate_wobble_inv(mem);
+  qp_reset_rate_dut1_inv  (mem);
+  qp_reset_rate_erot_inv  (mem);
+  qp_reset_rate_npb_inv   (mem);
+  qp_reset_rate_aaber_inv (mem);
+  qp_reset_rate_ref_inv   (mem);
 }
 
 // return 0 to skip, 1 to apply

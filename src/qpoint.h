@@ -60,15 +60,30 @@ extern "C" {
     qp_state_t state_aaber;     // annual aberration
     qp_state_t state_ref;       // refraction
 
+    // update inverse state
+    qp_state_t state_daber_inv;     // diurnal aberration
+    qp_state_t state_lonlat_inv;    // lat/lon
+    qp_state_t state_wobble_inv;    // polar motion
+    qp_state_t state_dut1_inv;      // ut1 correction
+    qp_state_t state_erot_inv;      // earth's rotation
+    qp_state_t state_npb_inv;       // nutation, precession, frame bias
+    qp_state_t state_aaber_inv;     // annual aberration
+    qp_state_t state_ref_inv;       // refraction
+
     // state data
     qp_weather_t weather;     // weather
     double ref_delta;         // refraction correction, deg
     quat_t q_ref;             // refraction quaternion
+    quat_t q_ref_inv;         // inverse refraction quaternion
     double dut1;              // UT1 correction
     quat_t q_lonlat;          // lonlat quaternion
+    quat_t q_lonlat_inv;      // inverse lonlat quaternion
     quat_t q_wobble;          // wobble quaternion
+    quat_t q_wobble_inv;      // inverse wobble quaternion
     quat_t q_npb;             // nutation etc quaternion
+    quat_t q_npb_inv;         // inverse nutation etc quaternion
     quat_t q_erot;            // earth's rotation quaternion
+    quat_t q_erot_inv;        // inverse earth's rotation quaternion
     quat_t q_gal;             // galactic coordinates
     quat_t q_gal_inv;         // inverse of q_gal
     int gal_init;             // q_gal* initialized?
@@ -119,8 +134,21 @@ extern "C" {
 		    double aaber_rate,
 		    double ref_rate);
 
+  /* Set correction rates for each inverse state, in seconds; control accuracy and speed
+     Use above macros to allow states to be applied always, once or never. */
+  void qp_set_inv_rates(qp_memory_t *mem,
+			double daber_rate,
+			double lonlat_rate,
+			double wobble_rate,
+			double dut1_rate,
+			double erot_rate,
+			double npb_rate,
+			double aaber_rate,
+			double ref_rate);
+
   /* reset counters so that all corrections are recalculated at next sample */
   void qp_reset_rates(qp_memory_t *mem);
+  void qp_reset_inv_rates(qp_memory_t *mem);
 
   /* Check whether a correction needs to be updated */
   int qp_check_update(qp_state_t *state, double ctime);
@@ -152,6 +180,14 @@ extern "C" {
   RATEFUNC(npb)
   RATEFUNC(aaber)
   RATEFUNC(ref)
+  RATEFUNC(daber_inv)
+  RATEFUNC(lonlat_inv)
+  RATEFUNC(wobble_inv)
+  RATEFUNC(dut1_inv)
+  RATEFUNC(erot_inv)
+  RATEFUNC(npb_inv)
+  RATEFUNC(aaber_inv)
+  RATEFUNC(ref_inv)
 
   /* per-option functions */
   void qp_set_options(qp_memory_t *mem,
@@ -273,17 +309,17 @@ extern "C" {
 
   /* Calculate aberration correction quaternion
      v = (R(q)*z) x beta, angle = |v|, qa = quat(-angle,v) */
-  void qp_aberration(quat_t q, vec3_t beta, quat_t qa);
+  void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv);
 
   /* Calculate earth orbital velocity vector as fraction of speed of light */
   void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta);
 
   /* Apply annual aberration correction to given quaternion */
-  void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q);
+  void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q, int inv);
 
   /* Apply diurnal aberration correction to given quaternion */
   void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
-                                   quat_t q);
+                                   quat_t q, int inv);
 
   /* Calculate nutation/precession/bias correction quaternion
      use (faster) truncated series if accuracy > 0*/
@@ -340,7 +376,7 @@ extern "C" {
   double qp_update_ref(qp_memory_t *mem, quat_t q);
 
   /* Apply refraction correction */
-  void qp_apply_refraction(qp_memory_t *mem, double ctime, quat_t q);
+  void qp_apply_refraction(qp_memory_t *mem, double ctime, quat_t q, int inv);
 
   /* *************************************************************************
      Output functions
@@ -351,10 +387,13 @@ extern "C" {
 		    double roll, double lon, double lat, double ctime,
 		    quat_t q);
 
-  /* Compute boresight quaternions for n gondola orientations. */
-  void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
-		    double *roll, double *lon, double *lat, double *ctime,
-		    quat_t *q, int n);
+  /* Compute horizon coordinates for a given quaternion in equatorial coordinates */
+  void qp_quat2azel(qp_memory_t *mem, quat_t q, double lon, double lat,
+		    double ctime, double *az, double *el, double *hpa);
+
+  /* Compute horizon coordinates for n sets boresight equatorial coordinates */
+  void qp_bore2azel(qp_memory_t *mem, quat_t *q, double *lon, double *lat,
+		    double *ctime, double *az, double *el, double *pa, int n);
 
   /* Compute detector offset quaternion. */
   void qp_det_offset(double delta_az, double delta_el, double delta_psi,
@@ -445,6 +484,20 @@ extern "C" {
 		     double *ra, double *dec, double *sin2psi, double *cos2psi,
 		     int n);
 
+  /* Calculate ra/dec/pa for a given detector offset,
+     from a set of boresight orientations. */
+  void qp_azel2radecpa(qp_memory_t *mem,
+		       double delta_az, double delta_el, double delta_psi,
+		       double *az, double *el, double *pitch, double *roll,
+		       double *lon, double *lat, double *ctime,
+		       double *ra, double *dec, double *pa, int n);
+
+  /* Calculate az/el/pa for a set of equatorial coordinates */
+  void qp_radec2azel(qp_memory_t *mem,
+		     double *ra, double *dec, double *pa, double *lon,
+		     double *lat, double *ctime, double *az, double *el,
+		     double *hpa, int n);
+
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations and waveplate angles. */
   void qp_azel2radec_hwp(qp_memory_t *mem,
@@ -453,6 +506,14 @@ extern "C" {
 			 double *lon, double *lat, double *ctime, double *hwp,
 			 double *ra, double *dec, double *sin2psi, double *cos2psi,
 			 int n);
+
+  /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations and waveplate angles. */
+  void qp_azel2radecpa_hwp(qp_memory_t *mem,
+			   double delta_az, double delta_el, double delta_psi,
+			   double *az, double *el, double *pitch, double *roll,
+			   double *lon, double *lat, double *ctime, double *hwp,
+			   double *ra, double *dec, double *pa, int n);
 
   /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations.  */

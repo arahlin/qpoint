@@ -45,3 +45,15 @@ pix, sin2psi, cos2psi = Q.bore2pix(q_off, ctime, q_bore, q_hwp=q_hwp)
 print ra.min(), ra.max()
 print dec.min(), dec.max()
 print pix.min(), pix.max()
+
+# Check round-trip conversions
+ra1, dec1, pa1 = Q.bore2radec(np.asarray([1,0,0,0]), ctime, q_bore, return_pa=True)
+az2, el2, pa2 = Q.radec2azel(ra1, dec1, pa1, lon, lat, ctime)
+
+az_diff = az2 - az
+el_diff = el2 - el
+pa_diff = pa2
+
+print az_diff.min(), az_diff.max()
+print el_diff.min(), el_diff.max()
+print pa_diff.min(), pa_diff.max()

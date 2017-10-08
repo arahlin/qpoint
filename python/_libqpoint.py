@@ -80,14 +80,28 @@ class qp_memory_t(ct.Structure):
         ('state_aaber', qp_state_t),
         ('state_ref', qp_state_t),
 
+        ('state_daber_inv', qp_state_t),
+        ('state_lonlat_inv', qp_state_t),
+        ('state_wobble_inv', qp_state_t),
+        ('state_dut1_inv', qp_state_t),
+        ('state_erot_inv', qp_state_t),
+        ('state_npb_inv', qp_state_t),
+        ('state_aaber_inv', qp_state_t),
+        ('state_ref_inv', qp_state_t),
+
         ('weather', qp_weather_t),
         ('ref_delta', ct.c_double),
         ('q_ref', ct.c_double * 4),
+        ('q_ref_inv', ct.c_double * 4),
         ('dut1', ct.c_double),
         ('q_lonlat', ct.c_double * 4),
+        ('q_lonlat_inv', ct.c_double * 4),
         ('q_wobble', ct.c_double * 4),
+        ('q_wobble_inv', ct.c_double * 4),
         ('q_npb', ct.c_double * 4),
+        ('q_npb_inv', ct.c_double * 4),
         ('q_erot', ct.c_double * 4),
+        ('q_erot_inv', ct.c_double * 4),
         ('q_gal', ct.c_double * 4),
         ('q_gal_inv', ct.c_double * 4),
         ('gal_init', ct.c_int),
@@ -232,6 +246,9 @@ setargs('qp_init_memory', res=qp_memory_t_p)
 setargs('qp_free_memory', arg=qp_memory_t_p)
 setargs('qp_print_memory', arg=qp_memory_t_p)
 
+setargs('qp_reset_rates', arg=qp_memory_t_p)
+setargs('qp_reset_inv_rates', arg=qp_memory_t_p)
+
 setargs('qp_get_error_code', arg=qp_memory_t_p, res=ct.c_int)
 setargs('qp_get_error_string', arg=qp_memory_t_p, res=ct.c_char_p)
 
@@ -240,11 +257,25 @@ setargs('qp_azel2radec',
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
              warr, warr, warr, warr, ct.c_int))
+setargs('qp_azel2radecpa',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
+             warr, warr, warr, ct.c_int))
+setargs('qp_radec2azel',
+        arg=(qp_memory_t_p, # params
+             arr, arr, arr, arr, arr, arr, arr, arr, arr, #r/d/p/l/l/t/a/e/p
+             ct.c_int))
 setargs('qp_azel2radec_hwp',
         arg=(qp_memory_t_p, # params
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t/hwp
              warr, warr, warr, warr, ct.c_int))
+setargs('qp_azel2radecpa_hwp',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t/hwp
+             warr, warr, warr, ct.c_int))
 setargs('qp_azel2rasindec',
         arg=(qp_memory_t_p, # params
              ct.c_double, ct.c_double, ct.c_double, # offset
@@ -482,9 +513,10 @@ def check_get_state(state):
     state = rdict.get(state,state)
     return state
 
-states = ['lonlat','npb','erot','daber','aaber','wobble','dut1','ref']
+states = ['lonlat', 'npb', 'erot', 'daber', 'aaber', 'wobble', 'dut1', 'ref']
+inv_states = [k + '_inv' for k in states]
 state_funcs = dict()
-for s in states:
+for s in states + inv_states:
     k = 'rate_%s' % s
     state_funcs[k] = dict()
     state_funcs[k]['set'] = set_rfunc(s)

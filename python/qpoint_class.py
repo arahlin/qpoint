@@ -179,6 +179,13 @@ class QPoint(object):
         """
         qp.qp_reset_rates(self._memory)
 
+    def reset_inv_rates(self):
+        """
+        Reset update counters for each inverse state.  Useful to force an updated
+        correction term at the beginning of each chunk.
+        """
+        qp.qp_reset_inv_rates(self._memory)
+
     def refraction(self, *args, **kwargs):
         """refraction(q, **kwargs)
         refraction(delta)
@@ -602,11 +609,12 @@ class QPoint(object):
 
         q_off  = check_input('q_off', q_off, quat=True)
         q_bore = check_input('q_bore', np.atleast_2d(q_bore), quat=True)
+        shape = (q_bore.size // 4,)
         if ctime is None:
             if not self.get('mean_aber'):
                 raise ValueError('ctime required if mean_aber is False')
-            ctime = np.zeros((q_bore.size // 4,), dtype=q_bore.dtype)
-        ctime  = check_input('ctime', ctime)
+            ctime = np.zeros(shape, dtype=q_bore.dtype)
+        ctime  = check_input('ctime', ctime, shape=shape)
         pars = dict(shape=ctime.shape, dtype=np.double)
         ra = check_output('ra', ra, **pars)
         dec = check_output('dec', dec, **pars)
@@ -652,8 +660,9 @@ class QPoint(object):
 
     def azel2radec(self, delta_az, delta_el, delta_psi,
                    az, el, pitch, roll, lon, lat, ctime,
-                   hwp=None, sindec=False, ra=None, dec=None,
-                   sin2psi=None, cos2psi=None, **kwargs):
+                   hwp=None, sindec=False, return_pa=False,
+                   ra=None, dec=None, pa=None, sin2psi=None,
+                   cos2psi=None, **kwargs):
         """
         Estimate the orientation on the sky for a detector offset from
         boresight, given the boresight attitude (az/el/pitch/roll), location on
@@ -688,6 +697,8 @@ class QPoint(object):
             HWP angles in degrees
         sindec : bool, optional
             If `True`, return sin(dec) instead of dec in degrees (default False)
+        return_pa : bool, optional
+            If `True`, return pa instead of sin2psi/cos2psi
 
         Returns
         -------
@@ -695,10 +706,12 @@ class QPoint(object):
             Detector right ascension in degrees
         dec/sindec : array_like
             Detector declination in degrees
+        pa : array_like
+            Detector position angle, if `return_pa` is True
         sin2psi : array_like
-            Detector polarization orientation
+            Detector polarization orientation, if `return_pa` is False
         cos2psi : array_like
-            Detector polarization orientation
+            Detector polarization orientation, if `return_pa` is False
 
         Notes
         -----
@@ -714,14 +727,21 @@ class QPoint(object):
 
         ra = check_output('ra', ra, shape=az.shape, dtype=np.double)
         dec = check_output('dec', dec, shape=az.shape, dtype=np.double)
-        sin2psi = check_output('sin2psi', sin2psi, shape=az.shape,
+        if return_pa:
+            pa = check_output('pa', pa, shape=az.shape, dtype=np.double)
+        else:
+            sin2psi = check_output('sin2psi', sin2psi, shape=az.shape,
                                    dtype=np.double)
-        cos2psi = check_output('cos2psi', cos2psi, shape=az.shape,
+            cos2psi = check_output('cos2psi', cos2psi, shape=az.shape,
                                    dtype=np.double)
         n = az.size
 
         if hwp is None:
-            if sindec:
+            if return_pa:
+                qp.qp_azel2radecpa(self._memory, delta_az, delta_el, delta_psi,
+                                   az, el, pitch, roll, lon, lat, ctime,
+                                   ra, dec, pa, n)
+            elif sindec:
                 qp.qp_azel2rasindec(self._memory, delta_az, delta_el, delta_psi,
                                     az, el, pitch, roll, lon, lat, ctime,
                                     ra, dec, sin2psi, cos2psi, n)
@@ -732,7 +752,11 @@ class QPoint(object):
         else:
             hwp = check_input('hwp', hwp, shape=az.shape)
 
-            if sindec:
+            if return_pa:
+                qp.qp_azel2radec_hwp(self._memory, delta_az, delta_el, delta_psi,
+                                     az, el, pitch, roll, lon, lat, ctime, hwp,
+                                     ra, dec, pa, n)
+            elif sindec:
                 qp.qp_azel2rasindec_hwp(self._memory, delta_az, delta_el, delta_psi,
                                         az, el, pitch, roll, lon, lat, ctime, hwp,
                                         ra, dec, sin2psi, cos2psi, n)
@@ -741,7 +765,62 @@ class QPoint(object):
                                      az, el, pitch, roll, lon, lat, ctime, hwp,
                                      ra, dec, sin2psi, cos2psi, n)
 
+        if return_pa:
+            return ra, dec, pa
         return ra, dec, sin2psi, cos2psi
+
+    def radec2azel(self, ra, dec, pa, lon, lat, ctime, az=None, el=None, hpa=None,
+                   **kwargs):
+        """
+        Estimate the horizon coordinates for a given set of equatorial coordinates
+        (ra/dec/psi), location on the earth (lon/lat) and UTC time.  Input vectors
+        must be numpy-array-like and of the same shape.
+
+        Arguments
+        ---------
+        ra : array_like
+            Right ascension angle
+        dec : array_like
+            Declination angle
+        pa : array_like
+            Position angle in equatorial coordinates
+        lon : array_like
+            Observer longitude in degrees.
+        lat : array_like
+            Observer latitude in degrees.
+        ctime : array_like
+            Unix time in seconds UTC
+
+        Returns
+        -------
+        az : array_like
+            Azimuth in degrees
+        el : array_like
+            Elevation in degrees
+        hpa : array_like
+            Position angle in horizon coordinates
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
+        """
+
+        self.set(**kwargs)
+
+        ra, dec, pa, lon, lat, ctime = \
+            check_inputs(ra, dec, pa, lon, lat, ctime)
+
+        az = check_output('az', az, shape=ra.shape, dtype=np.double)
+        el = check_output('el', el, shape=ra.shape, dtype=np.double)
+        hpa = check_output('hpa', hpa, shape=ra.shape, dtype=np.double)
+        n = ra.size
+
+        qp.qp_radec2azel(self._memory, ra, dec, pa, lon, lat, ctime,
+                         az, el, hpa, n)
+
+        return az, el, hpa
 
     def radecpa2quat(self, ra, dec, pa, **kwargs):
         """
