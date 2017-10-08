@@ -16,6 +16,9 @@ all: qpoint python
 qpoint: sofa chealpix
 	make -C src
 
+qpoint-debug: sofa chealpix
+	CFLAGS="-g -DDEBUG" make -C src
+
 qpoint-lite: sofa
 	ENABLE_LITE=yes make -C src
 
@@ -51,6 +54,9 @@ install-chealpix-shared: chealpix-shared
 
 python:
 	CC=$(CC) python setup.py build
+
+python-debug:
+	CC=$(CC) CFLAGS="-g -DDEBUG" python setup.py build
 
 docs:
 	python setup.py build_sphinx -a

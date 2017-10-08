@@ -1,6 +1,6 @@
 VPATH=../sofa:../chealpix:.
-DEBUG = -g
-# DEBUG =
+# DEBUG = -g
+DEBUG =
 CC = gcc
 
 LIBNAME_FULL = libqpoint
@@ -60,7 +60,7 @@ else
 LIB = $(LIBNAME).a
 endif
 PREFIX?=/usr/local
-INCPREFIX=$(PREFIX)/include
+INCPREFIX=$(PREFIX)/include/qpoint
 LIBPREFIX=$(PREFIX)/lib
 
 default: all
@@ -80,7 +80,9 @@ else
 endif
 
 install: $(LIB) $(SOFAHDRS) $(HPXHDRS) $(HEADER)
+	if [ ! -d $(INCPREFIX) ]; then install -d $(INCPREFIX); fi
 	install $(SOFAHDRS) $(HPXHDRS) $(HEADER) $(INCPREFIX)
+	if [ ! -d $(LIBPREFIX) ]; then install -d $(LIBPREFIX); fi
 	install $(LIB) $(LIBPREFIX)
 
 uninstall:

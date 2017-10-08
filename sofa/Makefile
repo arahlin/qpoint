@@ -45,9 +45,9 @@ clean:
 
 install: $(TARGET) $(HEADERS)
 	if [ ! -d $(PREFIX)/lib ]; then install -d $(PREFIX)/lib; fi
-	if [ ! -d $(PREFIX)/include ]; then install -d $(PREFIX)/include; fi
+	if [ ! -d $(PREFIX)/include/qpoint ]; then install -d $(PREFIX)/include/qpoint; fi
 	install $(TARGET) $(PREFIX)/lib/
-	install $(HEADERS) $(PREFIX)/include/
+	install $(HEADERS) $(PREFIX)/include/qpoint/
 
 .PHONY: uninstall
 uninstall:
