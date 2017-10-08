@@ -131,12 +131,14 @@ if __name__ == '__main__':
     f.write( "static qp_bulletina_entry_t bulletinA_factory[] = {\n" )
 
     try:
-        from astropy.utils import iers
+        from astropy.utils.iers import IERS_Auto
 
     except ImportError:
-        from warnings import warn
-        warn('Astropy not found, creating an empty IERS-A table. '
-             'Install astropy for accurate polar motion and UT1 corrections',
+        from warnings import warn, simplefilter
+        simplefilter('always')
+        warn('Compatible Astropy not found, creating an empty IERS-A table. '
+             'Install astropy v1.2 or newer for accurate polar motion '
+             'and UT1 corrections',
              ImportWarning)
 
         f.write( " {0., 0., 0.}, // NULL\n")
@@ -145,7 +147,7 @@ if __name__ == '__main__':
 
     else:
         columns = ['year', 'month', 'day', 'MJD', 'PM_x', 'PM_y', 'UT1_UTC']
-        iers_table = iers.IERS_Auto.open()[columns].as_array()
+        iers_table = IERS_Auto.open()[columns].as_array()
 
         # check year
         year = iers_table['year'] + 1900
