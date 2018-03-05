@@ -387,6 +387,11 @@ extern "C" {
 		    double roll, double lon, double lat, double ctime,
 		    quat_t q);
 
+  /* Compute boresight quaternions for n gondola orientations. */
+  void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
+		    double *roll, double *lon, double *lat, double *ctime,
+		    quat_t *q, int n);
+
   /* Compute horizon coordinates for a given quaternion in equatorial coordinates */
   void qp_quat2azel(qp_memory_t *mem, quat_t q, double lon, double lat,
 		    double ctime, double *az, double *el, double *hpa);
