@@ -116,7 +116,7 @@ qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *gain,
   dets->arr_init = QP_ARR_MALLOC_1D;
   dets->diff = 0;
 
-  for (int ii = 0; ii < n; ii++) {
+  for (size_t ii = 0; ii < n; ii++) {
     det = dets->arr + ii;
     memcpy(det->q_off, q_off[ii], sizeof(quat_t));
     det->weight = weight[ii];
@@ -136,70 +136,70 @@ qp_detarr_t * qp_init_detarr(quat_t *q_off, double *weight, double *gain,
 }
 
 void qp_init_detarr_tod(qp_detarr_t *dets, size_t n) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_tod(dets->arr + ii, n);
   }
 }
 
 void qp_init_detarr_tod_from_array(qp_detarr_t *dets, double **tod,
                                    size_t n, int copy) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_tod_from_array(dets->arr + ii, tod[ii], n, copy);
   }
 }
 
 void qp_init_detarr_tod_from_array_1d(qp_detarr_t *dets, double *tod,
                                       size_t n_chunk, int copy) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_tod_from_array(dets->arr + ii, tod + ii * n_chunk,
                                n_chunk, copy);
   }
 }
 
 void qp_init_detarr_flag(qp_detarr_t *dets, size_t n) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_flag(dets->arr + ii, n);
   }
 }
 
 void qp_init_detarr_flag_from_array(qp_detarr_t *dets, uint8_t **flag,
                                     size_t n, int copy) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_flag_from_array(dets->arr + ii, flag[ii], n, copy);
   }
 }
 
 void qp_init_detarr_flag_from_array_1d(qp_detarr_t *dets, uint8_t *flag,
                                        size_t n_chunk, int copy) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_flag_from_array(dets->arr + ii, flag + ii * n_chunk,
                                 n_chunk, copy);
   }
 }
 
 void qp_init_detarr_weights(qp_detarr_t *dets, size_t n) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_weights(dets->arr + ii, n);
   }
 }
 
 void qp_init_detarr_weights_from_array(qp_detarr_t *dets, double **weights,
                                        size_t n, int copy) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_weights_from_array(dets->arr + ii, weights[ii], n, copy);
   }
 }
 
 void qp_init_detarr_weights_from_array_1d(qp_detarr_t *dets, double *weights,
                                           size_t n_chunk, int copy) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_weights_from_array(dets->arr + ii, weights + ii * n_chunk,
                                    n_chunk, copy);
   }
 }
 
 void qp_free_detarr(qp_detarr_t *dets) {
-  for (int ii = 0; ii < dets->n; ii++) {
+  for (size_t ii = 0; ii < dets->n; ii++) {
     qp_free_det(dets->arr + ii);
   }
   if (dets->arr_init & QP_ARR_MALLOC_1D)
@@ -332,7 +332,7 @@ qp_map_t * qp_init_map(size_t nside, size_t npix, qp_vec_mode vec_mode,
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->npix = (npix == 0) ? nside2npix(nside) : (long) npix;
   map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
@@ -344,7 +344,7 @@ qp_map_t * qp_init_map(size_t nside, size_t npix, qp_vec_mode vec_mode,
   map->vec_mode = vec_mode;
   if (map->num_vec) {
     map->vec = malloc(map->num_vec * sizeof(double *));
-    for (int ii = 0; ii < map->num_vec; ii++)
+    for (size_t ii = 0; ii < map->num_vec; ii++)
       map->vec[ii] = calloc(map->npix, sizeof(double));
     map->vec_init = QP_ARR_MALLOC_1D | QP_ARR_MALLOC_2D;
   } else {
@@ -356,7 +356,7 @@ qp_map_t * qp_init_map(size_t nside, size_t npix, qp_vec_mode vec_mode,
   map->proj_mode = proj_mode;
   if (map->num_proj) {
     map->proj = malloc(map->num_proj * sizeof(double *));
-    for (int ii = 0; ii < map->num_proj; ii++)
+    for (size_t ii = 0; ii < map->num_proj; ii++)
       map->proj[ii] = calloc(map->npix, sizeof(double));
     map->proj_init = QP_ARR_MALLOC_1D | QP_ARR_MALLOC_2D;
   } else {
@@ -376,10 +376,10 @@ qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
     qp_map_t *map = qp_init_map(nside, npix, vec_mode, proj_mode);
 
     if (map->num_vec)
-      for (int ii = 0; ii < map->num_vec; ii++)
+      for (size_t ii = 0; ii < map->num_vec; ii++)
         memcpy(map->vec[ii], vec[ii], map->npix * sizeof(double));
     if (map->num_proj)
-      for (int ii = 0; ii < map->num_proj; ii++)
+      for (size_t ii = 0; ii < map->num_proj; ii++)
         memcpy(map->proj[ii], proj[ii], map->npix * sizeof(double));
 
     return map;
@@ -388,7 +388,7 @@ qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->npix = (npix == 0) ? nside2npix(nside) : (long) npix;
   map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
@@ -428,10 +428,10 @@ qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside, size_t npix,
     qp_map_t *map = qp_init_map(nside, npix, vec_mode, proj_mode);
 
     if (map->num_vec)
-      for (int ii = 0; ii < map->num_vec; ii++)
+      for (size_t ii = 0; ii < map->num_vec; ii++)
         memcpy(map->vec[ii], vec + ii * map->npix, map->npix * sizeof(double));
     if (map->num_proj)
-      for (int ii = 0; ii < map->num_proj; ii++)
+      for (size_t ii = 0; ii < map->num_proj; ii++)
         memcpy(map->proj[ii], proj + ii * map->npix, map->npix * sizeof(double));
 
     return map;
@@ -440,7 +440,7 @@ qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside, size_t npix,
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->npix = (npix == 0) ? nside2npix(nside) : (long) npix;
   map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
@@ -453,7 +453,7 @@ qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside, size_t npix,
 
   if (map->num_vec) {
     map->vec = malloc(map->num_vec * sizeof(double *));
-    for (int ii = 0; ii < map->num_vec; ii++)
+    for (size_t ii = 0; ii < map->num_vec; ii++)
       map->vec[ii] = vec + ii * map->npix;
     map->vec_init = QP_ARR_MALLOC_1D;
   } else {
@@ -464,7 +464,7 @@ qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside, size_t npix,
 
   if (map->num_proj) {
     map->proj = malloc(map->num_proj * sizeof(double *));
-    for (int ii = 0; ii < map->num_proj; ii++)
+    for (size_t ii = 0; ii < map->num_proj; ii++)
       map->proj[ii] = proj + ii * map->npix;
     map->proj_init = QP_ARR_MALLOC_1D;
   } else {
@@ -482,7 +482,7 @@ qp_map_t * qp_init_map_1d(size_t nside, size_t npix, qp_vec_mode vec_mode,
   qp_map_t *map = malloc(sizeof(*map));
 
   map->nside = nside;
-  map->npix = (npix == 0) ? nside2npix(nside) : npix;
+  map->npix = (npix == 0) ? nside2npix(nside) : (long) npix;
   map->partial = (npix > 0);
   map->pixinfo_init = 0;
   map->pixinfo = NULL;
@@ -496,7 +496,7 @@ qp_map_t * qp_init_map_1d(size_t nside, size_t npix, qp_vec_mode vec_mode,
     map->vec1d = calloc(map->num_vec * map->npix, sizeof(double));
     map->vec1d_init = QP_ARR_MALLOC_1D;
     map->vec = malloc(map->num_vec * sizeof(double *));
-    for (int ii = 0; ii < map->num_vec; ii++)
+    for (size_t ii = 0; ii < map->num_vec; ii++)
       map->vec[ii] = map->vec1d + ii * map->npix;
     map->vec_init = QP_ARR_MALLOC_1D;
   } else {
@@ -509,7 +509,7 @@ qp_map_t * qp_init_map_1d(size_t nside, size_t npix, qp_vec_mode vec_mode,
     map->proj1d = calloc(map->num_proj * map->npix, sizeof(double));
     map->proj1d_init = QP_ARR_MALLOC_1D;
     map->proj = malloc(map->num_proj * sizeof(double *));
-    for (int ii = 0; ii < map->num_proj; ii++)
+    for (size_t ii = 0; ii < map->num_proj; ii++)
       map->proj[ii] = map->proj1d + ii * map->npix;
     map->proj_init = QP_ARR_MALLOC_1D;
   } else {
@@ -546,11 +546,11 @@ qp_map_t * qp_init_map_from_map(qp_map_t *map, int blank, int copy) {
 // convert 1d map to 2d
 int qp_reshape_map(qp_map_t *map) {
   if (map->vec1d_init) {
-    int nvec = 1;
+    size_t nvec = 1;
     if (map->vec_init & QP_ARR_MALLOC_1D)
       nvec = sizeof(map->vec) / sizeof(double *);
     if (map->vec_init & QP_ARR_MALLOC_2D) {
-      for (int ii = 0; ii < nvec; ii++)
+      for (size_t ii = 0; ii < nvec; ii++)
         free(map->vec[ii]);
       map->vec_init &= ~QP_ARR_MALLOC_2D;
     }
@@ -564,16 +564,16 @@ int qp_reshape_map(qp_map_t *map) {
       map->vec = malloc(map->num_vec * sizeof(double *));
       map->vec_init |= QP_ARR_MALLOC_1D;
     }
-    for (int ii = 0; ii < map->num_vec; ii++)
+    for (size_t ii = 0; ii < map->num_vec; ii++)
       map->vec[ii] = map->vec1d + ii * map->npix;
   }
 
   if (map->proj1d_init) {
-    int nproj = 1;
+    size_t nproj = 1;
     if (map->proj_init & QP_ARR_MALLOC_1D)
       nproj = sizeof(map->proj) / sizeof(double *);
     if (map->proj_init & QP_ARR_MALLOC_2D) {
-      for (int ii = 0; ii < nproj; ii++)
+      for (size_t ii = 0; ii < nproj; ii++)
         free(map->proj[ii]);
       map->proj_init &= ~QP_ARR_MALLOC_2D;
     }
@@ -587,7 +587,7 @@ int qp_reshape_map(qp_map_t *map) {
       map->proj = malloc(map->num_proj * sizeof(double *));
       map->proj_init |= QP_ARR_MALLOC_1D;
     }
-    for (int ii = 0; ii < map->num_proj; ii++)
+    for (size_t ii = 0; ii < map->num_proj; ii++)
       map->proj[ii] = map->proj1d + ii * map->npix;
   }
 
@@ -616,7 +616,7 @@ void qp_free_map(qp_map_t *map) {
   if (map->vec1d_init & QP_ARR_MALLOC_1D)
     free(map->vec1d);
   if (map->vec_init & QP_ARR_MALLOC_2D)
-    for (int ii = 0; ii < map->num_vec; ii++)
+    for (size_t ii = 0; ii < map->num_vec; ii++)
       free(map->vec[ii]);
   if (map->vec_init & QP_ARR_MALLOC_1D)
     free(map->vec);
@@ -624,7 +624,7 @@ void qp_free_map(qp_map_t *map) {
   if (map->proj1d_init & QP_ARR_MALLOC_1D)
     free(map->proj1d);
   if (map->proj_init & QP_ARR_MALLOC_2D)
-    for (int ii = 0; ii < map->num_proj; ii++)
+    for (size_t ii = 0; ii < map->num_proj; ii++)
       free(map->proj[ii]);
   if (map->proj_init & QP_ARR_MALLOC_1D)
     free(map->proj);
@@ -663,15 +663,15 @@ int qp_add_map(qp_memory_t *mem, qp_map_t *map, qp_map_t *maploc) {
     return mem->error_code;
 
   if (map->vec_init && maploc->vec_init && map->vec_mode) {
-    for (int ii = 0; ii < map->num_vec; ii++)
-      for (int ipix = 0; ipix < map->npix; ipix++)
+    for (size_t ii = 0; ii < map->num_vec; ii++)
+      for (size_t ipix = 0; ipix < map->npix; ipix++)
         if (maploc->vec[ii][ipix] != 0)
           map->vec[ii][ipix] += maploc->vec[ii][ipix];
   }
 
   if (map->proj_init && maploc->proj_init && map->proj_mode) {
-    for (int ii = 0; ii < map->num_proj; ii++)
-      for (int ipix = 0; ipix < map->npix; ipix++)
+    for (size_t ii = 0; ii < map->num_proj; ii++)
+      for (size_t ipix = 0; ipix < map->npix; ipix++)
         if (maploc->proj[ii][ipix] != 0)
           map->proj[ii][ipix] += maploc->proj[ii][ipix];
   }
@@ -726,7 +726,7 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
                        "qp_tod2map1_diff: reshape error"))
       return mem->error_code;
 
-  for (int ii = 0; ii < pnt->n; ii++) {
+  for (size_t ii = 0; ii < pnt->n; ii++) {
     /* if either samples are flagged then skip */
     if (det->flag_init || det_pair->flag_init){
       if(det->flag[ii] || det_pair->flag[ii]){
@@ -876,7 +876,7 @@ int qp_tod2map1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt, qp_map_t *map)
                        "qp_tod2map1: reshape error"))
       return mem->error_code;
 
-  for (int ii = 0; ii < pnt->n; ii++) {
+  for (size_t ii = 0; ii < pnt->n; ii++) {
     if (det->flag_init && det->flag[ii])
       continue;
     ctime = pnt->ctime_init ? pnt->ctime[ii] : 0;
@@ -1000,7 +1000,7 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
     dets->n = dets->n/2;
   }
 
-  int num_threads = dets->n < mem->num_threads ? dets->n : mem->num_threads;
+  int num_threads = (int) dets->n < mem->num_threads ? (int) dets->n : mem->num_threads;
   omp_set_num_threads(num_threads);
 
   int err = 0;
@@ -1031,7 +1031,7 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
       maploc = map;
 
 #pragma omp for
-    for (int idet = 0; idet < dets->n; idet++) {
+    for (size_t idet = 0; idet < dets->n; idet++) {
       if (!errloc && !err){
         if(dets->diff == 0){
 	  errloc = qp_tod2map1(memloc, dets->arr + idet, pnt, maploc);
@@ -1135,7 +1135,7 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
                        "qp_map2tod1: pixinfo init error"))
       return mem->error_code;
 
-  for (int ii = 0; ii < pnt->n; ii++) {
+  for (size_t ii = 0; ii < pnt->n; ii++) {
     if (det->flag_init && det->flag[ii])
       continue;
     ctime = pnt->ctime_init ? pnt->ctime[ii] : 0;
@@ -1284,7 +1284,7 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
                      "qp_map2tod: ctime required if not mean_aber"))
     return mem->error_code;
 
-  int num_threads = dets->n < mem->num_threads ? dets->n : mem->num_threads;
+  int num_threads = (int) dets->n < mem->num_threads ? (int) dets->n : mem->num_threads;
   omp_set_num_threads(num_threads);
 
   int err = 0;
@@ -1308,7 +1308,7 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 #endif
 
 #pragma omp for nowait
-    for (int idet = 0; idet < dets->n; idet++) {
+    for (size_t idet = 0; idet < dets->n; idet++) {
       if (!errloc && !err)
         errloc = qp_map2tod1(memloc, dets->arr + idet, pnt, map);
     }

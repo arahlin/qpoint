@@ -12,7 +12,7 @@
 #define FNV_OFFSET_32 2166136261U
 uint32_t FNV32(const char *s, size_t len) {
   uint32_t hash = FNV_OFFSET_32;
-  for(int i = 0; i < len; i++) {
+  for(size_t i = 0; i < len; i++) {
     hash = hash ^ (s[i]); // xor next byte into the bottom of the hash
     hash = hash * FNV_PRIME_32; // Multiply by prime number found to work well
   }
@@ -36,7 +36,7 @@ qp_pixhash_t * qp_init_pixhash(long *pix, size_t npix) {
   long index;
   size_t count;
 
-  for (int ii = 0; ii < npix; ii++) {
+  for (size_t ii = 0; ii < npix; ii++) {
     index = get_hash(pix[ii], npix);
     bucket = pixhash->buckets + index;
     count = bucket->count;
@@ -56,7 +56,7 @@ qp_pixhash_t * qp_init_pixhash(long *pix, size_t npix) {
   pixhash->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
 
 #ifdef DEBUG
-  for (int ii = 0; ii < npix; ii++) {
+  for (size_t ii = 0; ii < npix; ii++) {
     printf("idx %12d | pix %12ld | repix %12ld | collisions %2ld\n",
            ii, pix[ii], qp_repixelize(pixhash, pix[ii]),
            pixhash->buckets[ii].count);
@@ -74,7 +74,7 @@ qp_pixhash_t * qp_copy_pixhash(qp_pixhash_t *pixhash) {
   new_hash->buckets = malloc(new_hash->count * sizeof(qp_pix_bucket_t));
   memset(new_hash->buckets, 0, new_hash->count * sizeof(qp_pix_bucket_t));
 
-  for (int ii = 0; ii < new_hash->count; ii++) {
+  for (size_t ii = 0; ii < new_hash->count; ii++) {
     bucket = pixhash->buckets + ii;
 
     if (bucket->count == 0)
@@ -94,7 +94,7 @@ qp_pixhash_t * qp_copy_pixhash(qp_pixhash_t *pixhash) {
 void qp_free_pixhash(qp_pixhash_t *pixhash) {
   qp_pix_bucket_t * bucket;
   if (pixhash->init & QP_STRUCT_MALLOC) {
-    for (int ii = 0; ii < pixhash->count; ii++) {
+    for (size_t ii = 0; ii < pixhash->count; ii++) {
       bucket = pixhash->buckets + ii;
       if (bucket->count == 0)
         continue;
@@ -112,7 +112,7 @@ long qp_repixelize(qp_pixhash_t *pixhash, long pix) {
   if (bucket->count == 0)
     return -1;
 
-  for (int ii = 0; ii < bucket->count; ii++) {
+  for (size_t ii = 0; ii < bucket->count; ii++) {
     if (bucket->pairs[ii].key == pix)
       return bucket->pairs[ii].index;
   }
