@@ -17,7 +17,7 @@ import sysconfig
 # get version from git tag
 import subprocess as sp
 version = sp.check_output(
-    'git describe --abbrev=4 --dirty --always --tags'.split()).strip()
+    'git describe --abbrev=4 --dirty --always --tags'.split()).strip().decode()
 version_simple = version.split('-')[0]
 vtup = tuple(int(x) for x in version_simple.split('.'))
 print('qpoint version {}'.format(version_simple))
