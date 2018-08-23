@@ -345,12 +345,20 @@ setargs('qp_rotate_map',
 
 setargs('qp_quat2pixn',
         arg=(qp_memory_t_p, quat_t_p, ct.c_int, warri, warr, warr, ct.c_int))
+setargs('qp_quat2pixpan',
+        arg=(qp_memory_t_p, quat_t_p, ct.c_int, warri, warr, ct.c_int))
 setargs('qp_bore2pix',
         arg=(qp_memory_t_p, quat_t, arr, quat_t_p, ct.c_int,
              warri, warr, warr, ct.c_int))
 setargs('qp_bore2pix_hwp',
         arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p, ct.c_int,
              warri, warr, warr, ct.c_int))
+setargs('qp_bore2pixpa',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, ct.c_int,
+             warri, warr, ct.c_int))
+setargs('qp_bore2pixpa_hwp',
+        arg=(qp_memory_t_p, quat_t, arr, quat_t_p, quat_t_p, ct.c_int,
+             warri, warr, ct.c_int))
 
 setargs('qp_get_interp_valn',
         arg=(qp_memory_t_p, ct.c_int, arr, arr, arr, warr, ct.c_int))

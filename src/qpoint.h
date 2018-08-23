@@ -558,10 +558,14 @@ extern "C" {
   /* Compute pixel number and pol angle for given nside and quaternion */
   void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
                    double *sin2psi, double *cos2psi);
+  void qp_quat2pixpa(qp_memory_t *mem, quat_t q, int nside, long *pix,
+                     double *pa);
 
   /* Compute pixel numbers and pol angles for given nside and quaternions */
   void qp_quat2pixn(qp_memory_t *mem, quat_t *q, int nside, long *pix,
                     double *sin2psi, double *cos2psi, int n);
+  void qp_quat2pixpan(qp_memory_t *mem, quat_t *q, int nside, long *pix,
+                      double *pa, int n);
 
   /* Rotate from celestial to galactic coordinates */
   void qp_radec2gal_quat(qp_memory_t *mem, quat_t q);
@@ -594,12 +598,17 @@ extern "C" {
      offset */
   void qp_bore2pix(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
                    int nside, long *pix, double *sin2psi, double *cos2psi, int n);
+  void qp_bore2pixpa(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+                     int nside, long *pix, double *pa, int n);
 
   /* Compute pix/pol timestreams for given boresight timestream,
      waveplate timestream and detector offset */
   void qp_bore2pix_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
                        quat_t *q_bore, quat_t *q_hwp, int nside, long *pix,
                        double *sin2psi, double *cos2psi, int n);
+  void qp_bore2pixpa_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
+                         quat_t *q_bore, quat_t *q_hwp, int nside, long *pix,
+                         double *pa, int n);
 
   /* *************************************************************************
      Mapmaking and Projection

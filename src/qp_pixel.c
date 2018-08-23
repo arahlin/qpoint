@@ -230,10 +230,53 @@ void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
   }
 }
 
+void qp_quat2pixpa(qp_memory_t *mem, quat_t q, int nside, long *pix, double *pa) {
+  if (mem->fast_pix) {
+    vec3_t vec;
+    Quaternion_to_matrix_col3(q, vec);
+    if (mem->pix_order == QP_ORDER_NEST)
+      vec2pix_nest(nside, vec, pix);
+    else
+      vec2pix_ring(nside, vec, pix);
+
+    double cosb2 = (1 - vec[2] * vec[2]) / 4.;
+    double cosg, sing;
+    if (cosb2 < DBL_EPSILON) {
+      if (vec[2] > 0) {
+        cosg = q[3] * q[3] - q[0] * q[0];
+        sing = 2 * q[0] * q[3];
+      } else {
+        cosg = q[1] * q[1] - q[2] * q[2];
+        sing = 2 * q[1] * q[2];
+      }
+    } else {
+      cosg = q[1] * q[3] - q[0] * q[2];
+      sing = q[0] * q[1] + q[2] * q[3];
+    }
+
+    if (mem->fast_math) {
+      *pa = rad2deg(poly_atan2(sing, cosg));
+    } else {
+      *pa = rad2deg(atan2(sing, cosg));
+    }
+  } else {
+    double ra, dec;
+    qp_quat2radecpa(mem, q, &ra, &dec, pa);
+    *pix = qp_radec2pix(mem, ra, dec, nside);
+  }
+}
+
 void qp_quat2pixn(qp_memory_t *mem, quat_t *q, int nside, long *pix,
                   double *sin2psi, double *cos2psi, int n) {
   for (int ii = 0; ii < n; ii++) {
     qp_quat2pix(mem, q[ii], nside, pix+ii, sin2psi+ii, cos2psi+ii);
+  }
+}
+
+void qp_quat2pixpan(qp_memory_t *mem, quat_t *q, int nside, long *pix,
+                  double *pa, int n) {
+  for (int ii = 0; ii < n; ii++) {
+    qp_quat2pixpa(mem, q[ii], nside, pix+ii, pa+ii);
   }
 }
 
@@ -247,6 +290,16 @@ void qp_bore2pix(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
   }
 }
 
+void qp_bore2pixpa(qp_memory_t *mem, quat_t q_off, double *ctime, quat_t *q_bore,
+                   int nside, long *pix, double *pa, int n) {
+  quat_t q;
+
+  for (int ii = 0; ii < n; ii++) {
+    qp_bore2det(mem, q_off, ctime[ii], q_bore[ii], q);
+    qp_quat2pixpa(mem, q, nside, pix+ii, pa+ii);
+  }
+}
+
 void qp_bore2pix_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
                      quat_t *q_bore, quat_t *q_hwp, int nside, long *pix,
                      double *sin2psi, double *cos2psi, int n) {
@@ -255,6 +308,17 @@ void qp_bore2pix_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
   for (int ii = 0; ii < n; ii++) {
     qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
     qp_quat2pix(mem, q, nside, pix+ii, sin2psi+ii, cos2psi+ii);
+  }
+}
+
+void qp_bore2pixpa_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
+                       quat_t *q_bore, quat_t *q_hwp, int nside, long *pix,
+                       double *pa, int n) {
+  quat_t q;
+
+  for (int ii = 0; ii < n; ii++) {
+    qp_bore2det_hwp(mem, q_off, ctime[ii], q_bore[ii], q_hwp[ii], q);
+    qp_quat2pixpa(mem, q, nside, pix+ii, pa+ii);
   }
 }
 

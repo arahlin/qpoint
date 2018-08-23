@@ -896,6 +896,40 @@ class QPoint(object):
             return ra[0], dec[0], pa[0]
         return ra, dec, pa
 
+    def quat2pixpa(self, quat, nside=256, **kwargs):
+        """
+        Calculate ra/dec/pa for input quaternion(s).
+
+        Arguments
+        ---------
+        q : array_like
+            Pointing quaternion
+
+        Returns
+        -------
+        pix : array_like
+            Pixel number(s) corresponding to the input positions(s).
+        pa : array_like
+            Position angle
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
+        """
+        self.set(**kwargs)
+
+        quat = check_input('quat', np.atleast_2d(quat), quat=True)
+        n = quat.shape[0]
+        pix = check_output('pix', shape=(n,), dtype=np.int, **kwargs)
+        pa = check_output('pa', shape=(n,), dtype=np.double, **kwargs)
+
+        qp.qp_quat2pixpan(self._memory, quat, pix, pa, n)
+        if n == 1:
+            return pix[0], pa[0]
+        return pix, pa
+
     def radec2pix(self, ra, dec, nside=256, **kwargs):
         """
         Calculate HEALpix pixel number for given ra/dec and nside.
@@ -1229,7 +1263,7 @@ class QPoint(object):
         return pix
 
     def bore2pix(self, q_off, ctime, q_bore, q_hwp=None, nside=256, pol=True,
-                 **kwargs):
+                 return_pa=False, **kwargs):
         """
         Calculate the orientation on the sky for a detector offset from the
         boresight.  Detector offsets are defined assuming the boresight is
@@ -1253,14 +1287,18 @@ class QPoint(object):
             HEALpix map dimension.  Default: 256.
         pol : bool, optional
             If `False`, return only the pixel timestream
+        return_pa : bool, optional
+            If `True`, return pa instead of sin2psi / cos2psi
 
         Returns
         -------
         pix : array_like
             Detector pixel number
-        sin2psi : array_like
+        pa/sin2psi : array_like
+            Detector polarization orientation if `return_pa` is `True`, or
+            sin(2*pa) if `return_pa` is `False`.
         cos2psi : array_like
-            Detector polarization orientation, if `pol` is `True`.
+            detector polarization orientation cos(2*pa), if `return_pa` is `False`.
 
         Notes
         -----
@@ -1280,22 +1318,35 @@ class QPoint(object):
         ctime  = check_input('ctime', ctime)
         pix  = check_output('pix', shape=ctime.shape,
                                 dtype=np.int, **kwargs)
-        sin2psi = check_output('sin2psi', shape=ctime.shape,
+        if return_pa:
+            pa = check_output('pa', shape=ctime.shape, **kwargs)
+        else:
+            sin2psi = check_output('sin2psi', shape=ctime.shape,
                                    **kwargs)
-        cos2psi = check_output('cos2psi', shape=ctime.shape,
+            cos2psi = check_output('cos2psi', shape=ctime.shape,
                                    **kwargs)
         n = ctime.size
 
         if q_hwp is None:
-            qp.qp_bore2pix(self._memory, q_off, ctime, q_bore,
-                           nside, pix, sin2psi, cos2psi, n)
+            if return_pa:
+                qp.qp_bore2pixpa(self._memory, q_off, ctime, q_bore,
+                                 nside, pix, pa, n)
+            else:
+                qp.qp_bore2pix(self._memory, q_off, ctime, q_bore,
+                               nside, pix, sin2psi, cos2psi, n)
         else:
             q_hwp = check_input('q_hwp', q_hwp, shape=q_bore.shape)
 
-            qp.qp_bore2pix_hwp(self._memory, q_off, ctime, q_bore,
-                               q_hwp, nside, pix, sin2psi, cos2psi, n)
+            if return_pa:
+                qp.qp_bore2pixpa_hwp(self._memory, q_off, ctime, q_bore,
+                                     q_hwp, nside, pix, pa, n)
+            else:
+                qp.qp_bore2pix_hwp(self._memory, q_off, ctime, q_bore,
+                                   q_hwp, nside, pix, sin2psi, cos2psi, n)
 
         if pol is True:
+            if return_pa:
+                return pix, pa
             return pix, sin2psi, cos2psi
         return pix
 
