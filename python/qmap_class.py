@@ -7,13 +7,28 @@ except ImportError:
     pass
 import numpy as np
 from .qpoint_class import QPoint
-import healpy as hp
 import ctypes as ct
 
 from . import _libqpoint as lib
 from ._libqpoint import libqp as qp
 
 __all__ = ['QMap', 'check_map', 'check_proj']
+
+# healpix bookkeeping
+def nside2npix(nside):
+    """
+    Convert healpix resolution (nside) to the number of healpix pixels in a full-sky map.
+    """
+    return 12 * nside * nside
+
+def npix2nside(npix):
+    """
+    Convert the number of healpix pixels in a full-sky map to healpix resolution (nside).
+    """
+    nside = np.sqrt( npix / 12. )
+    if nside != np.floor(nside):
+        raise ValueError("Invalid number of healpix pixels, must be npix = 12 * nside**2")
+    return int(nside)
 
 def check_map(map_in, copy=False, partial=False, dtype=np.double):
     """
@@ -45,7 +60,7 @@ def check_map(map_in, copy=False, partial=False, dtype=np.double):
     if partial:
         dim2 = len(map_out[0])
     else:
-        dim2 = hp.get_nside(map_out)
+        dim2 = npix2nside(len(map_out[0]))
     map_out = lib.check_input('map', map_out, dtype=dtype)
     if copy and np.may_share_memory(map_in, map_out):
         map_out = map_out.copy()
@@ -246,7 +261,7 @@ class QMap(QPoint):
         smap, snside = check_map(source_map, partial=partial)
         if not partial:
             nside = snside
-            npix = hp.nside2npix(nside)
+            npix = nside2npix(nside)
         else:
             npix = len(pixels)
 
@@ -424,7 +439,7 @@ class QMap(QPoint):
         if pixels is None:
             if nside is None:
                 nside = 256
-            npix = hp.nside2npix(nside)
+            npix = nside2npix(nside)
             partial = False
         else:
             if nside is None:
@@ -444,7 +459,7 @@ class QMap(QPoint):
             vec, vdim2 = check_map(vec, copy=copy, partial=partial)
             if not partial:
                 nside = vdim2
-                npix = hp.nside2npix(nside)
+                npix = nside2npix(nside)
             elif vdim2 != npix:
                 raise ValueError('vec has incompatible shape')
             if len(vec) == 1:
@@ -491,7 +506,7 @@ class QMap(QPoint):
                     raise ValueError('proj has incompatible shape')
                 if not partial:
                     nside = pdim2
-                    npix = hp.nside2npix(nside)
+                    npix = nside2npix(nside)
                 elif pdim2 != npix:
                     raise ValueError('proj has incompatible shape')
 

@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import numpy as _np
-from ._libqpoint import libqp as _libqp
+import numpy as np
+from ._libqpoint import libqp as qp
+
+__all__ = ['refraction']
 
 def refraction(el, temp, press, hum, freq=150.):
     """
@@ -28,7 +30,7 @@ def refraction(el, temp, press, hum, freq=150.):
         Refraction correction, in degrees
     """
 
-    fvec = _np.vectorize(_libqp.qp_refraction,[_np.double])
+    fvec = np.vectorize(qp.qp_refraction,[np.double])
     delta = fvec(el, temp, press, hum, freq)
     if delta.shape == ():
         return delta[()]
