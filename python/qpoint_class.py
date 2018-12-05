@@ -1398,6 +1398,59 @@ class QPoint(object):
             return v[()]
         return v
 
+    def update_bulletin_a(self, start_year=2000):
+        """
+        Update the IERS Bulletin A database using astropy, and return the stored
+        entries.  Issues an ImportWarning if astropy version 1.2 or newer is not
+        found.
+
+        Arguments
+        ---------
+        start_year : int, optional
+            Oldest year for which data should be stored.
+
+        Returns
+        -------
+        mjd : array_like
+            Modified Julian date
+        dut1 : array_like
+            UT1-UTC time correction
+        x : array_like
+        y : array_like
+            Polar motion (wobble) corrections
+        """
+        try:
+            from astropy.utils.iers import IERS_Auto
+        except ImportError:
+            from warnings import warn
+            warn('Compatible Astropy not found.  Install astropy v1.2 or newer '
+                 'for accurate polar motion and UT1 corrections', ImportWarning)
+            return
+
+        columns = ['MJD', 'UT1_UTC', 'PM_x', 'PM_y', 'year']
+        iers_table = IERS_Auto.open()[columns].as_array()
+
+        # check year
+        year = iers_table['year'] + 1900
+        wraps, = np.where(np.ediff1d(year) < 0)
+        for idx in wraps:
+            year[idx + 1:] += 100
+        iers_table['year'] = year
+        iers_table = iers_table[year >= start_year]
+
+        # check MJD
+        mjds = iers_table['MJD']
+        mjd_min = int(mjds.min())
+        mjd_max = int(mjds.max())
+
+        # update table
+        dut1 = np.array(iers_table['UT1_UTC'])
+        x = np.array(iers_table['PM_x'])
+        y = np.array(iers_table['PM_y'])
+        qp.qp_set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
+
+        return mjds, dut1, x, y
+
     def load_bulletin_a(self, filename, columns=['mjd','dut1','x','y'], **kwargs):
         """
         Load IERS Bulletin A from file and store in memory.  The file must be
