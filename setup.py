@@ -34,8 +34,8 @@ class BuildLib(build):
 
     def run(self):
         # build dependencies
-        print('make -C sofa')
-        sp.check_call('make -C sofa'.split())
+        print('make -C erfa')
+        sp.check_call('make -C erfa'.split())
         print('make -C chealpix')
         sp.check_call('make -C chealpix'.split())
         print('make -C src')
@@ -62,10 +62,10 @@ else:
 src = [x for x in glob.glob('src/*.c')]
 src = [x for x in src if not x.endswith('iers_bulletin_a.c')]
 src += ['src/qp_iers_bulletin_a.c']
-incl_dirs = ['src','sofa','chealpix']
-libsofa_file = 'sofa/libsofa_c.a'
+incl_dirs = ['src','erfa','chealpix']
+liberfa_file = 'erfa/liberfa_qp.a'
 libchealpix_file = 'chealpix/libchealpix_qp.a'
-extra_obj = [libsofa_file, libchealpix_file]
+extra_obj = [liberfa_file, libchealpix_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC', varg]
 
 # do different stuff if using intel compilers

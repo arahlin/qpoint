@@ -1,4 +1,4 @@
-VPATH=../sofa:../chealpix:.
+VPATH=../erfa:../chealpix:.
 # DEBUG = -g
 DEBUG =
 CC = gcc
@@ -8,10 +8,10 @@ LIBNAME_LITE = libqpntlt
 
 QP_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
-SOFAINC = -I../sofa
-SOFALIB = # -L../sofa -lsofa_c
-SOFAOBJS = $(wildcard ../sofa/*.o)
-SOFAHDRS = $(wildcard ../sofa/*.h)
+ERFAINC = -I../erfa
+ERFALIB = # -L../erfa -lerfa_qp
+ERFAOBJS = $(wildcard ../erfa/*.o)
+ERFAHDRS = $(wildcard ../erfa/*.h)
 
 ifneq ($(ENABLE_LITE), )
 HPXINC =
@@ -41,8 +41,8 @@ endif
 
 CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -DQP_VERSION=\"$(QP_VERSION)\"
 # add some options even when CFLAGS overridden on command line
-override CFLAGS += -std=c99 -I. $(SOFAINC) $(HPXINC) $(PFLAGS) -fPIC $(OPENMP)
-LDFLAGS = $(SOFALIB) $(HPXLIB) $(OPENMP_LD)
+override CFLAGS += -std=c99 -I. $(ERFAINC) $(HPXINC) $(PFLAGS) -fPIC $(OPENMP)
+LDFLAGS = $(ERFALIB) $(HPXLIB) $(OPENMP_LD)
 
 SRCS = $(filter-out %iers_bulletin_a.c, $(wildcard *.c)) qp_iers_bulletin_a.c
 
@@ -72,16 +72,16 @@ qp_iers_bulletin_a.c: make_iers_bulletin_a_dot_c.py
 $(OBJS): %$(OBJNAME): %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-$(LIB): $(SOFAOBJS) $(HPXOBJS) $(OBJS)
+$(LIB): $(ERFAOBJS) $(HPXOBJS) $(OBJS)
 ifneq ($(ENABLE_SHARED), )
-	$(CC) $(LDFLAGS) $(SOFAOBJS) $(HPXOBJS) $(OBJS) -o $@
+	$(CC) $(LDFLAGS) $(ERFAOBJS) $(HPXOBJS) $(OBJS) -o $@
 else
-	ar ru $@ $(SOFAOBJS) $(HPXOBJS) $(OBJS)
+	ar ru $@ $(ERFAOBJS) $(HPXOBJS) $(OBJS)
 endif
 
-install: $(LIB) $(SOFAHDRS) $(HPXHDRS) $(HEADER)
+install: $(LIB) $(ERFAHDRS) $(HPXHDRS) $(HEADER)
 	if [ ! -d $(INCPREFIX) ]; then install -d $(INCPREFIX); fi
-	install $(SOFAHDRS) $(HPXHDRS) $(HEADER) $(INCPREFIX)
+	install $(ERFAHDRS) $(HPXHDRS) $(HEADER) $(INCPREFIX)
 	if [ ! -d $(LIBPREFIX) ]; then install -d $(LIBPREFIX); fi
 	install $(LIB) $(LIBPREFIX)
 

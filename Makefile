@@ -12,27 +12,27 @@ default: all
 
 all: qpoint python
 
-.PHONY: qpoint sofa chealpix python docs
-qpoint: sofa chealpix
+.PHONY: qpoint erfa chealpix python docs
+qpoint: erfa chealpix
 	make -C src
 
-qpoint-debug: sofa chealpix
+qpoint-debug: erfa chealpix
 	CFLAGS="-g -DDEBUG" make -C src
 
-qpoint-lite: sofa
+qpoint-lite: erfa
 	ENABLE_LITE=yes make -C src
 
-qpoint-shared: sofa-shared chealpix-shared
+qpoint-shared: erfa-shared chealpix-shared
 	ENABLE_SHARED=yes make -C src
 
-qpoint-shared-lite: sofa-shared
+qpoint-shared-lite: erfa-shared
 	ENABLE_SHARED=yes ENABLE_LITE=yes make -C src
 
-sofa:
-	make -C sofa
+erfa:
+	make -C erfa
 
-sofa-shared:
-	ENABLE_SHARED=yes make -C sofa
+erfa-shared:
+	ENABLE_SHARED=yes make -C erfa
 
 chealpix:
 	make -C chealpix
@@ -40,11 +40,11 @@ chealpix:
 chealpix-shared:
 	ENABLE_SHARED=yes make -C chealpix
 
-install-sofa: sofa
-	make -C sofa install
+install-erfa: erfa
+	make -C erfa install
 
-install-sofa-shared: sofa-shared
-	ENABLE_SHARED=yes make -C sofa install
+install-erfa-shared: erfa-shared
+	ENABLE_SHARED=yes make -C erfa install
 
 install-chealpix: chealpix
 	make -C chealpix install
@@ -77,13 +77,13 @@ install-qpoint-shared-lite: qpoint-shared
 
 install: install-qpoint install-python
 
-install-all: install-sofa install-chealpix install-qpoint install-python
+install-all: install-erfa install-chealpix install-qpoint install-python
 
 install-python-user: python
 	python setup.py install --prefix=$(LOCALPREFIX)
 
-install-sofa-user: sofa
-	PREFIX=$(LOCALPREFIX) make -C sofa install
+install-erfa-user: erfa
+	PREFIX=$(LOCALPREFIX) make -C erfa install
 
 install-chealpix-user: chealpix
 	PREFIX=$(LOCALPREFIX) make -C chealpix install
@@ -93,8 +93,8 @@ install-qpoint-user: qpoint
 
 install-user: install-qpoint-user install-python-user
 
-uninstall-sofa:
-	make -C sofa uninstall
+uninstall-erfa:
+	make -C erfa uninstall
 
 uninstall-chealpix:
 	make -C chealpix uninstall
@@ -104,10 +104,10 @@ uninstall-qpoint:
 
 uninstall: uninstall-qpoint
 
-uninstall-all: uninstall-sofa uninstall-chealpix uninstall-qpoint
+uninstall-all: uninstall-erfa uninstall-chealpix uninstall-qpoint
 
-clean-sofa:
-	make -C sofa clean
+clean-erfa:
+	make -C erfa clean
 
 clean-chealpix:
 	make -C chealpix clean
@@ -120,4 +120,4 @@ clean-qpoint:
 
 clean: clean-qpoint clean-python
 
-clean-all: clean clean-python clean-sofa clean-chealpix
+clean-all: clean clean-python clean-erfa clean-chealpix

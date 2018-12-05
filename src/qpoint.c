@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
-#include "sofa.h"
+#include "erfa.h"
 #include "qpoint.h"
 #include "fast_math.h"
 #include "vec3.h"
@@ -23,12 +23,12 @@ void ctime2jdtt(double ctime, double jd_tt[2]) {
   double jd_utc[2], jd_tai[2];
 
   ctime2jd(ctime, jd_utc);
-  iauUtctai(jd_utc[0], jd_utc[1], &jd_tai[0], &jd_tai[1]);
-  iauTaitt(jd_tai[0], jd_tai[1], &jd_tt[0], &jd_tt[1]);
+  eraUtctai(jd_utc[0], jd_utc[1], &jd_tai[0], &jd_tai[1]);
+  eraTaitt(jd_tai[0], jd_tai[1], &jd_tt[0], &jd_tt[1]);
 }
 
 void jdutc2jdut1(double jd_utc[2], double dut1, double jd_ut1[2]) {
-  iauUtcut1(jd_utc[0], jd_utc[1], dut1, &jd_ut1[0], &jd_ut1[1]);
+  eraUtcut1(jd_utc[0], jd_utc[1], dut1, &jd_ut1[0], &jd_ut1[1]);
 }
 
 double ctime2gmst(double ctime, double dut1, int accuracy) {
@@ -39,9 +39,9 @@ double ctime2gmst(double ctime, double dut1, int accuracy) {
   if (!accuracy) {
     jdutc2jdut1(jd_utc, dut1, jd_ut1);
     ctime2jdtt(ctime, jd_tt);
-    return iauGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
+    return eraGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
   } else {
-    return iauGmst00(jd_utc[0], jd_utc[1], jd_utc[0], jd_utc[1]);
+    return eraGmst00(jd_utc[0], jd_utc[1], jd_utc[0], jd_utc[1]);
   }
 }
 
@@ -186,7 +186,7 @@ void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv) {
 
 void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta) {
   double pvb[2][3];
-  iauEpv00(jd_tdb[0], jd_tdb[1], pvb, pvb);
+  eraEpv00(jd_tdb[0], jd_tdb[1], pvb, pvb);
   for (int i = 0; i < 3; i++) beta[i] = pvb[1][i]/C_AUD;
 }
 
@@ -209,9 +209,9 @@ void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q) {
 void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy) {
   double X,Y,s,Z,E,d;
   if (accuracy == 0)
-    iauXys06a(jd_tt[0],jd_tt[1], &X, &Y, &s);
+    eraXys06a(jd_tt[0],jd_tt[1], &X, &Y, &s);
   else
-    iauXys00b(jd_tt[0],jd_tt[1], &X, &Y, &s);
+    eraXys00b(jd_tt[0],jd_tt[1], &X, &Y, &s);
   Z = sqrt(1.0 - X*X - Y*Y);
   E = atan2(Y, X);
   d = acos(Z);
@@ -222,12 +222,12 @@ void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy) {
 }
 
 void qp_erot_quat(double jd_ut1[2], quat_t q) {
-  double theta = iauEra00(jd_ut1[0], jd_ut1[1]);
+  double theta = eraEra00(jd_ut1[0], jd_ut1[1]);
   Quaternion_r3(q, theta);
 }
 
 void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q) {
-  double sprime = iauSp00(jd_tt[0], jd_tt[1]);
+  double sprime = eraSp00(jd_tt[0], jd_tt[1]);
 
   Quaternion_r1(q, -arcsec2rad(yp));
   Quaternion_r2_mul(-arcsec2rad(xp), q);
@@ -238,7 +238,7 @@ void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q) {
 double qp_refraction(double el, double temp, double press, double hum,
                      double freq) {
   double A, B;
-  iauRefco(press, temp, hum, C_MS * 1e-3 / freq, &A, &B);
+  eraRefco(press, temp, hum, C_MS * 1e-3 / freq, &A, &B);
   double tz = tan(M_PI_2 - deg2rad(el));
   double ref = tz * (A + B * tz * tz);
   return rad2deg(ref);
