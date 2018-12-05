@@ -35,7 +35,7 @@ Q.init_point(q_bore=q_bore, q_hwp=q_hwp)
 cls = np.loadtxt('wmap7_r0p03_lensed_uK_ext.txt', unpack=True)
 ell, cls = cls[0], cls[1:]
 map_in = np.vstack(synfast(cls, nside=512, pol=True, new=True, deriv=0))
-print map_in.mean(), map_in.sum()
+print(map_in.mean(), map_in.sum())
 
 # initialize source map
 Q.init_source(map_in, pol=True)
@@ -53,37 +53,37 @@ d_psi += d_psi[n:]
 q_off_list = Q.det_offset(d_az, d_el, d_psi)
 
 # run
-print 'generate tod'
+print('generate tod')
 tod = Q.to_tod(q_off_list)
-print tod.mean(), tod.sum()
+print(tod.mean(), tod.sum())
 
 # initialize and calculate hits and data maps
-print 'bin to map'
+print('bin to map')
 vec, proj = Q.from_tod(q_off_list, tod=tod)
-print 'map stats'
-print vec.mean(), vec.sum()
-print proj.mean(), proj.sum()
+print('map stats')
+print(vec.mean(), vec.sum())
+print(proj.mean(), proj.sum())
 
-print 'add to map'
+print('add to map')
 
 # add noise
 tod2 = 10 * np.random.randn(*tod.shape)
 
 # update map, but don't double-count the hits map
 Q.from_tod(q_off_list, tod=tod2, count_hits=False)
-print 'map stats'
-print vec.mean(), vec.sum()
-print proj.mean(), proj.sum()
+print('map stats')
+print(vec.mean(), vec.sum())
+print(proj.mean(), proj.sum())
 
-print 'solving'
+print('solving')
 
 # solve
 cond = Q.proj_cond()
-print cond.min(), cond.max()
+print(cond.min(), cond.max())
 map_out = Q.solve_map(fill=np.nan)
-print map_out.min(), map_out.max()
+print(map_out.min(), map_out.max())
 
-print 'plotting'
+print('plotting')
 
 # plot stuff
 opt = dict(lonra=[-170, -70], latra=[-50, -20], coord='C', cbar='h', cbar_size='8%')

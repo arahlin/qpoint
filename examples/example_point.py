@@ -6,7 +6,7 @@ import healpy as hp
 Q = qp.QPoint(accuracy='low', fast_math=True, mean_aber=True,
               num_threads=4)
 
-print 'simulate pointing'
+print('simulate pointing')
 
 # dumb simulation
 n = 100000
@@ -42,9 +42,9 @@ ra, dec, sin2psi, cos2psi = Q.bore2radec(q_off, ctime, q_bore, q_hwp=q_hwp)
 # calculate healpix pixel numbers
 pix, sin2psi, cos2psi = Q.bore2pix(q_off, ctime, q_bore, q_hwp=q_hwp)
 
-print ra.min(), ra.max()
-print dec.min(), dec.max()
-print pix.min(), pix.max()
+print(ra.min(), ra.max())
+print(dec.min(), dec.max())
+print(pix.min(), pix.max())
 
 # Check round-trip conversions
 ra1, dec1, pa1 = Q.bore2radec(np.asarray([1,0,0,0]), ctime, q_bore, return_pa=True)
@@ -54,6 +54,6 @@ az_diff = az2 - az
 el_diff = el2 - el
 pa_diff = pa2
 
-print az_diff.min(), az_diff.max()
-print el_diff.min(), el_diff.max()
-print pa_diff.min(), pa_diff.max()
+print(az_diff.min(), az_diff.max())
+print(el_diff.min(), el_diff.max())
+print(pa_diff.min(), pa_diff.max())
