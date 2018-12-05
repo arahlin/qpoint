@@ -1303,6 +1303,7 @@ class QMap(QPoint):
             rtri, ctri = np.triu_indices(nmap)
             idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
             map_in[:] = np.einsum('ij...,j...->i...', proj[idx], map_in)
+            map_in[:, ~mask] = fill
 
         # return
         ret = (map_in,) + (proj,) * return_proj + (mask,) * return_mask
