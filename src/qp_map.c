@@ -982,8 +982,10 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
     dets->n = dets->n/2;
   }
 
+#ifdef _OPENMP
   int num_threads = (int) dets->n < mem->num_threads ? (int) dets->n : mem->num_threads;
   omp_set_num_threads(num_threads);
+#endif
 
   int err = 0;
 
@@ -996,7 +998,9 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
   qp_print_memory(mem);
 #endif
 
+#ifdef _OPENMP
 #pragma omp parallel
+#endif
   {
     qp_memory_t *memloc = qp_copy_memory(mem);
     const int nthreads = qp_get_opt_num_threads(memloc);
@@ -1012,7 +1016,9 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
     else
       maploc = map;
 
+#ifdef _OPENMP
 #pragma omp for
+#endif
     for (size_t idet = 0; idet < dets->n; idet++) {
       if (!errloc && !err){
         if(dets->diff == 0){
@@ -1025,19 +1031,27 @@ int qp_tod2map(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
 
     if (nthreads > 1) {
       if (!errloc && !err) {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
         errloc = qp_add_map(memloc, map, maploc);
         if (errloc)
+#ifdef _OPENMP
 #pragma omp atomic
+#endif
           err += errloc;
       }
       qp_free_map(maploc);
     }
 
     if (errloc) {
+#ifdef _OPENMP
 #pragma omp atomic
+#endif
       err += errloc;
+#ifdef _OPENMP
 #pragma omp critical
+#endif
       {
         mem->error_code = memloc->error_code;
         mem->error_string = memloc->error_string;
@@ -1266,8 +1280,10 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
                      "qp_map2tod: ctime required if not mean_aber"))
     return mem->error_code;
 
+#ifdef _OPENMP
   int num_threads = (int) dets->n < mem->num_threads ? (int) dets->n : mem->num_threads;
   omp_set_num_threads(num_threads);
+#endif
 
   int err = 0;
 
@@ -1280,7 +1296,9 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
   qp_print_memory(mem);
 #endif
 
+#ifdef _OPENMP
 #pragma omp parallel
+#endif
   {
     qp_memory_t *memloc = qp_copy_memory(mem);
     int errloc = 0;
@@ -1289,16 +1307,22 @@ int qp_map2tod(qp_memory_t *mem, qp_detarr_t *dets, qp_point_t *pnt,
     qp_print_memory(memloc);
 #endif
 
+#ifdef _OPENMP
 #pragma omp for nowait
+#endif
     for (size_t idet = 0; idet < dets->n; idet++) {
       if (!errloc && !err)
         errloc = qp_map2tod1(memloc, dets->arr + idet, pnt, map);
     }
 
     if (errloc) {
+#ifdef _OPENMP
 #pragma omp atomic
+#endif
       err += errloc;
+#ifdef _OPENMP
 #pragma omp critical
+#endif
       {
         mem->error_code = memloc->error_code;
         mem->error_string = memloc->error_string;

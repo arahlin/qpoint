@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "qpoint.h"
-#include <omp.h>
 
 const int QP_DO_ALWAYS = 0;
 const int QP_DO_ONCE = -1;
