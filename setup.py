@@ -5,6 +5,7 @@ from __future__ import print_function
 # need to pass --compiler=intel (or add to [build_ext] section of setup.cfg)
 from numpy.distutils.core import setup, Extension
 from numpy.distutils.command.build import build
+from numpy.distutils.command.build_ext import build_ext
 try:
     import sphinx.setup_command
     sphinx_found = True
@@ -34,18 +35,27 @@ class BuildLib(build):
 
     def run(self):
         # build dependencies
-        print('make -C erfa')
-        sp.check_call('make -C erfa'.split())
-        print('make -C chealpix')
-        sp.check_call('make -C chealpix'.split())
-        print('make -C src')
-        sp.check_call('make -C src'.split())
+        print('make -C src qp_iers_bulletin_a.c')
+        sp.check_call('make -C src qp_iers_bulletin_a.c'.split())
 
         # write version files
         with open('python/_version.py', 'w') as f:
             f.write('__version__ = ({:d}, {:d}, {:d})\n'.format(*vtup))
 
         build.run(self)
+
+class BuildExt(build_ext):
+    def build_extensions(self):
+        c = self.compiler.compiler[0]
+        print("Building extension with {}".format(c))
+        if 'gcc' in c:
+            for e in self.extensions:
+                e.extra_compile_args.append('-fopenmp')
+                e.libraries.append('gomp')
+        elif 'intel' in c:
+            for e in self.extensions:
+                e.extra_compile_args.append('-qopenmp')
+        build_ext.build_extensions(self)
 
 if sphinx_found:
     class BuildDoc(sphinx.setup_command.BuildDoc):
@@ -59,30 +69,19 @@ else:
             raise ImportError('sphinx not found, cannot build docs')
 
 # setup extension arguments
-src = [x for x in glob.glob('src/*.c')]
+src = [x for x in glob.glob('erfa/*.c') if not 'test' in x]
+src += [x for x in glob.glob('chealpix/*.c') if not 'test' in x]
+src += [x for x in glob.glob('src/*.c')]
 src = [x for x in src if not x.endswith('iers_bulletin_a.c')]
 src += ['src/qp_iers_bulletin_a.c']
 incl_dirs = ['src','erfa','chealpix']
-liberfa_file = 'erfa/liberfa_qp.a'
-libchealpix_file = 'chealpix/libchealpix_qp.a'
-extra_obj = [liberfa_file, libchealpix_file]
 extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC', varg]
-
-# do different stuff if using intel compilers
-if os.getenv("CC", "") == "icc":
-    extra_args.append('-qopenmp')
-    libs = []
-else:
-    extra_args.append('-fopenmp')
-    libs = ['gomp']
 
 # this isn't technically an extension...
 # hack to make a shared library to install with the package
 ext_qp = Extension('qpoint.libqpoint', src,
                    include_dirs=incl_dirs,
-                   extra_compile_args=extra_args,
-                   libraries=libs,
-                   extra_objects=extra_obj)
+                   extra_compile_args=extra_args)
 
 # run setup
 setup(name='qpoint',
@@ -94,6 +93,7 @@ setup(name='qpoint',
       ext_modules=[ext_qp],
       cmdclass={
           'build': BuildLib,
+          'build_ext': BuildExt,
           'build_sphinx': BuildDoc,
       },
       command_options={

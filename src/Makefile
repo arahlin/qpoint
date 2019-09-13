@@ -31,12 +31,14 @@ LIBNAME = $(LIBNAME_FULL)
 OBJNAME = .o
 endif
 
+ifneq ($(ENABLE_OMP), "no")
 ifeq ($(CC),icc)
 OPENMP = -qopenmp
 OPENMP_LD =
 else
 OPENMP = -fopenmp
 OPENMP_LD = -lgomp
+endif
 endif
 
 CFLAGS = $(DEBUG) -O3 -Wall -std=c99 -DQP_VERSION=\"$(QP_VERSION)\"
