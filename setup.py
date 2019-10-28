@@ -96,6 +96,7 @@ setup(name='qpoint',
           'build_ext': BuildExt,
           'build_sphinx': BuildDoc,
       },
+      install_requires=['numpy>=1.10.0'],
       command_options={
           'build_sphinx': {
               'project': ('setup.py', 'qpoint'),

@@ -1,7 +1,6 @@
 VPATH=../erfa:../chealpix:.
 # DEBUG = -g
 DEBUG =
-CC = gcc
 
 LIBNAME_FULL = libqpoint
 LIBNAME_LITE = libqpntlt
@@ -31,7 +30,7 @@ LIBNAME = $(LIBNAME_FULL)
 OBJNAME = .o
 endif
 
-ifneq ($(ENABLE_OMP), "no")
+ifeq ($(ENABLE_OMP),y)
 ifeq ($(CC),icc)
 OPENMP = -qopenmp
 OPENMP_LD =

@@ -1,5 +1,3 @@
-CC=gcc
-
 LOCALPREFIX = $(HOME)/.local
 
 ifeq ($(PREFIX), )
@@ -10,7 +8,7 @@ endif
 
 default: all
 
-all: qpoint python
+all: qpoint
 
 .PHONY: qpoint erfa chealpix python docs
 qpoint: erfa chealpix
@@ -53,16 +51,16 @@ install-chealpix-shared: chealpix-shared
 	ENABLE_SHARED=yes make -C chealpix install
 
 python:
-	CC=$(CC) python setup.py build
+	python setup.py build
 
 python-debug:
-	CC=$(CC) CFLAGS="-g -DDEBUG" python setup.py build
+	CFLAGS="-g -DDEBUG" python setup.py build
 
 docs:
 	python setup.py build_sphinx -a
 
 install-python: python
-	CC=$(CC) python setup.py install $(PYTHONPREFIX)
+	python setup.py install $(PYTHONPREFIX)
 
 install-qpoint: qpoint
 	make -C src install
