@@ -297,7 +297,7 @@ class QPoint(object):
     def lmst(self, ctime, lon, **kwargs):
         """
         Return local mean sidereal time for given ctimes and longitudes.
-        Vectorized.
+        Vectorized, input arguments must be broadcastable to the same shape.
 
         Arguments
         ---------
@@ -333,7 +333,7 @@ class QPoint(object):
     def dipole(self, ctime, ra, dec, **kwargs):
         """
         Return dipole amplitude in the given equatorial direction.
-        Vectorized.
+        Vectorized, input arguments must be broadcastable to the same shape.
 
         Arguments
         ---------
@@ -382,7 +382,7 @@ class QPoint(object):
         q_bore : quaternion or array of quaternions
             Array of quaternions encoding the boresight orientation
             on the sky (as output by `azel2radec` or similar).
-            Same length as `ctime`.
+            Broadcastable to the same length as `ctime`.
 
         Returns
         -------
@@ -413,7 +413,8 @@ class QPoint(object):
     def det_offset(self, delta_az, delta_el, delta_psi):
         """
         Return quaternion corresponding to the requested detector centroid
-        offset from boresight.  Vectorized.
+        offset from boresight.  Vectorized, input arguments must be
+        broadcastable to the same shape.
 
         Arguments
         ---------
@@ -445,6 +446,7 @@ class QPoint(object):
                     post=False, inplace=False):
         """
         Apply a fixed or variable offset to the boresight quaternion.
+        Input arguments must be broadcastable to the same shape.
 
         Arguments
         ---------
@@ -479,8 +481,8 @@ class QPoint(object):
 
     def hwp_quat(self, theta):
         """
-        Return quaternion corresponding to rotation by 2 * theta,
-        where theta is the physical waveplate angle. Vectorized.
+        Return quaternion corresponding to rotation by 2 * theta, where theta is
+        the physical waveplate angle. Vectorized.
 
         Arguments
         ---------
@@ -507,7 +509,8 @@ class QPoint(object):
         """
         Estimate the quaternion for the boresight orientation on the sky given
         the attitude (az/el/pitch/roll), location on the earth (lon/lat) and
-        ctime. Input vectors must be numpy-array-like and of the same shape.
+        ctime. Input vectors must be numpy-array-like and broadcastable to the
+        same shape.
 
         Arguments
         ---------
@@ -570,13 +573,14 @@ class QPoint(object):
             Detector offset quaternion for a single detector, calculated using
             `det_offset`.
         ctime : array_like
-            Unix time in seconds UTC
+            Unix time in seconds UTC, broadcastable to shape (N,),
+            the long dimension of `q_bore`.
         q_bore : quaternion or array of quaternions
             Nx4 array of quaternions encoding the boresight orientation
             on the sky (as output by `azel2radec` or equivalent)
         q_hwp : quaternion or array of quaternions, optional
             HWP angle quaternions calculated using `hwp_quat`.
-            Must be same shape as `q_bore`.
+            Must be broadcastable to the same shape as `q_bore`.
         sindec : bool, optional
             If `True`, return sin(dec) instead of dec in degrees
             (default False).
@@ -667,9 +671,9 @@ class QPoint(object):
         Estimate the orientation on the sky for a detector offset from
         boresight, given the boresight attitude (az/el/pitch/roll), location on
         the earth (lon/lat) and UTC time.  Input vectors must be
-        numpy-array-like and of the same shape. Detector offsets are defined
-        assuming the boresight is pointed toward the horizon, and that the
-        boresight polarization axis is along the horizontal.
+        numpy-array-like and broadcastable to the same shape. Detector offsets
+        are defined assuming the boresight is pointed toward the horizon, and
+        that the boresight polarization axis is along the horizontal.
 
         Arguments
         ---------
@@ -774,7 +778,7 @@ class QPoint(object):
         """
         Estimate the horizon coordinates for a given set of equatorial coordinates
         (ra/dec/psi), location on the earth (lon/lat) and UTC time.  Input vectors
-        must be numpy-array-like and of the same shape.
+        must be numpy-array-like and broadcastable to the same shape.
 
         Arguments
         ---------
@@ -824,7 +828,8 @@ class QPoint(object):
 
     def radecpa2quat(self, ra, dec, pa, **kwargs):
         """
-        Calculate quaternion for input ra/dec/pa.
+        Calculate quaternion for input ra/dec/pa. Vectorized, input arguments
+        must be broadcastable to the same shape.
 
         Arguments
         ---------
@@ -845,8 +850,6 @@ class QPoint(object):
         Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
         method can also be passed here, and will be processed prior to
         calculation.
-
-        Input arguments are broadcast to the same shape.
         """
         self.set(**kwargs)
 
@@ -932,7 +935,8 @@ class QPoint(object):
 
     def radec2pix(self, ra, dec, nside=256, **kwargs):
         """
-        Calculate HEALpix pixel number for given ra/dec and nside.
+        Calculate HEALpix pixel number for given ra/dec and nside.  Vectorized,
+        input arguments must be broadcastable to the same shape.
 
         Arguments
         ---------
@@ -1015,7 +1019,8 @@ class QPoint(object):
     def rotate_coord(self, ra, dec, pa=None, sin2psi=None, cos2psi=None,
                      coord=['C', 'G'], inplace=True, **kwargs):
         """
-        Rotate coordinates from one coordinate system to another.
+        Rotate coordinates from one coordinate system to another. Vectorized,
+        input arguments must be broadcastable to the same shape.
         Supported coordinates:
 
         C: celestial (equatorial) coordinates
@@ -1033,7 +1038,7 @@ class QPoint(object):
             2-element list of input and output coordinates.
             Supported systems: C, G.
         inplace : bool, optional
-            If True, apply the rotation in-place on the input quaternion.
+            If True, apply the rotation in-place on the input coordinates.
             Otherwise, return a copy of the input array.  Default: True.
 
         Returns
@@ -1092,6 +1097,7 @@ class QPoint(object):
         """
         Rotate celestial (equatorial) coordinates to galactic coordinates.
         This is equivalent to calling `rotate_coord(..., coord=['C', 'G'])`.
+        Vectorized, input arguments must be broadcastable to the same shape.
 
         Arguments
         ---------
@@ -1126,6 +1132,7 @@ class QPoint(object):
         """
         Rotate galactic coordinates to celestial (equatorial) coordinates.
         This is equivalent to calling `rotate_coord(..., coord=['G', 'C'])`.
+        Vectorized, input arguments must be broadcastable to the same shape.
 
         Arguments
         ---------
@@ -1276,13 +1283,14 @@ class QPoint(object):
             Detector offset quaternion for a single detector,
             calculated using `det_offset`.
         ctime : array_like
-            Unix times in seconds UTC
+            Unix times in seconds UTC, broadcastable to shape (N,),
+            the long dimenions of `q_bore`.
         q_bore : quaternion or array of quaternions
             Nx4 array of quaternions encoding the boresight orientation
             on the sky (as output by `azel2radec` or equivalent)
         q_hwp : quaternion or array of quaternions, optional
             HWP angle quaternions calculated using `hwp_quat`.
-            Must be same shape as `q_bore`.
+            Must be broadcastable to the same shape as `q_bore`.
         nside : int, optional
             HEALpix map dimension.  Default: 256.
         pol : bool, optional
@@ -1362,7 +1370,7 @@ class QPoint(object):
             A single healpix map or list of maps which to interpolate from.
         ra, dec: array_like
             Timestreams of coordinates to interpolate to, in degrees,
-            of shape (nsample,)
+            broadcastable to a common shape (nsample,)
         nest: bool, optional
             If True, input map is in the nested pixel ordering scheme.
             Otherwise, ring ordering is assumed.
