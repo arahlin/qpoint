@@ -470,7 +470,7 @@ class QPoint(object):
             Offset boresight quaternion
         """
         q_bore = check_input('q_bore', np.atleast_2d(q_bore), quat=True,
-                             inplace=inplace)
+                             inplace=inplace, output=True)
         n = q_bore.shape[0]
         if all([a is None for a in [ang1, ang2, ang3]]):
             raise ValueError('One of ang1, ang2, ang3 is required')
@@ -1004,7 +1004,7 @@ class QPoint(object):
         self.set(**kwargs)
 
         quat = check_input('quat', np.atleast_2d(quat), quat=True,
-                           inplace=inplace)
+                           inplace=inplace, output=True)
         n = quat.size // 4
 
         if coord[0] == 'C' and coord[1] == 'G':
@@ -1070,7 +1070,7 @@ class QPoint(object):
                                'or sin2psi/cos2psi only')
 
         ra, dec, pa, sin2psi, cos2psi = \
-            check_inputs(ra, dec, pa, sin2psi, cos2psi, inplace=inplace)
+            check_inputs(ra, dec, pa, sin2psi, cos2psi, inplace=inplace, output=True)
         n = ra.size
 
         if coord[0] == 'C' and coord[1] == 'G':

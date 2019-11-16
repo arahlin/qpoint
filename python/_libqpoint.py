@@ -770,8 +770,14 @@ def check_input(name, arg, shape=None, quat=False, dtype=np.double,
             else:
                 try:
                     _, arg = np.broadcast_arrays(np.empty(shape), arg)
+                    # ensure writeable flag is set properly if necessary
+                    # broadcast arrays will not be writable in the future
+                    if inplace or output:
+                        arg = arg.copy()
+                    else:
+                        args.flags['WRITEABLE'] = False
                 except ValueError:
-                    s = 'input {} of shape {} must have shape {}'
+                    s = 'input {} of shape {} cannot be broadcast to shape {}'
                     raise ValueError(s.format(name, arg.shape, shape))
     istat = check_flags(arg)
     arg = np.require(arg, dtype, list('AC' + 'W'*output))
@@ -798,8 +804,12 @@ def check_inputs(*args, **kwargs):
         passing to the C library as a set of timestreams.
     """
     args = [arg if arg is not None else 0 for arg in args]
-    return [check_input('input', np.atleast_1d(x), **kwargs)
-            for x in np.broadcast_arrays(*args)]
+    if 'shape' not in kwargs:
+        kwargs['shape'] = np.broadcast(*args).shape
+    return [
+        check_input('argument {}'.format(ix), np.atleast_1d(x), **kwargs)
+        for ix, x in enumerate(args)
+    ]
 
 def check_output(name, arg=None, shape=None, quat=False, dtype=np.double,
                  inplace=True, fill=None, allow_transpose=True,
