@@ -775,7 +775,7 @@ def check_input(name, arg, shape=None, quat=False, dtype=np.double,
                     if inplace or output:
                         arg = arg.copy()
                     else:
-                        args.flags['WRITEABLE'] = False
+                        arg.flags['WRITEABLE'] = False
                 except ValueError:
                     s = 'input {} of shape {} cannot be broadcast to shape {}'
                     raise ValueError(s.format(name, arg.shape, shape))
