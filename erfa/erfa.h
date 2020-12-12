@@ -41,6 +41,12 @@ typedef struct {
    double pv[2][3];   /* barycentric PV of the body (au, au/day) */
 } eraLDBODY;
 
+/* Leap second definition */
+typedef struct {
+   int iyear, month;
+   double delat;
+} eraLEAPSECOND;
+
 /* Pi */
 #define ERFA_DPI (3.141592653589793238462643)
 
@@ -125,7 +131,8 @@ typedef struct {
 #define ERFA_DINT(A) ((A)<0.0?ceil(A):floor(A))
 
 /* ERFA_DNINT(A) - round to nearest whole number (double) */
-#define ERFA_DNINT(A) ((A)<0.0?ceil((A)-0.5):floor((A)+0.5))
+#define ERFA_DNINT(A) (fabs(A)<0.5?0.0\
+                                :((A)<0.0?ceil((A)-0.5):floor((A)+0.5)))
 
 /* ERFA_DSIGN(A,B) - magnitude of A with sign of B (double) */
 #define ERFA_DSIGN(A,B) ((B)<0.0?-fabs(A):fabs(A))
@@ -140,12 +147,6 @@ typedef struct {
 #define ERFA_WGS84 1
 #define ERFA_GRS80 2
 #define ERFA_WGS72 3
-
-#define SOFA_VERSION "20190722"
-#define PACKAGE_VERSION "1.6.0"
-#define PACKAGE_VERSION_MAJOR 1
-#define PACKAGE_VERSION_MINOR 6
-#define PACKAGE_VERSION_MICRO 0
 
 
 #ifdef __cplusplus
@@ -616,35 +617,55 @@ void eraS2xpv(double s1, double s2, double pv[2][3], double spv[2][3]);
 void eraSxp(double s, double p[3], double sp[3]);
 void eraSxpv(double s, double pv[2][3], double spv[2][3]);
 
-/* 
+
+/*
+**  Get the leap second table, initializing it to the built-in version
+**  if necessary.
+**
+**  This function is for internal use in dat.c only and should
+**  not be used elsewhere.
+*/
+int eraDatini(const eraLEAPSECOND *builtin, int n_builtin,
+              eraLEAPSECOND **leapseconds);
+
+
+#ifndef _ERFA_EXTRA_H
+#define _ERFA_EXTRA_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+/*
 ** Returns the package version
 ** as defined in configure.ac
 ** in string format
 */
 const char* eraVersion(void);
 
-/* 
+/*
 ** Returns the package major version
 ** as defined in configure.ac
 ** as integer
 */
 int eraVersionMajor(void);
 
-/* 
+/*
 ** Returns the package minor version
 ** as defined in configure.ac
 ** as integer
 */
 int eraVersionMinor(void);
 
-/* 
+/*
 ** Returns the package micro version
 ** as defined in configure.ac
 ** as integer
 */
 int eraVersionMicro(void);
 
-/* 
+/*
 ** Returns the orresponding SOFA version
 ** as defined in configure.ac
 ** in string format
@@ -652,9 +673,11 @@ int eraVersionMicro(void);
 const char* eraSofaVersion(void);
 
 
-#ifdef __cplusplus
-}
-#endif
+/*
+** Get and set leap seconds (not supported by SOFA; EXPERIMENTAL)
+*/
+int eraGetLeapSeconds(eraLEAPSECOND **leapseconds);
+void eraSetLeapSeconds(eraLEAPSECOND *leapseconds, int count);
 
 #endif
 

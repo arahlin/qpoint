@@ -17,11 +17,8 @@ void eraA2af(int ndp, double angle, char *sign, int idmsf[4])
 **     angle   double  angle in radians
 **
 **  Returned:
-**     sign    char    '+' or '-'
+**     sign    char*   '+' or '-'
 **     idmsf   int[4]  degrees, arcminutes, arcseconds, fraction
-**
-**  Called:
-**     eraD2tf      decompose days to hms
 **
 **  Notes:
 **
@@ -55,7 +52,10 @@ void eraA2af(int ndp, double angle, char *sign, int idmsf[4])
 **     case where angle is very nearly 2pi and rounds up to 360 degrees,
 **     by testing for idmsf[0]=360 and setting idmsf[0-3] to zero.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Called:
+**     eraD2tf      decompose days to hms
+**
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -83,11 +83,8 @@ void eraA2tf(int ndp, double angle, char *sign, int ihmsf[4])
 **     angle   double  angle in radians
 **
 **  Returned:
-**     sign    char    '+' or '-'
+**     sign    char*   '+' or '-'
 **     ihmsf   int[4]  hours, minutes, seconds, fraction
-**
-**  Called:
-**     eraD2tf      decompose days to hms
 **
 **  Notes:
 **
@@ -121,7 +118,10 @@ void eraA2tf(int ndp, double angle, char *sign, int ihmsf[4])
 **     case where angle is very nearly 2pi and rounds up to 24 hours,
 **     by testing for ihmsf[0]=24 and setting ihmsf[0-3] to zero.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Called:
+**     eraD2tf      decompose days to hms
+**
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -180,7 +180,7 @@ void eraAb(double pnat[3], double v[3], double s, double bm1,
 **  Called:
 **     eraPdp       scalar product of two p-vectors
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -265,9 +265,9 @@ void eraAe2hd (double az, double el, double phi,
 **
 **  Last revision:   2017 September 12
 **
-**  ERFA release 2019-07-22
+**  ERFA release 2020-07-21
 **
-**  Copyright (C) 2019 IAU ERFA Board.  See notes at end.
+**  Copyright (C) 2020 IAU ERFA Board.  See notes at end.
 */
 {
    double sa, ca, se, ce, sp, cp, x, y, z, r;
@@ -328,7 +328,7 @@ int eraAf2a(char s, int ideg, int iamin, double asec, double *rad)
 **  3)  If there are multiple errors, the status value reflects only the
 **      first, the smallest taking precedence.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -361,7 +361,7 @@ double eraAnp(double a)
 **  Returned (function value):
 **              double     angle in range 0-2pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -389,7 +389,7 @@ double eraAnpm(double a)
 **  Returned (function value):
 **              double     angle in range +/-pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -505,7 +505,7 @@ void eraApcg(double date1, double date2,
 **  Called:
 **     eraApcs      astrometry parameters, ICRS-GCRS, space observer
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -625,7 +625,7 @@ void eraApcg13(double date1, double date2, eraASTROM *astrom)
 **     eraEpv00     Earth position and velocity
 **     eraApcg      astrometry parameters, ICRS-GCRS, geocenter
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -754,7 +754,7 @@ void eraApci(double date1, double date2,
 **     eraApcg      astrometry parameters, ICRS-GCRS, geocenter
 **     eraC2ixys    celestial-to-intermediate matrix, given X,Y and s
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -879,7 +879,7 @@ void eraApci13(double date1, double date2,
 **     eraApci      astrometry parameters, ICRS-CIRS
 **     eraEors      equation of the origins, given NPB matrix and s
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -1060,7 +1060,7 @@ void eraApco(double date1, double date2,
 **     eraApcs      astrometry parameters, ICRS-GCRS, space observer
 **     eraCr        copy r-matrix
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -1282,7 +1282,7 @@ int eraApco13(double utc1, double utc2, double dut1,
 **     eraApco      astrometry parameters, ICRS-observed
 **     eraEors      equation of the origins, given NPB matrix and s
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -1455,7 +1455,7 @@ void eraApcs(double date1, double date2, double pv[2][3],
 **     eraPn        decompose p-vector into modulus and direction
 **     eraIr        initialize r-matrix to identity
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -1614,7 +1614,7 @@ void eraApcs13(double date1, double date2, double pv[2][3],
 **     eraEpv00     Earth position and velocity
 **     eraApcs      astrometry parameters, ICRS-GCRS, space observer
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -1720,7 +1720,7 @@ void eraAper(double theta, eraASTROM *astrom)
 **     aberration and parallax (unless subsumed into the ICRS <-> GCRS
 **     transformation), and atmospheric refraction.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -1838,7 +1838,7 @@ void eraAper13(double ut11, double ut12, eraASTROM *astrom)
 **     eraAper      astrometry parameters: update ERA
 **     eraEra00     Earth rotation angle, IAU 2000
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -1961,7 +1961,7 @@ void eraApio(double sp, double theta,
 **     eraPvtob     position/velocity of terrestrial station
 **     eraAper      astrometry parameters: update ERA
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2160,7 +2160,7 @@ int eraApio13(double utc1, double utc2, double dut1,
 **     eraRefco     refraction constants for given ambient conditions
 **     eraApio      astrometry parameters, CIRS-observed
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2272,7 +2272,7 @@ void eraAtci13(double rc, double dc,
 **     eraApci13    astrometry parameters, ICRS-CIRS, 2013
 **     eraAtciq     quick ICRS to CIRS
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2354,7 +2354,7 @@ void eraAtciq(double rc, double dc,
 **     eraC2s       p-vector to spherical
 **     eraAnp       normalize angle into range 0 to 2pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2482,7 +2482,7 @@ void eraAtciqn(double rc, double dc, double pr, double pd,
 **     eraC2s       p-vector to spherical
 **     eraAnp       normalize angle into range 0 to 2pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2572,7 +2572,7 @@ void eraAtciqz(double rc, double dc, eraASTROM *astrom,
 **     eraC2s       p-vector to spherical
 **     eraAnp       normalize angle into range +/- pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2750,7 +2750,7 @@ int eraAtco13(double rc, double dc,
 **     eraAtciq     quick ICRS to CIRS
 **     eraAtioq     quick CIRS to observed
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2850,7 +2850,7 @@ void eraAtic13(double ri, double di, double date1, double date2,
 **     eraApci13    astrometry parameters, ICRS-CIRS, 2013
 **     eraAticq     quick CIRS to ICRS astrometric
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -2927,7 +2927,7 @@ void eraAticq(double ri, double di, eraASTROM *astrom,
 **     eraC2s       p-vector to spherical
 **     eraAnp       normalize angle into range +/- pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -3101,7 +3101,7 @@ void eraAticqn(double ri, double di, eraASTROM *astrom,
 **     eraC2s       p-vector to spherical
 **     eraAnp       normalize angle into range +/- pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -3312,7 +3312,7 @@ int eraAtio13(double ri, double di,
 **     eraApio13    astrometry parameters, CIRS-observed, 2013
 **     eraAtioq     quick CIRS to observed
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -3432,7 +3432,7 @@ void eraAtioq(double ri, double di, eraASTROM *astrom,
 **     eraC2s       p-vector to spherical
 **     eraAnp       normalize angle into range 0 to 2pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -3658,7 +3658,7 @@ int eraAtoc13(const char *type, double ob1, double ob2,
 **     eraAtoiq     quick observed to CIRS
 **     eraAticq     quick CIRS to ICRS
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -3827,7 +3827,7 @@ int eraAtoi13(const char *type, double ob1, double ob2,
 **     eraApio13    astrometry parameters, CIRS-observed, 2013
 **     eraAtoiq     quick observed to CIRS
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -3940,7 +3940,7 @@ void eraAtoiq(const char *type,
 **     eraC2s       p-vector to spherical
 **     eraAnp       normalize angle into range 0 to 2pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4090,7 +4090,7 @@ void eraBi00(double *dpsibi, double *depsbi, double *dra)
 **     2002.  The MHB2000 code itself was obtained on 9th September 2002
 **     from ftp://maia.usno.navy.mil/conv2000/chapter5/IAU2000A.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4181,7 +4181,7 @@ void eraBp00(double date1, double date2,
 **     n.b. The celestial ephemeris origin (CEO) was renamed "celestial
 **          intermediate origin" (CIO) by IAU 2006 Resolution 2.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4293,7 +4293,7 @@ void eraBp06(double date1, double date2,
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4352,7 +4352,7 @@ void eraBpn2xy(double rbpn[3][3], double *x, double *y)
 **     n.b. The celestial ephemeris origin (CEO) was renamed "celestial
 **          intermediate origin" (CIO) by IAU 2006 Resolution 2.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4432,7 +4432,7 @@ void eraC2i00a(double date1, double date2, double rc2i[3][3])
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4517,7 +4517,7 @@ void eraC2i00b(double date1, double date2, double rc2i[3][3])
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4593,7 +4593,7 @@ void eraC2i06a(double date1, double date2, double rc2i[3][3])
 **     McCarthy, D. D., Petit, G. (eds.), 2004, IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4687,7 +4687,7 @@ void eraC2ibpn(double date1, double date2, double rbpn[3][3],
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4769,7 +4769,7 @@ void eraC2ixy(double date1, double date2, double x, double y,
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 
@@ -4828,7 +4828,7 @@ void eraC2ixys(double x, double y, double s, double rc2i[3][3])
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4873,7 +4873,7 @@ void eraC2s(double p[3], double *theta, double *phi)
 **
 **  3) At either pole, zero theta is returned.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -4966,7 +4966,7 @@ void eraC2t00a(double tta, double ttb, double uta, double utb,
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5065,7 +5065,7 @@ void eraC2t00b(double tta, double ttb, double uta, double utb,
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5160,7 +5160,7 @@ void eraC2t06a(double tta, double ttb, double uta, double utb,
 **     McCarthy, D. D., Petit, G. (eds.), 2004, IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5238,7 +5238,7 @@ void eraC2tcio(double rc2i[3][3], double era, double rpom[3][3],
 **     McCarthy, D. D., Petit, G. (eds.), 2004, IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5306,7 +5306,7 @@ void eraC2teqx(double rbpn[3][3], double gst, double rpom[3][3],
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5405,7 +5405,7 @@ void eraC2tpe(double tta, double ttb, double uta, double utb,
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5514,7 +5514,7 @@ void eraC2txy(double tta, double ttb, double uta, double utb,
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5583,7 +5583,7 @@ int eraCal2jd(int iy, int im, int id, double *djm0, double *djm)
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 12.92 (p604).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5639,7 +5639,7 @@ void eraCp(double p[3], double c[3])
 **  Returned:
 **     c        double[3]     copy
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5668,7 +5668,7 @@ void eraCpv(double pv[2][3], double c[2][3])
 **  Called:
 **     eraCp        copy p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5696,7 +5696,7 @@ void eraCr(double r[3][3], double c[3][3])
 **  Called:
 **     eraCp        copy p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5778,7 +5778,7 @@ int eraD2dtf(const char *scale, int ndp, double d1, double d2,
 **     eraD2tf      decompose days to hms
 **     eraDat       delta(AT) = TAI-UTC
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -5902,7 +5902,7 @@ void eraD2tf(int ndp, double days, char *sign, int ihmsf[4])
 **     days    double  interval in days
 **
 **  Returned:
-**     sign    char    '+' or '-'
+**     sign    char*   '+' or '-'
 **     ihmsf   int[4]  hours, minutes, seconds, fraction
 **
 **  Notes:
@@ -5937,7 +5937,7 @@ void eraD2tf(int ndp, double days, char *sign, int ihmsf[4])
 **     case where days is very nearly 1.0 and rounds up to 24 hours,
 **     by testing for ihmsf[0]=24 and setting ihmsf[0-3] to zero.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -6110,12 +6110,12 @@ int eraDat(int iy, int im, int id, double fd, double *deltat)
 **  Called:
 **     eraCal2jd    Gregorian calendar to JD
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
 /* Release year for this version of eraDat */
-   enum { IYV = 2019};
+   enum { IYV = 2020};
 
 /* Reference dates (MJD) and drift rates (s/day), pre leap seconds */
    static const double drift[][2] = {
@@ -6139,10 +6139,7 @@ int eraDat(int iy, int im, int id, double fd, double *deltat)
    enum { NERA1 = (int) (sizeof drift / sizeof (double) / 2) };
 
 /* Dates and Delta(AT)s */
-   static const struct {
-      int iyear, month;
-      double delat;
-   } changes[] = {
+   static const eraLEAPSECOND _changes[] = {
       { 1960,  1,  1.4178180 },
       { 1961,  1,  1.4228180 },
       { 1961,  8,  1.3728180 },
@@ -6188,7 +6185,13 @@ int eraDat(int iy, int im, int id, double fd, double *deltat)
    };
 
 /* Number of Delta(AT) changes */
-   enum { NDAT = (int) (sizeof changes / sizeof changes[0]) };
+   enum { _NDAT = (int) (sizeof _changes / sizeof _changes[0]) };
+
+/* Get/initialise leap-second if needed */
+   int NDAT;
+   eraLEAPSECOND *changes;
+
+   NDAT = eraDatini(_changes, _NDAT, &changes);
 
 /* Miscellaneous local variables */
    int j, i, m;
@@ -6395,7 +6398,7 @@ double eraDtdb(double date1, double date2,
 **     Simon, J.L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G. & Laskar, J., Astron.Astrophys., 282, 663-683 (1994).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -7471,7 +7474,7 @@ int eraDtf2d(const char *scale, int iy, int im, int id,
 **     eraDat       delta(AT) = TAI-UTC
 **     eraJd2cal    JD to Gregorian calendar
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -7598,7 +7601,7 @@ void eraEceq06(double date1, double date2, double dl, double db,
 **     eraAnp       normalize angle into range 0 to 2pi
 **     eraAnpm      normalize angle into range +/- pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -7682,7 +7685,7 @@ void eraEcm06(double date1, double date2, double rm[3][3])
 **     eraRx        rotate around X-axis
 **     eraRxr       product of two r-matrices
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -7764,7 +7767,7 @@ double eraEe00(double date1, double date2, double epsa, double dpsi)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -7836,7 +7839,7 @@ double eraEe00a(double date1, double date2)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -7923,7 +7926,7 @@ double eraEe00b(double date1, double date2)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -7996,7 +7999,7 @@ double eraEe06a(double date1, double date2)
 **     McCarthy, D. D., Petit, G. (eds.), 2004, IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8105,7 +8108,7 @@ double eraEect00(double date1, double date2)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8297,7 +8300,7 @@ int eraEform ( int n, double *a, double *f )
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     p220.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8388,7 +8391,7 @@ double eraEo06a(double date1, double date2)
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8444,7 +8447,7 @@ double eraEors(double rnpb[3][3], double s)
 **
 **     Wallace, P. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8491,7 +8494,7 @@ double eraEpb(double dj1, double dj2)
 **
 **     Lieske, J.H., 1979. Astron.Astrophys., 73, 282.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8528,7 +8531,7 @@ void eraEpb2jd(double epb, double *djm0, double *djm)
 **
 **     Lieske, J.H., 1979, Astron.Astrophys. 73, 282.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8565,7 +8568,7 @@ double eraEpj(double dj1, double dj2)
 **
 **     Lieske, J.H., 1979, Astron.Astrophys. 73, 282.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8604,7 +8607,7 @@ void eraEpj2jd(double epj, double *djm0, double *djm)
 **
 **     Lieske, J.H., 1979, Astron.Astrophys. 73, 282.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -8709,7 +8712,7 @@ int eraEpv00(double date1, double date2,
 **  5) It is permissible to use the same array for pvh and pvb, which
 **     will receive the barycentric values.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11204,7 +11207,7 @@ void eraEqec06(double date1, double date2, double dr, double dd,
 **     eraAnp       normalize angle into range 0 to 2pi
 **     eraAnpm      normalize angle into range +/- pi
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11280,7 +11283,7 @@ double eraEqeq94(double date1, double date2)
 **     Capitaine, N. & Gontier, A.-M., 1993, Astron.Astrophys., 275,
 **     645-650.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11361,7 +11364,7 @@ double eraEra00(double dj1, double dj2)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11390,42 +11393,151 @@ double eraEra00(double dj1, double dj2)
 }
 
 /*
+** Copyright (C) 2019, NumFOCUS Foundation.
+**
+** Licensed under a 3-clause BSD style license - see LICENSE
+**
+** This file is NOT derived from SOFA sources.
+**
+** The eraGetLeapSeconds and eraSetLeapSeconds functions are used as an
+** experimental interface for getting and setting the leap second table in
+** astropy 4.0.  They will be supported as long as astropy 4.0 is supported
+** (until 2021), but not necessarily beyond.  Comments and ideas about the
+** best way to keep the leap second tables up to date for all users of erfa
+** are welcome (https://github.com/liberfa/erfa).
+**
+** The eraDatini function is used internally in dat.c; it is strictly an
+** implementation detail and should not be used elsewhere.
+*/
+static eraLEAPSECOND *changes;
+static int NDAT = -1;
+
+
+int eraGetLeapSeconds(eraLEAPSECOND **leapseconds)
+/*
+**  Get the current leap second table.
+**
+**  Returned:
+**     leapseconds eraLEAPSECOND*  Array of year, month, TAI minus UTC
+**
+**  Returned (function value):
+**            int  NDAT  Number of entries/status
+**                       >0 = number of entries
+**                       -1 = internal error
+*/
+{
+    if (NDAT <= 0) {
+        double delat;
+        int stat = eraDat(2000, 1, 1, 0., &delat);
+        if (stat != 0 || NDAT <= 0) {
+            return -1;
+        }
+    }
+    *leapseconds = changes;
+    return NDAT;
+}
+
+void eraSetLeapSeconds(eraLEAPSECOND *leapseconds, int count)
+/*
+**  Set the current leap second table.
+**
+**  Given:
+**     leapseconds eraLEAPSECOND*  Array of year, month, TAI minus UTC
+**     count       int             Number of entries.  If <= 0, causes
+**                                 a reset of the table to the built-in
+**                                 version.
+**
+**  Notes:
+**     *No* sanity checks are performed.
+*/
+{
+    changes = leapseconds;
+    NDAT = count;
+}
+
+int eraDatini(const eraLEAPSECOND *builtin, int n_builtin,
+              eraLEAPSECOND **leapseconds)
+/*
+**  Get the leap second table, initializing it to the built-in version
+**  if necessary.
+**
+**  This function is for internal use in dat.c only and should
+**  not be used elsewhere.
+**
+**  Given:
+**     builtin     eraLEAPSECOND   Array of year, month, TAI minus UTC
+**     n_builtin   int             Number of entries of the table.
+**
+**  Returned:
+**     leapseconds eraLEAPSECOND*  Current array, set to the builtin one
+**                                 if not yet initialized.
+**
+**  Returned (function value):
+**            int  NDAT  Number of entries
+*/
+{
+    if (NDAT <= 0) {
+        eraSetLeapSeconds((eraLEAPSECOND *)builtin, n_builtin);
+    }
+    *leapseconds = changes;
+    return NDAT;
+}
+/*
 ** Copyright (C) 2016-2017, NumFOCUS Foundation.
 **
-** Licensed under a 3-clause BSD style license - see LICENSE 
+** Licensed under a 3-clause BSD style license - see LICENSE
 **
 ** This file is NOT derived from SOFA sources
 */
 
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "1.7.1"
 
+/* Define to the major version of this package. */
+#define PACKAGE_VERSION_MAJOR 1
+
+/* Define to the micro version of this package. */
+#define PACKAGE_VERSION_MICRO 1
+
+/* Define to the minor version of this package. */
+#define PACKAGE_VERSION_MINOR 7
+
+/* Define to the version of SOFA */
+#define SOFA_VERSION "20200721"
+
+/*
+ * config.h defines the version information macros;
+ * it is auto-generated in the autotools build process.
+ * without it, the macros have to be defined explicitly
+ * in the call to the compiler.
+ */
 #ifdef HAVE_CONFIG_H
 #endif /* HAVE_CONFIG_H */
 
 
-const char* eraVersion() {
+const char* eraVersion(void) {
   return PACKAGE_VERSION;
 }
 
 
-int eraVersionMajor() {
+int eraVersionMajor(void) {
   return PACKAGE_VERSION_MAJOR;
 }
 
 
-int eraVersionMinor() {
+int eraVersionMinor(void) {
   return PACKAGE_VERSION_MINOR;
 }
 
 
-int eraVersionMicro() {
+int eraVersionMicro(void) {
   return PACKAGE_VERSION_MICRO;
 }
 
 
-const char* eraSofaVersion() {
+const char* eraSofaVersion(void) {
   return SOFA_VERSION;
 }
-
 double eraFad03(double t)
 /*
 **  - - - - - - - - -
@@ -11457,7 +11569,7 @@ double eraFad03(double t)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J. 1994, Astron.Astrophys. 282, 663-683
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11509,7 +11621,7 @@ double eraFae03(double t)
 **     Souchay, J., Loysel, B., Kinoshita, H., Folgueira, M. 1999,
 **     Astron.Astrophys.Supp.Ser. 135, 111
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11555,7 +11667,7 @@ double eraFaf03(double t)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J. 1994, Astron.Astrophys. 282, 663-683
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11609,7 +11721,7 @@ double eraFaju03(double t)
 **     Souchay, J., Loysel, B., Kinoshita, H., Folgueira, M. 1999,
 **     Astron.Astrophys.Supp.Ser. 135, 111
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11654,7 +11766,7 @@ double eraFal03(double t)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J. 1994, Astron.Astrophys. 282, 663-683
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11703,7 +11815,7 @@ double eraFalp03(double t)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J. 1994, Astron.Astrophys. 282, 663-683
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11755,7 +11867,7 @@ double eraFama03(double t)
 **     Souchay, J., Loysel, B., Kinoshita, H., Folgueira, M. 1999,
 **     Astron.Astrophys.Supp.Ser. 135, 111
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11803,7 +11915,7 @@ double eraFame03(double t)
 **     Souchay, J., Loysel, B., Kinoshita, H., Folgueira, M. 1999,
 **     Astron.Astrophys.Supp.Ser. 135, 111
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11848,7 +11960,7 @@ double eraFane03(double t)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J. 1994, Astron.Astrophys. 282, 663-683
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11893,7 +12005,7 @@ double eraFaom03(double t)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J. 1994, Astron.Astrophys. 282, 663-683
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11947,7 +12059,7 @@ double eraFapa03(double t)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -11995,7 +12107,7 @@ double eraFasa03(double t)
 **     Souchay, J., Loysel, B., Kinoshita, H., Folgueira, M. 1999,
 **     Astron.Astrophys.Supp.Ser. 135, 111
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12040,7 +12152,7 @@ double eraFaur03(double t)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J. 1994, Astron.Astrophys. 282, 663-683
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12088,7 +12200,7 @@ double eraFave03(double t)
 **     Souchay, J., Loysel, B., Kinoshita, H., Folgueira, M. 1999,
 **     Astron.Astrophys.Supp.Ser. 135, 111
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12212,7 +12324,7 @@ void eraFk425(double r1950, double d1950,
 **     from FK4 B1950.0 to FK5 J2000.0 using matrices in 6-space".
 **     Astron.J. 97, 274.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12397,7 +12509,7 @@ void eraFk45z(double r1950, double d1950, double bepoch,
 **     eraPvu       update a pv-vector
 **     eraS2c       spherical to p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12570,7 +12682,7 @@ void eraFk524(double r2000, double d2000,
 **     from FK4 B1950.0 to FK5 J2000.0 using matrices in 6-space".
 **     Astron.J. 97, 274.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12652,7 +12764,7 @@ void eraFk524(double r2000, double d2000,
       }
    }
 
-/* Apply E-terms (equivalent to Seidelmann 3.592-3, two iterations). */
+/* Apply E-terms (equivalent to Seidelmann 3.592-3, one iteration). */
 
 /* Direction. */
    w = eraPm(r1[0]);
@@ -12748,7 +12860,7 @@ void eraFk52h(double r5, double d5,
 **
 **     F.Mignard & M.Froeschle, Astron.Astrophys., 354, 732-739 (2000).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12835,7 +12947,7 @@ void eraFk54z(double r2000, double d2000, double bepoch,
 **     eraFk524     FK4 to FK5
 **     eraS2c       spherical to p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -12909,7 +13021,7 @@ void eraFk5hip(double r5h[3][3], double s5h[3])
 **
 **     F.Mignard & M.Froeschle, Astron.Astrophys., 354, 732-739 (2000).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13014,7 +13126,7 @@ void eraFk5hz(double r5, double d5, double date1, double date2,
 **
 **     F.Mignard & M.Froeschle, 2000, Astron.Astrophys. 354, 732-739.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13090,13 +13202,16 @@ void eraFw2m(double gamb, double phib, double psi, double eps,
 **
 **        NxPxB = R_1(-eps).R_3(-psi).R_1(phib).R_3(gamb)
 **
-**  3) Three different matrices can be constructed, depending on the
-**     supplied angles:
+**  3) The present function can construct three different matrices,
+**     depending on which angles are supplied as the arguments gamb,
+**     phib, psi and eps:
 **
 **     o  To obtain the nutation x precession x frame bias matrix,
-**        generate the four precession angles, generate the nutation
-**        components and add them to the psi_bar and epsilon_A angles,
-**        and call the present function.
+**        first generate the four precession angles known conventionally
+**        as gamma_bar, phi_bar, psi_bar and epsilon_A, then generate
+**        the nutation components Dpsi and Depsilon and add them to
+**        psi_bar and epsilon_A, and finally call the present function
+**        using those four angles as arguments.
 **
 **     o  To obtain the precession x frame bias matrix, generate the
 **        four precession angles and call the present function.
@@ -13112,11 +13227,12 @@ void eraFw2m(double gamb, double phib, double psi, double eps,
 **     eraRz        rotate around Z-axis
 **     eraRx        rotate around X-axis
 **
-**  Reference:
+**  References:
 **
+**     Capitaine, N. & Wallace, P.T., 2006, Astron.Astrophys. 450, 855
 **     Hilton, J. et al., 2006, Celest.Mech.Dyn.Astron. 94, 351
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13181,7 +13297,7 @@ void eraFw2xy(double gamb, double phib, double psi, double eps,
 **
 **     Hilton, J. et al., 2006, Celest.Mech.Dyn.Astron. 94, 351
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13259,7 +13375,7 @@ void eraG2icrs ( double dl, double db, double *dr, double *dd )
 **     derived from the ESA Hipparcos Space Astrometry Mission.  ESA
 **     Publications Division, Noordwijk, Netherlands.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13356,7 +13472,7 @@ int eraGc2gd ( int n, double xyz[3],
 **     eraEform     Earth reference ellipsoids
 **     eraGc2gde    geocentric to geodetic transformation, general
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13441,7 +13557,7 @@ int eraGc2gde ( double a, double f, double xyz[3],
 **     coordinates accelerated by Halley's method", J.Geodesy (2006)
 **     79: 689-693
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13584,7 +13700,7 @@ int eraGd2gc ( int n, double elong, double phi, double height,
 **     eraGd2gce    geodetic to geocentric transformation, general
 **     eraZp        zero p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13664,7 +13780,7 @@ int eraGd2gce ( double a, double f, double elong, double phi,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 4.22, p202.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13760,7 +13876,7 @@ double eraGmst00(double uta, double utb, double tta, double ttb)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13841,7 +13957,7 @@ double eraGmst06(double uta, double utb, double tta, double ttb)
 **     Capitaine, N., Wallace, P.T. & Chapront, J., 2005,
 **     Astron.Astrophys. 432, 355
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13925,7 +14041,7 @@ double eraGmst82(double dj1, double dj2)
 **
 **     Aoki et al., Astron.Astrophys., 105, 359-361 (1982).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -13935,9 +14051,8 @@ double eraGmst82(double dj1, double dj2)
    double C = 0.093104;
    double D =  -6.2e-6;
 
-/* Note: the first constant, A, has to be adjusted by 12 hours */
-/* because the UT1 is supplied as a Julian date, which begins  */
-/* at noon.                                                    */
+/* The first constant, A, has to be adjusted by 12 hours because the */
+/* UT1 is supplied as a Julian date, which begins at noon.           */
 
    double d1, d2, t, f, gmst;
 
@@ -14031,7 +14146,7 @@ double eraGst00a(double uta, double utb, double tta, double ttb)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14123,7 +14238,7 @@ double eraGst00b(double uta, double utb)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14202,7 +14317,7 @@ double eraGst06(double uta, double utb, double tta, double ttb,
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14284,7 +14399,7 @@ double eraGst06a(double uta, double utb, double tta, double ttb)
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14363,7 +14478,7 @@ double eraGst94(double uta, double utb)
 **
 **     IAU Resolution C7, Recommendation 3 (1994)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14433,7 +14548,7 @@ void eraH2fk5(double rh, double dh,
 **
 **     F.Mignard & M.Froeschle, Astron.Astrophys., 354, 732-739 (2000).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14530,9 +14645,9 @@ void eraHd2ae (double ha, double dec, double phi,
 **
 **  Last revision:   2017 September 12
 **
-**  ERFA release 2019-07-22
+**  ERFA release 2020-07-21
 **
-**  Copyright (C) 2019 IAU ERFA Board.  See notes at end.
+**  Copyright (C) 2020 IAU ERFA Board.  See notes at end.
 */
 {
    double sh, ch, sd, cd, sp, cp, x, y, z, r, a;
@@ -14607,9 +14722,9 @@ double eraHd2pa (double ha, double dec, double phi)
 **
 **  Last revision:   2017 September 12
 **
-**  ERFA release 2019-07-22
+**  ERFA release 2020-07-21
 **
-**  Copyright (C) 2019 IAU ERFA Board.  See notes at end.
+**  Copyright (C) 2020 IAU ERFA Board.  See notes at end.
 */
 {
    double cp, cqsz, sqsz;
@@ -14698,7 +14813,7 @@ void eraHfk5z(double rh, double dh, double date1, double date2,
 **
 **     F.Mignard & M.Froeschle, 2000, Astron.Astrophys. 354, 732-739.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14806,7 +14921,7 @@ void eraIcrs2g ( double dr, double dd, double *dl, double *db )
 **     derived from the ESA Hipparcos Space Astrometry Mission.  ESA
 **     Publications Division, Noordwijk, Netherlands.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14863,7 +14978,7 @@ void eraIr(double r[3][3])
 **  Returned:
 **     r       double[3][3]    r-matrix
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14920,18 +15035,25 @@ int eraJd2cal(double dj1, double dj2,
 **         2400000.5       50123.2       (MJD method)
 **         2450123.5           0.2       (date & time method)
 **
+**     Separating integer and fraction uses the "compensated summation"
+**     algorithm of Kahan-Neumaier to preserve as much precision as
+**     possible irrespective of the jd1+jd2 apportionment.
+**
 **  3) In early eras the conversion is from the "proleptic Gregorian
 **     calendar";  no account is taken of the date(s) of adoption of
 **     the Gregorian calendar, nor is the AD/BC numbering convention
 **     observed.
 **
-**  Reference:
+**  References:
 **
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 12.92 (p604).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**     Klein, A., A Generalized Kahan-Babuska-Summation-Algorithm.
+**     Computing 76, 279-293 (2006), Section 3.
+**
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -14939,31 +15061,65 @@ int eraJd2cal(double dj1, double dj2,
    const double DJMIN = -68569.5;
    const double DJMAX = 1e9;
 
-   long jd, l, n, i, k;
-   double dj, d1, d2, f1, f2, f, d;
+   long jd, i, l, n, k;
+   double dj, f1, f2, d, s, cs, v[2], x, t, f;
 
 
 /* Verify date is acceptable. */
    dj = dj1 + dj2;
    if (dj < DJMIN || dj > DJMAX) return -1;
 
-/* Copy the date, big then small, and re-align to midnight. */
-   if (fabs(dj1) >= fabs(dj2)) {
-      d1 = dj1;
-      d2 = dj2;
-   } else {
-      d1 = dj2;
-      d2 = dj1;
-   }
-   d2 -= 0.5;
+/* Separate day and fraction (where -0.5 <= fraction < 0.5). */
+   d = ERFA_DNINT(dj1);
+   f1 = dj1 - d;
+   jd = (long) d;
+   d = ERFA_DNINT(dj2);
+   f2 = dj2 - d;
+   jd += (long) d;
 
-/* Separate day and fraction. */
-   f1 = fmod(d1, 1.0);
-   f2 = fmod(d2, 1.0);
-   f = fmod(f1 + f2, 1.0);
-   if (f < 0.0) f += 1.0;
-   d = ERFA_DNINT(d1-f1) + ERFA_DNINT(d2-f2) + ERFA_DNINT(f1+f2-f);
-   jd = (long) ERFA_DNINT(d) + 1L;
+/* Compute f1+f2+0.5 using compensated summation (Klein 2006). */
+   s = 0.5;
+   cs = 0.0;
+   v[0] = f1;
+   v[1] = f2;
+   for ( i = 0; i < 2; i++ ) {
+      x = v[i];
+      t = s + x;
+      cs += fabs(s) >= fabs(x) ? (s-t) + x : (x-t) + s;
+      s = t;
+      if ( s >= 1.0 ) {
+         jd++;
+         s -= 1.0;
+      }
+   }
+   f = s + cs;
+   cs = f - s;
+
+/* Deal with negative f. */
+   if ( f < 0.0 ) {
+
+   /* Compensated summation: assume that |s| <= 1.0. */
+      f = s + 1.0;
+      cs += (1.0-f) + s;
+      s  = f;
+      f = s + cs;
+      cs = f - s;
+      jd--;
+   }
+
+/* Deal with f that is 1.0 or more (when rounded to double). */
+   if ( (f-1.0) >= -DBL_EPSILON/4.0 ) {
+
+   /* Compensated summation: assume that |s| <= 1.0. */
+      t = s - 1.0;
+      cs += (s-t) - 1.0;
+      s = t;
+      f = s + cs;
+      if ( -DBL_EPSILON/2.0 < f ) {
+         jd++;
+         f = ERFA_GMAX(f, 0.0);
+      }
+   }
 
 /* Express day in Gregorian calendar. */
    l = jd + 68569L;
@@ -15037,12 +15193,12 @@ int eraJdcalf(int ndp, double dj1, double dj2, int iymdf[4])
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 12.92 (p604).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
    int j, js;
-   double denom, d1, d2, f1, f2, f;
+   double denom, d1, d2, f1, f2, d, djd, f, rf;
 
 
 /* Denominator of fraction (e.g. 100 for 2 decimal places). */
@@ -15054,7 +15210,7 @@ int eraJdcalf(int ndp, double dj1, double dj2, int iymdf[4])
       denom = 1.0;
    }
 
-/* Copy the date, big then small, and realign to midnight. */
+/* Copy the date, big then small. */
    if (fabs(dj1) >= fabs(dj2)) {
       d1 = dj1;
       d2 = dj2;
@@ -15062,24 +15218,35 @@ int eraJdcalf(int ndp, double dj1, double dj2, int iymdf[4])
       d1 = dj2;
       d2 = dj1;
    }
-   d2 -= 0.5;
 
-/* Separate days and fractions. */
-   f1 = fmod(d1, 1.0);
-   f2 = fmod(d2, 1.0);
-   d1 = ERFA_DNINT(d1-f1);
-   d2 = ERFA_DNINT(d2-f2);
+/* Realign to midnight (without rounding error). */
+   d1 -= 0.5;
+
+/* Separate day and fraction (as precisely as possible). */
+   d = ERFA_DNINT(d1);
+   f1 = d1 - d;
+   djd = d;
+   d = ERFA_DNINT(d2);
+   f2 = d2 - d;
+   djd += d;
+   d = ERFA_DNINT(f1 + f2);
+   f = (f1 - d) + f2;
+   if (f < 0.0) {
+       f += 1.0;
+       d -= 1.0;
+   }
+   djd += d;
 
 /* Round the total fraction to the specified number of places. */
-   f = ERFA_DNINT((f1+f2)*denom) / denom;
+   rf = ERFA_DNINT(f*denom) / denom;
 
-/* Re-assemble the rounded date and re-align to noon. */
-   d2 += f + 0.5;
+/* Re-align to noon. */
+   djd += 0.5;
 
 /* Convert to Gregorian calendar. */
-   js = eraJd2cal(d1, d2, &iymdf[0], &iymdf[1], &iymdf[2], &f);
+   js = eraJd2cal(djd, rf, &iymdf[0], &iymdf[1], &iymdf[2], &f);
    if (js == 0) {
-      iymdf[3] = (int) (f * denom);
+      iymdf[3] = (int) ERFA_DNINT(f * denom);
    } else {
       j = js;
    }
@@ -15157,7 +15324,7 @@ void eraLd(double bm, double p[3], double q[3], double e[3],
 **     eraPdp       scalar product of two p-vectors
 **     eraPxp       vector product of two p-vectors
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15265,7 +15432,7 @@ void eraLdn(int n, eraLDBODY b[], double ob[3], double sc[3],
 **     eraPn        decompose p-vector into modulus and direction
 **     eraLd        light deflection by a solar-system body
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15340,7 +15507,7 @@ void eraLdsun(double p[3], double e[3], double em, double p1[3])
 **  Called:
 **     eraLd        light deflection by a solar-system body
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15409,7 +15576,7 @@ void eraLteceq(double epj, double dl, double db, double *dr, double *dd)
 **    expressions, valid for long time intervals (Corrigendum),
 **    Astron.Astrophys. 541, C1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15490,7 +15657,7 @@ void eraLtecm(double epj, double rm[3][3])
 **    expressions, valid for long time intervals (Corrigendum),
 **    Astron.Astrophys. 541, C1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15579,7 +15746,7 @@ void eraLteqec(double epj, double dr, double dd, double *dl, double *db)
 **    expressions, valid for long time intervals (Corrigendum),
 **    Astron.Astrophys. 541, C1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15651,7 +15818,7 @@ void eraLtp(double epj, double rp[3][3])
 **    expressions, valid for long time intervals (Corrigendum),
 **    Astron.Astrophys. 541, C1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15726,7 +15893,7 @@ void eraLtpb(double epj, double rpb[3][3])
 **    expressions, valid for long time intervals (Corrigendum),
 **    Astron.Astrophys. 541, C1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15787,7 +15954,7 @@ void eraLtpecl(double epj, double vec[3])
 **    expressions, valid for long time intervals (Corrigendum),
 **    Astron.Astrophys. 541, C1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -15901,7 +16068,7 @@ void eraLtpequ(double epj, double veq[3])
 **    expressions, valid for long time intervals (Corrigendum),
 **    Astron.Astrophys. 541, C1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -16031,7 +16198,7 @@ void eraNum00a(double date1, double date2, double rmatn[3][3])
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 3.222-3 (p114).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -16098,7 +16265,7 @@ void eraNum00b(double date1, double date2, double rmatn[3][3])
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 3.222-3 (p114).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -16164,7 +16331,7 @@ void eraNum06a(double date1, double date2, double rmatn[3][3])
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 3.222-3 (p114).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -16225,7 +16392,7 @@ void eraNumat(double epsa, double dpsi, double deps, double rmatn[3][3])
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 3.222-3 (p114).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -16387,7 +16554,7 @@ void eraNut00a(double date1, double date2, double *dpsi, double *deps)
 **     Wallace, P.T., "Software for Implementing the IAU 2000
 **     Resolutions", in IERS Workshop 5.1 (2002)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -18348,7 +18515,7 @@ void eraNut00b(double date1, double date2, double *dpsi, double *deps)
 **     Simon, J.-L., Bretagnon, P., Chapront, J., Chapront-Touze, M.,
 **     Francou, G., Laskar, J., Astron.Astrophys. 282, 663-683 (1994)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -18625,7 +18792,7 @@ void eraNut06a(double date1, double date2, double *dpsi, double *deps)
 **     Wallace, P.T., "Software for Implementing the IAU 2000
 **     Resolutions", in IERS Workshop 5.1 (2002)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -18697,7 +18864,7 @@ void eraNut80(double date1, double date2, double *dpsi, double *deps)
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 3.222 (p111).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -18965,7 +19132,7 @@ void eraNutm80(double date1, double date2, double rmatn[3][3])
 **     eraObl80     mean obliquity, IAU 1980
 **     eraNumat     form nutation matrix
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19025,7 +19192,7 @@ double eraObl06(double date1, double date2)
 **
 **     Hilton, J. et al., 2006, Celest.Mech.Dyn.Astron. 94, 351
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19091,7 +19258,7 @@ double eraObl80(double date1, double date2)
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Expression 3.222-1 (p114).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19182,12 +19349,16 @@ void eraP06e(double date1, double date2,
 **     za     z_A         equatorial precession: -3rd 323 Euler angle
 **     zetaa  zeta_A      equatorial precession: -1st 323 Euler angle
 **     thetaa theta_A     equatorial precession: 2nd 323 Euler angle
-**     pa     p_A         general precession
+**     pa     p_A         general precession (n.b. see below)
 **     gam    gamma_J2000 J2000.0 RA difference of ecliptic poles
 **     phi    phi_J2000   J2000.0 codeclination of ecliptic pole
 **     psi    psi_J2000   longitude difference of equator poles, J2000.0
 **
 **     The returned values are all radians.
+**
+**     Note that the t^5 coefficient in the series for p_A from
+**     Capitaine et al. (2003) is incorrectly signed in Hilton et al.
+**     (2006).
 **
 **  3) Hilton et al. (2006) Table 1 also contains angles that depend on
 **     models distinct from the P03 precession theory itself, namely the
@@ -19224,14 +19395,17 @@ void eraP06e(double date1, double date2,
 **  8) It is permissible to re-use the same variable in the returned
 **     arguments.  The quantities are stored in the stated order.
 **
-**  Reference:
+**  References:
+**
+**     Capitaine, N., Wallace, P.T. & Chapront, J., 2003,
+**     Astron.Astrophys., 412, 567
 **
 **     Hilton, J. et al., 2006, Celest.Mech.Dyn.Astron. 94, 351
 **
 **  Called:
 **     eraObl06     mean obliquity, IAU 2006
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19348,7 +19522,7 @@ void eraP06e(double date1, double date2,
          (    1.1054348    +
          (    0.00007964   +
          (   -0.000023857  +
-         (    0.0000000383 )
+         (   -0.0000000383 )
          * t) * t) * t) * t) * t * ERFA_DAS2R;
 
 /* Fukushima-Williams angles for precession. */
@@ -19396,7 +19570,7 @@ void eraP2pv(double p[3], double pv[2][3])
 **     eraCp        copy p-vector
 **     eraZp        zero p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19433,7 +19607,7 @@ void eraP2s(double p[3], double *theta, double *phi, double *r)
 **     eraC2s       p-vector to spherical
 **     eraPm        modulus of p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19481,7 +19655,7 @@ double eraPap(double a[3], double b[3])
 **     eraPmp       p-vector minus p-vector
 **     eraPdp       scalar product of two p-vectors
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19555,7 +19729,7 @@ double eraPas(double al, double ap, double bl, double bp)
 **
 **  2) Zero is returned if the two points are coincident.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19634,30 +19808,36 @@ void eraPb06(double date1, double date2,
 **     eraPmat06    PB matrix, IAU 2006
 **     eraRz        rotate around Z-axis
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
-   double r[3][3], r31, r32;
+   double r[3][3], y, x;
 
 
 /* Precession matrix via Fukushima-Williams angles. */
    eraPmat06(date1, date2, r);
 
-/* Solve for z. */
-   *bz = atan2(r[1][2], r[0][2]);
+/* Solve for z, choosing the +/- pi alternative. */
+   y = r[1][2];
+   x = -r[0][2];
+   if ( x < 0.0 ) {
+      y = -y;
+      x = -x;
+   }
+   *bz = ( x != 0.0 || y != 0.0 ) ? - atan2(y,x) : 0.0;
 
-/* Remove it from the matrix. */
-   eraRz(*bz, r);
+/* Derotate it out of the matrix. */
+   eraRz ( *bz, r );
 
 /* Solve for the remaining two angles. */
-   *bzeta = atan2 (r[1][0], r[1][1]);
-   r31 = r[2][0];
-   r32 = r[2][1];
-   *btheta = atan2(-ERFA_DSIGN(sqrt(r31 * r31 + r32 * r32), r[0][2]),
-                   r[2][2]);
+   y = r[0][2];
+   x = r[2][2];
+   *btheta = ( x != 0.0 || y != 0.0 ) ? - atan2(y,x) : 0.0;
 
-   return;
+   y = -r[1][0];
+   x = r[1][1];
+   *bzeta = ( x != 0.0 || y != 0.0 ) ? - atan2(y,x) : 0.0;
 
 }
 
@@ -19676,7 +19856,7 @@ double eraPdp(double a[3], double b[3])
 **  Returned (function value):
 **            double        a . b
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19764,7 +19944,7 @@ void eraPfw06(double date1, double date2,
 **  Called:
 **     eraObl06     mean obliquity, IAU 2006
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -19959,7 +20139,7 @@ int eraPlan94(double date1, double date2, int np, double pv[2][3])
 **              Chapront-Touze, M., Francou, G., and Laskar, J.,
 **              Astron.Astrophys., 282, 663 (1994).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20276,7 +20456,7 @@ double eraPm(double p[3])
 **  Returned (function value):
 **            double        modulus
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20334,7 +20514,7 @@ void eraPmat00(double date1, double date2, double rbp[3][3])
 **     24th General Assembly, Manchester, UK.  Resolutions B1.3, B1.6.
 **     (2000)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20399,7 +20579,7 @@ void eraPmat06(double date1, double date2, double rbp[3][3])
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20482,7 +20662,7 @@ void eraPmat76(double date1, double date2, double rmatp[3][3])
 **
 **     Kaplan,G.H., 1981. USNO circular no. 163, pA2.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20522,7 +20702,7 @@ void eraPmp(double a[3], double b[3], double amb[3])
 **     It is permissible to re-use the same array for any of the
 **     arguments.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20580,7 +20760,7 @@ void eraPmpx(double rc, double dc, double pr, double pd,
 **     eraPdp       scalar product of two p-vectors
 **     eraPn        decompose p-vector into modulus and direction
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20729,7 +20909,7 @@ int eraPmsafe(double ra1, double dec1, double pmr1, double pmd1,
 **     eraSeps      angle between two points
 **     eraStarpm    update star catalog data for space motion
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20795,7 +20975,7 @@ void eraPn(double p[3], double *r, double u[3])
 **     eraZp        zero p-vector
 **     eraSxp       multiply p-vector by scalar
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -20917,7 +21097,7 @@ void eraPn00(double date1, double date2, double dpsi, double deps,
 **     n.b. The celestial ephemeris origin (CEO) was renamed "celestial
 **          intermediate origin" (CIO) by IAU 2006 Resolution 2.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21040,7 +21220,7 @@ void eraPn00a(double date1, double date2,
 **     n.b. The celestial ephemeris origin (CEO) was renamed "celestial
 **          intermediate origin" (CIO) by IAU 2006 Resolution 2.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21149,7 +21329,7 @@ void eraPn00b(double date1, double date2,
 **     n.b. The celestial ephemeris origin (CEO) was renamed "celestial
 **          intermediate origin" (CIO) by IAU 2006 Resolution 2.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21256,7 +21436,7 @@ void eraPn06(double date1, double date2, double dpsi, double deps,
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21381,7 +21561,7 @@ void eraPn06a(double date1, double date2,
 **
 **     Capitaine, N. & Wallace, P.T., 2006, Astron.Astrophys. 450, 855
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21448,7 +21628,7 @@ void eraPnm00a(double date1, double date2, double rbpn[3][3])
 **     24th General Assembly, Manchester, UK.  Resolutions B1.3, B1.6.
 **     (2000)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21515,7 +21695,7 @@ void eraPnm00b(double date1, double date2, double rbpn[3][3])
 **     24th General Assembly, Manchester, UK.  Resolutions B1.3, B1.6.
 **     (2000)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21579,7 +21759,7 @@ void eraPnm06a(double date1, double date2, double rnpb[3][3])
 **
 **     Capitaine, N. & Wallace, P.T., 2006, Astron.Astrophys. 450, 855.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21651,7 +21831,7 @@ void eraPnm80(double date1, double date2, double rmatpn[3][3])
 **     P. Kenneth Seidelmann (ed), University Science Books (1992),
 **     Section 3.3 (p145).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21717,7 +21897,7 @@ void eraPom00(double xp, double yp, double sp, double rpom[3][3])
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21751,7 +21931,7 @@ void eraPpp(double a[3], double b[3], double apb[3])
 **     It is permissible to re-use the same array for any of the
 **     arguments.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21786,7 +21966,7 @@ void eraPpsp(double a[3], double s, double b[3], double apsb[3])
 **     eraSxp       multiply p-vector by scalar
 **     eraPpp       p-vector plus p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21869,7 +22049,7 @@ void eraPr00(double date1, double date2, double *dpsipr, double *depspr)
 **     Wallace, P.T., "Software for Implementing the IAU 2000
 **     Resolutions", in IERS Workshop 5.1 (2002).
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -21957,7 +22137,7 @@ void eraPrec76(double date01, double date02, double date11, double date12,
 **     Lieske, J.H., 1979, Astron.Astrophys. 73, 282, equations
 **     (6) & (7), p283.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22002,7 +22182,7 @@ void eraPv2p(double pv[2][3], double p[3])
 **  Called:
 **     eraCp        copy p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22046,7 +22226,7 @@ void eraPv2s(double pv[2][3],
 **  2) If the position is a pole, theta, td and pd are indeterminate.
 **     In such cases zeroes are returned for all three.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22127,7 +22307,7 @@ void eraPvdpv(double a[2][3], double b[2][3], double adb[2])
 **  Called:
 **     eraPdp       scalar product of two p-vectors
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22168,7 +22348,7 @@ void eraPvm(double pv[2][3], double *r, double *s)
 **  Called:
 **     eraPm        modulus of p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22204,7 +22384,7 @@ void eraPvmpv(double a[2][3], double b[2][3], double amb[2][3])
 **  Called:
 **     eraPmp       p-vector minus p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22237,7 +22417,7 @@ void eraPvppv(double a[2][3], double b[2][3], double apb[2][3])
 **  Called:
 **     eraPpp       p-vector plus p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22341,7 +22521,7 @@ int eraPvstar(double pv[2][3], double *ra, double *dec,
 **
 **     Stumpff, P., 1985, Astron.Astrophys. 144, 232-240.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22462,7 +22642,7 @@ void eraPvtob(double elong, double phi, double hm,
 **     eraPom00     polar motion matrix
 **     eraTrxp      product of transpose of r-matrix and p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22528,7 +22708,7 @@ void eraPvu(double dt, double pv[2][3], double upv[2][3])
 **     eraPpsp      p-vector plus scaled p-vector
 **     eraCp        copy p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22561,7 +22741,7 @@ void eraPvup(double dt, double pv[2][3], double p[3])
 **
 **  2) The time units of dt must match those of the velocity.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22603,7 +22783,7 @@ void eraPvxpv(double a[2][3], double b[2][3], double axb[2][3])
 **     eraPxp       vector product of two p-vectors
 **     eraPpp       p-vector plus p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22645,7 +22825,7 @@ void eraPxp(double a[3], double b[3], double axb[3])
 **     It is permissible to re-use the same array for any of the
 **     arguments.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22811,7 +22991,7 @@ void eraRefco(double phpa, double tc, double rh, double wl,
 **
 **     Stone, Ronald C., P.A.S.P. 108, 1051-1058, 1996.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22894,7 +23074,7 @@ void eraRm2v(double r[3][3], double w[3])
 **  3) The reference frame rotates clockwise as seen looking along
 **     the rotation vector from the origin.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -22948,7 +23128,7 @@ void eraRv2m(double w[3], double r[3][3])
 **  3) The reference frame rotates clockwise as seen looking along the
 **     rotation vector from the origin.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23014,7 +23194,7 @@ void eraRx(double phi, double r[3][3])
 **         (                               )
 **         (  0   - sin(phi)   + cos(phi)  )
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23063,7 +23243,7 @@ void eraRxp(double r[3][3], double p[3], double rp[3])
 **  Called:
 **     eraCp        copy p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23108,7 +23288,7 @@ void eraRxpv(double r[3][3], double pv[2][3], double rpv[2][3])
 **  Called:
 **     eraRxp       product of r-matrix and p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23141,7 +23321,7 @@ void eraRxr(double a[3][3], double b[3][3], double atb[3][3])
 **  Called:
 **     eraCr        copy r-matrix
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23192,7 +23372,7 @@ void eraRy(double theta, double r[3][3])
 **         (                                        )
 **         (  + sin(theta)     0      + cos(theta)  )
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23248,7 +23428,7 @@ void eraRz(double psi, double r[3][3])
 **         (                                 )
 **         (       0            0         1  )
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23352,7 +23532,7 @@ double eraS00(double date1, double date2, double x, double y)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23662,7 +23842,7 @@ double eraS00a(double date1, double date2)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23751,7 +23931,7 @@ double eraS00b(double date1, double date2)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -23844,7 +24024,7 @@ double eraS06(double date1, double date2, double x, double y)
 **     McCarthy, D.D., Petit, G. (eds.) 2004, IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24156,7 +24336,7 @@ double eraS06a(double date1, double date2)
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24191,7 +24371,7 @@ void eraS2c(double theta, double phi, double c[3])
 **  Returned:
 **     c        double[3]    direction cosines
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24227,7 +24407,7 @@ void eraS2p(double theta, double phi, double r, double p[3])
 **     eraS2c       spherical coordinates to unit vector
 **     eraSxp       multiply p-vector by scalar
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24262,7 +24442,7 @@ void eraS2pv(double theta, double phi, double r,
 **  Returned:
 **     pv       double[2][3]    pv-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24312,7 +24492,7 @@ void eraS2xpv(double s1, double s2, double pv[2][3], double spv[2][3])
 **  Called:
 **     eraSxp       multiply p-vector by scalar
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24353,7 +24533,7 @@ double eraSepp(double a[3], double b[3])
 **     eraPm        modulus of p-vector
 **     eraPdp       scalar product of two p-vectors
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24395,7 +24575,7 @@ double eraSeps(double al, double ap, double bl, double bp)
 **     eraS2c       spherical coordinates to unit vector
 **     eraSepp      angular separation between two p-vectors
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24460,7 +24640,7 @@ double eraSp00(double date1, double date2)
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24583,7 +24763,7 @@ int eraStarpm(double ra1, double dec1,
 **     eraPdp       scalar product of two p-vectors
 **     eraPvstar    space motion pv-vector to star catalog data
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24741,7 +24921,7 @@ int eraStarpv(double ra, double dec,
 **
 **     Stumpff, P., 1985, Astron.Astrophys. 144, 232-240.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24857,7 +25037,7 @@ void eraSxp(double s, double p[3], double sp[3])
 **  Note:
 **     It is permissible for p and sp to be the same array.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24890,7 +25070,7 @@ void eraSxpv(double s, double pv[2][3], double spv[2][3])
 **  Called:
 **     eraS2xpv     multiply pv-vector by two scalars
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24898,6 +25078,120 @@ void eraSxpv(double s, double pv[2][3], double spv[2][3])
 
    return;
 
+}
+
+/*
+** Copyright (C) 2019, NumFOCUS Foundation.
+**
+** Licensed under a 3-clause BSD style license - see LICENSE
+**
+** This file is NOT derived from SOFA sources.
+*/
+
+static int verbose = 0;
+
+/*
+**
+**  Validate the ERFA C functions that are not derived from SOFA (SOFA-derived tests are in t_erfa_c)
+**
+*/
+
+static void t_versions(int *status)
+/*
+**  Test that the version-checking functions yield something.
+*/
+{
+  char buf[3];
+  char* res;
+  const char* version_str = eraVersion();
+
+  sprintf(buf, "%d", eraVersionMajor());
+  res = strstr(version_str, buf);
+  if (!res) {
+    *status = 1;
+    printf("t_versions failed - major version not in version string %s\n", version_str);
+  }
+
+  sprintf(buf, "%d", eraVersionMinor());
+  res = strstr(version_str, buf);
+  if (!res) {
+    *status = 1;
+    printf("t_versions failed - minor version not in version string %s\n", version_str);
+  }
+
+  sprintf(buf, "%d", eraVersionMicro());
+  res = strstr(version_str, buf);
+  if (!res) {
+    *status = 1;
+    printf("t_versions failed - micro version not in version string %s\n", version_str);
+  }
+
+  if (*status == 0) {
+    printf("t_versions passed\n");
+  }
+
+}
+
+static void t_leap_seconds(int *status)
+/*
+**  Test that the leap-second machinery yields something
+*/
+{
+  int count_init, count_postset, count_postreset;
+  eraLEAPSECOND* leapseconds_init;
+  eraLEAPSECOND* leapseconds_postset;
+  eraLEAPSECOND* leapseconds_postreset;
+
+  eraLEAPSECOND fake_leapsecond[1] = {{ 2050, 5, 55.0 }};
+
+  count_init = eraGetLeapSeconds(&leapseconds_init);
+
+  eraSetLeapSeconds(fake_leapsecond, 1);
+  count_postset = eraGetLeapSeconds(&leapseconds_postset);
+
+  if (count_postset == 1) {
+    printf("t_leap_seconds set passed\n");
+  } else {
+    *status = 1;
+    printf("t_leap_seconds set failed - leap second table has %d entries instead of %d\n", count_postreset, 1);
+  }
+
+  eraSetLeapSeconds(fake_leapsecond, -1);
+  count_postreset = eraGetLeapSeconds(&leapseconds_postreset);
+
+  if (count_postreset == count_init) {
+    printf("t_leap_seconds reset passed\n");
+  } else {
+    *status = 1;
+    printf("t_leap_seconds reset failed - leap second table has %d entries instead of %d\n", count_postreset, count_init);
+  }
+}
+
+int main(int argc, char *argv[])
+{
+   int status;
+
+
+/* If any command-line argument, switch to verbose reporting. */
+   if (argc > 1) {
+      verbose = 1;
+      argv[0][0] += 0;    /* to avoid compiler warnings */
+   }
+
+/* Preset the &status to FALSE = success. */
+   status = 0;
+
+/* Test all of the extra functions. */
+   t_versions(&status);
+   t_leap_seconds(&status);
+
+/* Report, set up an appropriate exit status, and finish. */
+   if (status) {
+      printf("t_erfa_c_extra validation failed!\n");
+   } else {
+      printf("t_erfa_c_extra validation successful\n");
+   }
+   return status;
 }
 
 int eraTaitt(double tai1, double tai2, double *tt1, double *tt2)
@@ -24933,7 +25227,7 @@ int eraTaitt(double tai1, double tai2, double *tt1, double *tt2)
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -24991,7 +25285,7 @@ int eraTaiut1(double tai1, double tai2, double dta,
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25069,7 +25363,7 @@ int eraTaiutc(double tai1, double tai2, double *utc1, double *utc2)
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25165,7 +25459,7 @@ int eraTcbtdb(double tcb1, double tcb2, double *tdb1, double *tdb2)
 **
 **     IAU 2006 Resolution B3
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25228,7 +25522,7 @@ int eraTcgtt(double tcg1, double tcg2, double *tt1, double *tt2)
 **
 **     IAU 2000 Resolution B1.9
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25298,7 +25592,7 @@ int eraTdbtcb(double tdb1, double tdb2, double *tcb1, double *tcb2)
 **
 **     IAU 2006 Resolution B3
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25379,7 +25673,7 @@ int eraTdbtt(double tdb1, double tdb2, double dtr,
 **
 **     IAU 2006 Resolution 3
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25434,7 +25728,7 @@ int eraTf2a(char s, int ihour, int imin, double sec, double *rad)
 **  3)  If there are multiple errors, the status value reflects only the
 **      first, the smallest taking precedence.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25486,7 +25780,7 @@ int eraTf2d(char s, int ihour, int imin, double sec, double *days)
 **  3)  If there are multiple errors, the status value reflects only the
 **      first, the smallest taking precedence.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25588,7 +25882,7 @@ int eraTpors(double xi, double eta, double a, double b,
 **     Green, R.M., "Spherical Astronomy", Cambridge University Press,
 **     1987, Chapter 13.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25701,7 +25995,7 @@ int eraTporv(double xi, double eta, double v[3],
 **     Green, R.M., "Spherical Astronomy", Cambridge University Press,
 **     1987, Chapter 13.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25788,7 +26082,7 @@ void eraTpsts(double xi, double eta, double a0, double b0,
 **     Green, R.M., "Spherical Astronomy", Cambridge University Press,
 **     1987, Chapter 13.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25863,7 +26157,7 @@ void eraTpstv(double xi, double eta, double v0[3], double v[3])
 **     Green, R.M., "Spherical Astronomy", Cambridge University Press,
 **     1987, Chapter 13.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -25948,7 +26242,7 @@ int eraTpxes(double a, double b, double a0, double b0,
 **     Green, R.M., "Spherical Astronomy", Cambridge University Press,
 **     1987, Chapter 13.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26058,7 +26352,7 @@ int eraTpxev(double v[3], double v0[3], double *xi, double *eta)
 **     Green, R.M., "Spherical Astronomy", Cambridge University Press,
 **     1987, Chapter 13.
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26132,7 +26426,7 @@ void eraTr(double r[3][3], double rt[3][3])
 **  Called:
 **     eraCr        copy r-matrix
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26164,7 +26458,7 @@ void eraTrxp(double r[3][3], double p[3], double trp[3])
 **     p        double[3]      p-vector
 **
 **  Returned:
-**     trp      double[3]      r * p
+**     trp      double[3]      r^T * p
 **
 **  Note:
 **     It is permissible for p and trp to be the same array.
@@ -26173,7 +26467,7 @@ void eraTrxp(double r[3][3], double p[3], double trp[3])
 **     eraTr        transpose r-matrix
 **     eraRxp       product of r-matrix and p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26212,7 +26506,7 @@ void eraTrxpv(double r[3][3], double pv[2][3], double trpv[2][3])
 **     eraTr        transpose r-matrix
 **     eraRxpv      product of r-matrix and pv-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26262,7 +26556,7 @@ int eraTttai(double tt1, double tt2, double *tai1, double *tai2)
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26317,7 +26611,7 @@ int eraTttcg(double tt1, double tt2, double *tcg1, double *tcg2)
 **
 **     IAU 2000 Resolution B1.9
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26388,7 +26682,7 @@ int eraTttdb(double tt1, double tt2, double dtr,
 **
 **     IAU 2006 Resolution 3
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26444,7 +26738,7 @@ int eraTtut1(double tt1, double tt2, double dt,
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26501,7 +26795,7 @@ int eraUt1tai(double ut11, double ut12, double dta,
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26557,7 +26851,7 @@ int eraUt1tt(double ut11, double ut12, double dt,
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26641,7 +26935,7 @@ int eraUt1utc(double ut11, double ut12, double dut1,
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26776,7 +27070,7 @@ int eraUtctai(double utc1, double utc2, double *tai1, double *tai2)
 **     Explanatory Supplement to the Astronomical Almanac,
 **     P. Kenneth Seidelmann (ed), University Science Books (1992)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -26904,7 +27198,7 @@ int eraUtcut1(double utc1, double utc2, double dut1,
 **     eraUtctai    UTC to TAI
 **     eraTaiut1    TAI to UT1
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -27019,7 +27313,7 @@ void eraXy06(double date1, double date2, double *x, double *y)
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -29654,7 +29948,7 @@ void eraXys00a(double date1, double date2,
 **
 **  Returned:
 **     x,y          double   Celestial Intermediate Pole (Note 2)
-**     s            double   the CIO locator s (Note 2)
+**     s            double   the CIO locator s (Note 3)
 **
 **  Notes:
 **
@@ -29697,7 +29991,7 @@ void eraXys00a(double date1, double date2,
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -29776,7 +30070,7 @@ void eraXys00b(double date1, double date2,
 **     McCarthy, D. D., Petit, G. (eds.), IERS Conventions (2003),
 **     IERS Technical Note No. 32, BKG (2004)
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -29855,7 +30149,7 @@ void eraXys06a(double date1, double date2,
 **
 **     Wallace, P.T. & Capitaine, N., 2006, Astron.Astrophys. 459, 981
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -29886,7 +30180,7 @@ void eraZp(double p[3])
 **  Returned:
 **     p        double[3]      p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -29912,7 +30206,7 @@ void eraZpv(double pv[2][3])
 **  Called:
 **     eraZp        zero p-vector
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -29934,7 +30228,7 @@ void eraZr(double r[3][3])
 **  Returned:
 **     r        double[3][3]    r-matrix
 **
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  Derived, with permission, from the SOFA library.  See notes at end of file.
 */
 {
@@ -29955,7 +30249,7 @@ void eraZr(double r[3][3])
 /*----------------------------------------------------------------------
 **  
 **  
-**  Copyright (C) 2013-2019, NumFOCUS Foundation.
+**  Copyright (C) 2013-2020, NumFOCUS Foundation.
 **  All rights reserved.
 **  
 **  This library is derived, with permission, from the International
