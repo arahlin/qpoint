@@ -629,9 +629,6 @@ int eraDatini(const eraLEAPSECOND *builtin, int n_builtin,
               eraLEAPSECOND **leapseconds);
 
 
-#ifndef _ERFA_EXTRA_H
-#define _ERFA_EXTRA_H
-
 #ifdef __cplusplus
 extern "C" {
 #endif

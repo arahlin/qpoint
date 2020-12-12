@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <float.h>
 
 void eraA2af(int ndp, double angle, char *sign, int idmsf[4])
 /*
@@ -25153,7 +25154,7 @@ static void t_leap_seconds(int *status)
     printf("t_leap_seconds set passed\n");
   } else {
     *status = 1;
-    printf("t_leap_seconds set failed - leap second table has %d entries instead of %d\n", count_postreset, 1);
+    printf("t_leap_seconds set failed - leap second table has %d entries instead of %d\n", count_postset, 1);
   }
 
   eraSetLeapSeconds(fake_leapsecond, -1);
