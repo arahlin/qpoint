@@ -1,5 +1,7 @@
 LOCALPREFIX = $(HOME)/.local
 
+PYTHON ?= python
+
 ifeq ($(PREFIX), )
 PYTHONPREFIX = 
 else
@@ -51,16 +53,16 @@ install-chealpix-shared: chealpix-shared
 	ENABLE_SHARED=yes make -C chealpix install
 
 python:
-	python setup.py build
+	$(PYTHON) setup.py build
 
 python-debug:
-	CFLAGS="-g -DDEBUG" python setup.py build
+	CFLAGS="-g -DDEBUG" $(PYTHON) setup.py build
 
 docs:
-	python setup.py build_sphinx -a
+	$(PYTHON) setup.py build_sphinx -a
 
 install-python: python
-	python setup.py install $(PYTHONPREFIX)
+	$(PYTHON) setup.py install $(PYTHONPREFIX)
 
 install-qpoint: qpoint
 	make -C src install
@@ -78,7 +80,7 @@ install: install-qpoint install-python
 install-all: install-erfa install-chealpix install-qpoint install-python
 
 install-python-user: python
-	python setup.py install --prefix=$(LOCALPREFIX)
+	$(PYTHON) setup.py install --prefix=$(LOCALPREFIX)
 
 install-erfa-user: erfa
 	PREFIX=$(LOCALPREFIX) make -C erfa install
@@ -111,7 +113,7 @@ clean-chealpix:
 	make -C chealpix clean
 
 clean-python:
-	python setup.py clean --all
+	$(PYTHON) setup.py clean --all
 
 clean-qpoint:
 	make -C src clean

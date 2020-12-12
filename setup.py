@@ -36,7 +36,10 @@ class BuildLib(build):
     def run(self):
         # build dependencies
         print('make -C src qp_iers_bulletin_a.c')
-        sp.check_call('make -C src qp_iers_bulletin_a.c'.split())
+        sp.check_call(
+            'PYTHON={} make -C src qp_iers_bulletin_a.c'.format(sys.executable),
+            shell=True,
+        )
 
         # write version files
         with open('python/_version.py', 'w') as f:

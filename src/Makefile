@@ -5,6 +5,7 @@ DEBUG =
 LIBNAME_FULL = libqpoint
 LIBNAME_LITE = libqpntlt
 
+PYTHON ?= python
 QP_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
 ERFAINC = -I../erfa
@@ -68,7 +69,7 @@ default: all
 all: $(LIB)
 
 qp_iers_bulletin_a.c: make_iers_bulletin_a_dot_c.py
-	python make_iers_bulletin_a_dot_c.py
+	$(PYTHON) make_iers_bulletin_a_dot_c.py
 
 $(OBJS): %$(OBJNAME): %.c
 	$(CC) -c $(CFLAGS) $< -o $@
