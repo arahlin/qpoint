@@ -629,11 +629,6 @@ int eraDatini(const eraLEAPSECOND *builtin, int n_builtin,
               eraLEAPSECOND **leapseconds);
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 /*
 ** Returns the package version
 ** as defined in configure.ac
@@ -675,6 +670,12 @@ const char* eraSofaVersion(void);
 */
 int eraGetLeapSeconds(eraLEAPSECOND **leapseconds);
 void eraSetLeapSeconds(eraLEAPSECOND *leapseconds, int count);
+
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
 
