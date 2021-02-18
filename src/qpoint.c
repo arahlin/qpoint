@@ -206,6 +206,16 @@ void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q) {
     Quaternion_r1_mul(-deg2rad(roll), q);
 }
 
+void qp_azelpsi_quat(double az, double el, double psi, double pitch, double roll, quat_t q) {
+  Quaternion_r3(q, M_PI - deg2rad(psi));
+  Quaternion_r2_mul(M_PI_2 - deg2rad(el), q);
+  Quaternion_r3_mul(-deg2rad(az), q);
+  if (pitch != 0)
+    Quaternion_r2_mul(-deg2rad(pitch), q);
+  if (roll != 0)
+    Quaternion_r1_mul(-deg2rad(roll), q);
+}
+
 void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy) {
   double X,Y,s,Z,E,d;
   if (accuracy == 0)
@@ -321,6 +331,122 @@ void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q, int in
     qp_print_quat(inv ? "state aaber inv" : "state aaber", q);
 #endif
   }
+}
+
+void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double pitch,
+		  double roll, double lon, double lat, double ctime,
+		  quat_t q) {
+
+  double jd_utc[2], jd_tt[2] = {0,0}, jd_ut1[2], mjd_utc;
+  double x,y;
+  quat_t q_step;
+
+  // deal with times
+  ctime2jd(ctime, jd_utc);
+
+#ifdef DEBUG
+  qp_print_memory(mem);
+#endif
+
+#ifdef DEBUG
+  printf("ctime %f, jd_utc %f %f\n", ctime, jd_utc[0], jd_utc[1]);
+#endif
+
+#ifdef DEBUG
+  qp_print_quat("state init", q);
+#endif
+
+  // apply "boresight rotation" (taking into account actual BS rotation)
+  qp_azelpsi_quat(az, el, psi, pitch, roll, q_step);
+  Quaternion_mul_left(q_step, q);
+#ifdef DEBUG
+  qp_print_quat("azel", q_step);
+  qp_print_quat("state azel", q);
+#endif
+
+  // apply refraction correction
+  // NB: per-detector refraction is not fully implemented!
+  // can only be done properly using the azel2radec functions
+  // otherwise, this is treated as a mean correction
+  qp_apply_refraction(mem, ctime, q, 0);
+
+  // apply diurnal aberration
+  // NB: same issue as refraction
+  // TODO propagate this to aberration step?
+  qp_apply_diurnal_aberration(mem, ctime, lat, q, 0);
+
+  // rotate to ITRS (by lon/lat)
+  if (qp_check_update(&mem->state_lonlat, ctime)) {
+    qp_lonlat_quat(lon, lat, mem->q_lonlat);
+#ifdef DEBUG
+    qp_print_quat("lonlat", mem->q_lonlat);
+#endif
+  }
+  if (qp_check_apply(&mem->state_lonlat)) {
+    Quaternion_mul_left(mem->q_lonlat, q);
+#ifdef DEBUG
+    qp_print_quat("state lonlat", q);
+#endif
+  }
+
+  // apply wobble correction (polar motion)
+  // or get dut1 from IERS bulletin
+  mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
+  if (qp_check_update(&mem->state_wobble, ctime)) {
+    qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+    ctime2jdtt(ctime, jd_tt);
+    qp_wobble_quat(jd_tt, x, y, mem->q_wobble);
+#ifdef DEBUG
+    qp_print_quat("wobble", mem->q_wobble);
+#endif
+  } else if (qp_check_update(&mem->state_dut1, ctime))
+    qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+  if (qp_check_apply(&mem->state_wobble)) {
+    Quaternion_mul_left(mem->q_wobble, q);
+#ifdef DEBUG
+    qp_print_quat("state wobble", q);
+#endif
+  }
+
+  // apply earth rotation
+  if (qp_check_update(&mem->state_erot, ctime)) {
+    // get ut1
+    jdutc2jdut1(jd_utc, mem->dut1, jd_ut1);
+    qp_erot_quat(jd_ut1, mem->q_erot);
+#ifdef DEBUG
+    qp_print_quat("erot", mem->q_erot);
+#endif
+  }
+  if (qp_check_apply(&mem->state_erot)) {
+    Quaternion_mul_left(mem->q_erot, q);
+#ifdef DEBUG
+    qp_print_quat("state erot", q);
+#endif
+  }
+
+  // apply nutation/precession/frame bias correction
+  if (qp_check_update(&mem->state_npb, ctime)) {
+    if (jd_tt[0] == 0) ctime2jdtt(ctime, jd_tt);
+    qp_npb_quat(jd_tt, mem->q_npb, mem->accuracy);
+#ifdef DEBUG
+    qp_print_quat("npb", mem->q_npb);
+#endif
+  }
+  if (qp_check_apply(&mem->state_npb)) {
+    Quaternion_mul_left(mem->q_npb, q);
+#ifdef DEBUG
+    qp_print_quat("state npb", q);
+#endif
+  }
+
+  // apply annual aberration
+  // ~20 arcsec max
+  if (mem->mean_aber)
+    qp_apply_annual_aberration(mem, ctime, q, 0);
+
+#ifdef DEBUG
+  qp_print_quat("state final", q);
+#endif
 }
 
 void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
@@ -444,6 +570,14 @@ void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
 		  quat_t *q, int n) {
   for (int i=0; i<n; i++)
     qp_azel2quat(mem, az[i], el[i], (pitch == NULL) ? 0 : pitch[i],
+                 (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i], q[i]);
+}
+
+void qp_azelpsi2bore(qp_memory_t *mem, double *az, double *el, double *psi, double *pitch,
+		  double *roll, double *lon, double *lat, double *ctime,
+		  quat_t *q, int n) {
+  for (int i=0; i<n; i++)
+    qp_azelpsi2quat(mem, az[i], el[i], psi[i], (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i], q[i]);
 }
 

@@ -334,6 +334,9 @@ extern "C" {
   /* Calculate gondola orientation quaternion */
   void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q);
 
+  /* Calculate gondola orientation quaternion, accounting for FPU boresight rotation */
+  void qp_azelpsi_quat(double az, double el, double psi, double pitch, double roll, quat_t q);
+
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
 
@@ -384,6 +387,11 @@ extern "C" {
 
   /* Compute boresight quaternion for a single gondola orientation. */
   void qp_azel2quat(qp_memory_t *mem, double az, double el, double pitch,
+		    double roll, double lon, double lat, double ctime,
+		    quat_t q);
+
+  /* Compute boresight quaternion for a single gondola orientation. Accounting for FPU boresight rotation. */
+  void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double pitch,
 		    double roll, double lon, double lat, double ctime,
 		    quat_t q);
 

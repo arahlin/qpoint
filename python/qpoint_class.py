@@ -558,6 +558,65 @@ class QPoint(object):
 
         return q
 
+    def azelpsi2bore(self, az, el, psi, pitch, roll, lon, lat, ctime, q=None,
+                  **kwargs):
+        """
+        Estimate the quaternion for the boresight orientation on the sky given
+        the attitude (az/el/psi/pitch/roll), location on the earth (lon/lat) and
+        ctime. Input vectors must be numpy-array-like and broadcastable to the
+        same shape.
+
+        This is an augmented version of azel2bore to accept rotations of the focal
+        plane about the optical axis.
+
+        Arguments
+        ---------
+        az : array_like
+            Boresight azimuth in degrees
+        el : array_like
+            Boresight elevation in degrees
+        psi : array_like
+            Boresight rotation angle in degrees
+        pitch : array_like
+            Boresight pitch in degrees.  If `None`, this term is ignored.
+        roll : array_like
+            Boresight roll in degrees.  If `None`, this term is ignored.
+        lon : array_like
+            Observer longitude in degrees
+        lat : array_like
+            Observer latitude in degrees
+        ctime : array_like
+            Unix time in seconds UTC
+        q : array_like, optional
+            Output quaternion array initialized by user.  Supply this
+            for in-place computation.
+
+        Returns
+        -------
+        q : array_like
+            Nx4 numpy array of quaternions for each supplied timestamp.
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
+        method can also be passed here, and will be processed prior to
+        calculation.
+        """
+
+        self.set(**kwargs)
+
+        az, el, psi, pitch, roll, lon, lat, ctime = \
+            check_inputs(az, el, psi, pitch, roll, lon, lat, ctime)
+        n = az.size
+
+        # identity quaternion
+        q = check_output('q', q, shape=(n,4), fill=[1,0,0,0])
+
+        qp.qp_azelpsi2bore(self._memory, az, el, psi, pitch, roll, lon, lat,
+                        ctime, q, n)
+
+        return q
+
     def bore2radec(self, q_off, ctime, q_bore, q_hwp=None, sindec=False,
                    return_pa=False, ra=None, dec=None, pa=None,
                    sin2psi=None, cos2psi=None, **kwargs):
