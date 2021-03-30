@@ -334,6 +334,9 @@ extern "C" {
   /* Calculate gondola orientation quaternion */
   void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q);
 
+  /* Calculate gondola orientation quaternion, accounting for FPU boresight rotation */
+  void qp_azelpsi_quat(double az, double el, double psi, double pitch, double roll, quat_t q);
+
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
 
@@ -389,6 +392,16 @@ extern "C" {
 
   /* Compute boresight quaternions for n gondola orientations. */
   void qp_azel2bore(qp_memory_t *mem, double *az, double *el, double *pitch,
+		    double *roll, double *lon, double *lat, double *ctime,
+		    quat_t *q, int n);
+
+  /* Compute boresight quaternion for a single gondola orientation. Accounts for FPU boresight rotation. */
+  void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double pitch,
+		    double roll, double lon, double lat, double ctime,
+		    quat_t q);
+
+  /* Compute boresight quaternions for n gondola orientations. Accounts for FPU boresight rotation. */
+  void qp_azelpsi2bore(qp_memory_t *mem, double *az, double *el, double *psi, double *pitch,
 		    double *roll, double *lon, double *lat, double *ctime,
 		    quat_t *q, int n);
 
@@ -482,12 +495,29 @@ extern "C" {
 
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations. */
+  void qp_azelpsi2radec(qp_memory_t *mem,
+		     double delta_az, double delta_el, double delta_psi,
+		     double *az, double *el, double *psi, double *pitch, double *roll,
+		     double *lon, double *lat, double *ctime,
+		     double *ra, double *dec, double *sin2psi, double *cos2psi,
+		     int n);
+
+  /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations. */
   void qp_azel2radec(qp_memory_t *mem,
 		     double delta_az, double delta_el, double delta_psi,
 		     double *az, double *el, double *pitch, double *roll,
 		     double *lon, double *lat, double *ctime,
 		     double *ra, double *dec, double *sin2psi, double *cos2psi,
 		     int n);
+
+  /* Calculate ra/dec/pa for a given detector offset,
+     from a set of boresight orientations. */
+  void qp_azelpsi2radecpa(qp_memory_t *mem,
+		       double delta_az, double delta_el, double delta_psi,
+		       double *az, double *el, double *psi, double *pitch, double *roll,
+		       double *lon, double *lat, double *ctime,
+		       double *ra, double *dec, double *pa, int n);
 
   /* Calculate ra/dec/pa for a given detector offset,
      from a set of boresight orientations. */
@@ -505,6 +535,15 @@ extern "C" {
 
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations and waveplate angles. */
+  void qp_azelpsi2radec_hwp(qp_memory_t *mem,
+			 double delta_az, double delta_el, double delta_psi,
+			 double *az, double *el, double *psi, double *pitch, double *roll,
+			 double *lon, double *lat, double *ctime, double *hwp,
+			 double *ra, double *dec, double *sin2psi, double *cos2psi,
+			 int n);
+
+  /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations and waveplate angles. */
   void qp_azel2radec_hwp(qp_memory_t *mem,
 			 double delta_az, double delta_el, double delta_psi,
 			 double *az, double *el, double *pitch, double *roll,
@@ -514,11 +553,28 @@ extern "C" {
 
   /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations and waveplate angles. */
+  void qp_azelpsi2radecpa_hwp(qp_memory_t *mem,
+			   double delta_az, double delta_el, double delta_psi,
+			   double *az, double *el, double *psi, double *pitch, double *roll,
+			   double *lon, double *lat, double *ctime, double *hwp,
+			   double *ra, double *dec, double *pa, int n);
+
+  /* Calculate ra/dec and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations and waveplate angles. */
   void qp_azel2radecpa_hwp(qp_memory_t *mem,
 			   double delta_az, double delta_el, double delta_psi,
 			   double *az, double *el, double *pitch, double *roll,
 			   double *lon, double *lat, double *ctime, double *hwp,
 			   double *ra, double *dec, double *pa, int n);
+
+  /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations.  */
+  void qp_azelpsi2rasindec(qp_memory_t *mem,
+			double delta_az, double delta_el, double delta_psi,
+			double *az, double *el, double *psi, double *pitch, double *roll,
+			double *lon, double *lat, double *ctime,
+			double *ra, double *sindec, double *sin2psi, double *cos2psi,
+			int n);
 
   /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset,
      from a set of boresight orientations.  */
@@ -534,6 +590,15 @@ extern "C" {
   void qp_azel2rasindec_hwp(qp_memory_t *mem,
 			    double delta_az, double delta_el, double delta_psi,
 			    double *az, double *el, double *pitch, double *roll,
+			    double *lon, double *lat, double *ctime, double *hwp,
+			    double *ra, double *sindec, double *sin2psi,
+			    double *cos2psi, int n);
+
+  /* Calculate ra/sin(dec) and sin(2*psi)/cos(2*psi) for a given detector offset,
+     from a set of boresight orientations.  */
+  void qp_azelpsi2rasindec_hwp(qp_memory_t *mem,
+			    double delta_az, double delta_el, double delta_psi,
+			    double *az, double *el, double *psi, double *pitch, double *roll,
 			    double *lon, double *lat, double *ctime, double *hwp,
 			    double *ra, double *sindec, double *sin2psi,
 			    double *cos2psi, int n);

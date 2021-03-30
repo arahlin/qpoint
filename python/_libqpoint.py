@@ -257,10 +257,20 @@ setargs('qp_azel2radec',
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
              warr, warr, warr, warr, ct.c_int))
+setargs('qp_azelpsi2radec',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/p/r/l/l/t
+             warr, warr, warr, warr, ct.c_int))
 setargs('qp_azel2radecpa',
         arg=(qp_memory_t_p, # params
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
+             warr, warr, warr, ct.c_int))
+setargs('qp_azelpsi2radecpa',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/p/r/l/l/t
              warr, warr, warr, ct.c_int))
 setargs('qp_radec2azel',
         arg=(qp_memory_t_p, # params
@@ -271,24 +281,48 @@ setargs('qp_azel2radec_hwp',
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t/hwp
              warr, warr, warr, warr, ct.c_int))
+setargs('qp_azelpsi2radec_hwp',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/p/r/l/l/t/hwp
+             warr, warr, warr, warr, ct.c_int))
 setargs('qp_azel2radecpa_hwp',
         arg=(qp_memory_t_p, # params
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t/hwp
+             warr, warr, warr, ct.c_int))
+setargs('qp_azelpsi2radecpa_hwp',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/p/r/l/l/t/hwp
              warr, warr, warr, ct.c_int))
 setargs('qp_azel2rasindec',
         arg=(qp_memory_t_p, # params
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
              warr, warr, warr, warr, ct.c_int))
+setargs('qp_azelpsi2rasindec',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/p/r/l/l/t
+             warr, warr, warr, warr, ct.c_int))
 setargs('qp_azel2rasindec_hwp',
         arg=(qp_memory_t_p, # params
              ct.c_double, ct.c_double, ct.c_double, # offset
              arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t/hwp
              warr, warr, warr, warr, ct.c_int))
+setargs('qp_azelpsi2rasindec_hwp',
+        arg=(qp_memory_t_p, # params
+             ct.c_double, ct.c_double, ct.c_double, # offset
+             arr, arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/p/r/l/l/t/hwp
+             warr, warr, warr, warr, ct.c_int))
 setargs('qp_azel2bore',
         arg=(qp_memory_t_p, # params
              arr, arr, arr, arr, arr, arr, arr, # a/e/p/r/l/l/t
+             wquat_t_p, ct.c_int))
+setargs('qp_azelpsi2bore',
+        arg=(qp_memory_t_p, # params
+             arr, arr, arr, arr, arr, arr, arr, arr, # a/e/p/p/r/l/l/t
              wquat_t_p, ct.c_int))
 
 setargs('qp_det_offsetn', arg=(arr, arr, arr, wquat_t_p, ct.c_int))
