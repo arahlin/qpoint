@@ -74,7 +74,7 @@ author = u'Alexandra Rahlin'
 # built documents.
 #
 # The short X.Y version.
-version = sp.check_output(['git', 'describe']).split('-')[0]
+version = sp.check_output(['git', 'describe']).decode().split('-')[0]
 # The full version, including alpha/beta/rc tags.
 release = version
 
