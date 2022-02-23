@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 try:
     import itertools.izip as zip
 except ImportError:
@@ -21,14 +22,18 @@ def nside2npix(nside):
     """
     return 12 * nside * nside
 
+
 def npix2nside(npix):
     """
     Convert the number of healpix pixels in a full-sky map to healpix resolution (nside).
     """
-    nside = np.sqrt( npix / 12. )
+    nside = np.sqrt(npix / 12.0)
     if nside != np.floor(nside):
-        raise ValueError("Invalid number of healpix pixels, must be npix = 12 * nside**2")
+        raise ValueError(
+            "Invalid number of healpix pixels, must be npix = 12 * nside**2"
+        )
     return int(nside)
+
 
 def check_map(map_in, copy=False, partial=False, dtype=np.double):
     """
@@ -66,6 +71,7 @@ def check_map(map_in, copy=False, partial=False, dtype=np.double):
         map_out = map_out.copy()
     return map_out, dim2
 
+
 def check_proj(proj_in, copy=False, partial=False):
     """
     Return a properly transposed and memory-aligned projection map,
@@ -97,9 +103,10 @@ def check_proj(proj_in, copy=False, partial=False):
     """
     proj_out, dim2 = check_map(proj_in, copy=copy, partial=partial)
     nmap = int((np.sqrt(8 * len(proj_out) + 1) - 1)) // 2
-    if (nmap * (nmap + 1) // 2 != len(proj_out)):
+    if nmap * (nmap + 1) // 2 != len(proj_out):
         raise ValueError('proj has incompatible shape')
     return proj_out, dim2, nmap
+
 
 class QMap(QPoint):
     """
@@ -107,9 +114,19 @@ class QMap(QPoint):
     on-the-fly.
     """
 
-    def __init__(self, nside=None, pol=True, vpol=False,
-                 source_map=None, source_pol=True, source_vpol=False,
-                 q_bore=None, ctime=None, q_hwp=None, **kwargs):
+    def __init__(
+        self,
+        nside=None,
+        pol=True,
+        vpol=False,
+        source_map=None,
+        source_pol=True,
+        source_vpol=False,
+        q_bore=None,
+        ctime=None,
+        q_hwp=None,
+        **kwargs
+    ):
         """
         Initialize the internal structures and data depo for
         mapmaking and/or timestream generation.
@@ -176,8 +193,16 @@ class QMap(QPoint):
             return False
         return True
 
-    def init_source(self, source_map, pol=True, pixels=None, nside=None,
-                    vpol=False, reset=False, update=False):
+    def init_source(
+        self,
+        source_map,
+        pol=True,
+        pixels=None,
+        nside=None,
+        vpol=False,
+        reset=False,
+        update=False,
+    ):
         """
         Initialize the source map structure.  Timestreams are
         produced by scanning this map.
@@ -235,8 +260,10 @@ class QMap(QPoint):
 
             elif update:
                 source = self._source.contents
-                if source_map.squeeze().shape[-1] != \
-                        self.depo['source_map'].squeeze().shape[-1]:
+                if (
+                    source_map.squeeze().shape[-1]
+                    != self.depo['source_map'].squeeze().shape[-1]
+                ):
                     raise ValueError('source_map shape mismatch')
                 source_map, _ = check_map(source_map, partial=True)
                 source.num_vec = len(source_map)
@@ -321,7 +348,7 @@ class QMap(QPoint):
         if not self.source_is_init():
             raise RuntimeError('source map not initialized')
 
-        if self._source.contents.vec_mode in [2,3,5,7]:
+        if self._source.contents.vec_mode in [2, 3, 5, 7]:
             return True
         return False
 
@@ -346,8 +373,18 @@ class QMap(QPoint):
             return False
         return True
 
-    def init_dest(self, nside=None, pol=True, vec=None, proj=None, pixels=None,
-                  vpol=False, copy=False, reset=False, update=False):
+    def init_dest(
+        self,
+        nside=None,
+        pol=True,
+        vec=None,
+        proj=None,
+        pixels=None,
+        vpol=False,
+        copy=False,
+        reset=False,
+        update=False,
+    ):
         """
         Initialize the destination map structure.  Timestreams are binned
         and projection matrices accumulated into this structure.
@@ -403,8 +440,7 @@ class QMap(QPoint):
                 if self.depo['vec'] is not False:
                     if vec is None:
                         vec = np.zeros_like(self.depo['vec'])
-                    if vec.squeeze().shape[-1] != \
-                            self.depo['vec'].squeeze().shape[-1]:
+                    if vec.squeeze().shape[-1] != self.depo['vec'].squeeze().shape[-1]:
                         raise ValueError('vec shape mismatch')
                     vec, _ = check_map(vec, copy=copy, partial=True)
                     dest.num_vec = len(vec)
@@ -416,8 +452,10 @@ class QMap(QPoint):
                 if self.depo['proj'] is not False:
                     if proj is None:
                         proj = np.zeros_like(self.depo['proj'])
-                    if proj.squeeze().shape[-1] != \
-                            self.depo['proj'].squeeze().shape[-1]:
+                    if (
+                        proj.squeeze().shape[-1]
+                        != self.depo['proj'].squeeze().shape[-1]
+                    ):
                         raise ValueError('proj shape mismatch')
                     proj, _ = check_map(proj, copy=copy, partial=True)
                     dest.num_proj = len(proj)
@@ -488,7 +526,7 @@ class QMap(QPoint):
             if vec is not False:
                 if pnmap != len(vec):
                     raise ValueError('proj has incompatible shape')
-                if len(proj) != [[1,6][pol],10][vpol]:
+                if len(proj) != [[1, 6][pol], 10][vpol]:
                     raise ValueError('proj has incompatible shape')
                 if pdim2 != vdim2:
                     raise ValueError('proj has incompatible nside')
@@ -677,8 +715,18 @@ class QMap(QPoint):
         self.depo.pop('q_hwp', None)
         self._point = ct.pointer(lib.qp_point_t())
 
-    def init_detarr(self, q_off, weight=None, gain=None, mueller=None, tod=None,
-                    flag=None, weights=None, do_diff=False, write=False):
+    def init_detarr(
+        self,
+        q_off,
+        weight=None,
+        gain=None,
+        mueller=None,
+        tod=None,
+        flag=None,
+        weights=None,
+        do_diff=False,
+        write=False,
+    ):
         """
         Initialize the detector listing structure.  Detector properties and
         timestreams are passed to and from the mapmaker through this structure.
@@ -723,8 +771,9 @@ class QMap(QPoint):
         n = q_off.size // 4
         weight = lib.check_input('weight', weight, shape=(n,), fill=1)
         gain = lib.check_input('gain', gain, shape=(n,), fill=1)
-        mueller = lib.check_input('mueller', mueller, shape=(n, 4),
-                                  fill=np.array([1, 1, 0, 1]))
+        mueller = lib.check_input(
+            'mueller', mueller, shape=(n, 4), fill=np.array([1, 1, 0, 1])
+        )
 
         ns = self._point.contents.n
         shape = (n, ns)
@@ -739,8 +788,9 @@ class QMap(QPoint):
             tod = lib.check_input('tod', tod, shape=shape)
             self.depo['tod'] = tod
         if flag is not None:
-            flag = lib.check_input('flag', np.atleast_2d(flag),
-                                   dtype=np.uint8, shape=shape)
+            flag = lib.check_input(
+                'flag', np.atleast_2d(flag), dtype=np.uint8, shape=shape
+            )
             self.depo['flag'] = flag
         if weights is not None:
             weights = lib.check_input('weights', np.atleast_2d(weights), shape=shape)
@@ -776,10 +826,10 @@ class QMap(QPoint):
         detarr.init = lib.QP_STRUCT_INIT
         detarr.arr_init = lib.QP_ARR_INIT_PTR
         detarr.arr = dets
-        detarr.diff=0
+        detarr.diff = 0
 
         if do_diff:
-            detarr.diff=1
+            detarr.diff = 1
 
         self._detarr = ct.pointer(detarr)
 
@@ -806,9 +856,19 @@ class QMap(QPoint):
         self.reset_detarr()
         self.depo.clear()
 
-    def from_tod(self, q_off, tod=None, count_hits=True, weight=None,
-                 gain=None, mueller=None, flag=None, weights=None, do_diff=False,
-                 **kwargs):
+    def from_tod(
+        self,
+        q_off,
+        tod=None,
+        count_hits=True,
+        weight=None,
+        gain=None,
+        mueller=None,
+        flag=None,
+        weights=None,
+        do_diff=False,
+        **kwargs
+    ):
         """
         Calculate signal and hits maps for given detectors.
 
@@ -853,8 +913,16 @@ class QMap(QPoint):
         self.set(**kwargs)
 
         # initialize detectors
-        self.init_detarr(q_off, weight=weight, gain=gain, mueller=mueller,
-                         tod=tod, flag=flag, weights=weights, do_diff=do_diff)
+        self.init_detarr(
+            q_off,
+            weight=weight,
+            gain=gain,
+            mueller=mueller,
+            tod=tod,
+            flag=flag,
+            weights=weights,
+            do_diff=do_diff,
+        )
 
         # check modes
         return_vec = True
@@ -929,8 +997,9 @@ class QMap(QPoint):
         self.set(**kwargs)
 
         # initialize detectors
-        self.init_detarr(q_off, gain=gain, mueller=mueller, tod=tod, flag=flag,
-                         write=True)
+        self.init_detarr(
+            q_off, gain=gain, mueller=mueller, tod=tod, flag=flag, write=True
+        )
 
         # run
         if qp.qp_map2tod(self._memory, self._detarr, self._point, self._source):
@@ -990,18 +1059,18 @@ class QMap(QPoint):
         # calculate for each pixel
         # faster if numpy.linalg handles broadcasting
         npv = np.__version__.split('.')
-        if len(npv)>3:
+        if len(npv) > 3:
             if 'dev' in npv[-1]:
-                npv = [0,0,0]
+                npv = [0, 0, 0]
             else:
                 npv = np.version.short_version.split('.')
         npv = [int(x) for x in npv]
-        if npv >= [1,10,0]:
+        if npv >= [1, 10, 0]:
             proj[:, ~m] = 0
-            cond = np.linalg.cond(proj[idx].transpose(2,0,1), p=mode)
+            cond = np.linalg.cond(proj[idx].transpose(2, 0, 1), p=mode)
             cond[~m] = np.inf
             # threshold at machine precision
-            cond[cond > 1./np.finfo(float).eps] = np.inf
+            cond[cond > 1.0 / np.finfo(float).eps] = np.inf
             return cond
 
         # slow method, loop over pixels
@@ -1010,15 +1079,27 @@ class QMap(QPoint):
                 return np.inf
             c = np.linalg.cond(x[idx], p=mode)
             # threshold at machine precision
-            if c > 1./np.finfo(float).eps:
+            if c > 1.0 / np.finfo(float).eps:
                 return np.inf
             return c
+
         cond = np.apply_along_axis(func, 0, proj)
         return cond
 
-    def solve_map(self, vec=None, proj=None, mask=None, copy=True,
-                  return_proj=False, return_mask=False, partial=None,
-                  fill=0, cond=None, cond_thresh=1e6, method='exact'):
+    def solve_map(
+        self,
+        vec=None,
+        proj=None,
+        mask=None,
+        copy=True,
+        return_proj=False,
+        return_mask=False,
+        partial=None,
+        fill=0,
+        cond=None,
+        cond_thresh=1e6,
+        method='exact',
+    ):
         """
         Solve for a map, given the binned map and the projection matrix
         for each pixel.
@@ -1126,14 +1207,15 @@ class QMap(QPoint):
         # solve
         # faster if numpy.linalg handles broadcasting
         npv = [int(x) for x in np.version.short_version.split('.')]
-        if method == 'exact' and npv >= [1,8,0]:
+        if method == 'exact' and npv >= [1, 8, 0]:
             if cond is None:
                 cond = self.proj_cond(proj=proj, partial=partial)
-            mask &= (cond < cond_thresh)
+            mask &= cond < cond_thresh
             vec[:, ~mask] = 0
             proj[..., ~mask] = np.eye(nmap)[rtri, ctri][:, None]
-            vec[:] = np.linalg.solve(proj[idx].transpose(2,0,1),
-                                     vec.transpose()).transpose()
+            vec[:] = np.linalg.solve(
+                proj[idx].transpose(2, 0, 1), vec.transpose()
+            ).transpose()
             vec[:, ~mask] = fill
             proj[:, ~mask] = 0
             ret = (vec,) + return_proj * (proj,) + return_mask * (mask,)
@@ -1143,6 +1225,7 @@ class QMap(QPoint):
 
         # slow method, loop over pixels
         from scipy.linalg import cho_factor, cho_solve
+
         for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
             if not m:
                 proj[:, ii] = 0
@@ -1219,9 +1302,17 @@ class QMap(QPoint):
         kwargs['method'] = 'cho'
         return self.solve_map(*args, **kwargs)
 
-    def unsolve_map(self, map_in, proj=None, mask=None, copy=True,
-                    return_proj=False, return_mask=False, partial=None,
-                    fill=0):
+    def unsolve_map(
+        self,
+        map_in,
+        proj=None,
+        mask=None,
+        copy=True,
+        return_proj=False,
+        return_mask=False,
+        partial=None,
+        fill=0,
+    ):
         """
         Invert the solved map to recover the binned vec array.
 

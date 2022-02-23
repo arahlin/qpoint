@@ -6,7 +6,8 @@ from ._libqpoint import libqp as qp
 
 __all__ = ['refraction']
 
-def refraction(el, temp, press, hum, freq=150.):
+
+def refraction(el, temp, press, hum, freq=150.0):
     """
     Standalone function for calculating the refraction correction without
     storing any parameters.  Useful for testing, numpy-vectorized.
@@ -30,7 +31,7 @@ def refraction(el, temp, press, hum, freq=150.):
         Refraction correction, in degrees
     """
 
-    fvec = np.vectorize(qp.qp_refraction,[np.double])
+    fvec = np.vectorize(qp.qp_refraction, [np.double])
     delta = fvec(el, temp, press, hum, freq)
     if delta.shape == ():
         return delta[()]
