@@ -1,5 +1,6 @@
-#include <stdio.h>
 #include "erfa.h"
+
+#include <stdio.h>
 
 static int verbose = 0;
 
@@ -17,7 +18,7 @@ static int verbose = 0;
 **
 **  All messages go to stdout.
 **
-**  This revision:  2020 May 30
+**  This revision:  2021 April 18
 **
 */
 
@@ -604,7 +605,7 @@ static void t_apco(int *status)
 **
 **  Called:  eraApco, vvd
 **
-**  This revision:  2017 March 15
+**  This revision:  2021 January 5
 */
 {
    double date1, date2, ebpv[2][3], ehp[3], x, y, s,
@@ -682,11 +683,11 @@ static void t_apco(int *status)
                          "eraApco", "bpn(2,3)", status);
    vvd(astrom.bpn[2][2], 0.9999991386008323373, 1e-12,
                          "eraApco", "bpn(3,3)", status);
-   vvd(astrom.along, -0.5278008060301974337, 1e-12,
+   vvd(astrom.along, -0.5278008060295995734, 1e-12,
                      "eraApco", "along", status);
-   vvd(astrom.xpl, 0.1133427418174939329e-5, 1e-17,
+   vvd(astrom.xpl, 0.1133427418130752958e-5, 1e-17,
                    "eraApco", "xpl", status);
-   vvd(astrom.ypl, 0.1453347595745898629e-5, 1e-17,
+   vvd(astrom.ypl, 0.1453347595780646207e-5, 1e-17,
                    "eraApco", "ypl", status);
    vvd(astrom.sphi, -0.9440115679003211329, 1e-12,
                     "eraApco", "sphi", status);
@@ -694,7 +695,7 @@ static void t_apco(int *status)
                     "eraApco", "cphi", status);
    vvd(astrom.diurab, 0, 0,
                       "eraApco", "diurab", status);
-   vvd(astrom.eral, 2.617608903969802566, 1e-12,
+   vvd(astrom.eral, 2.617608903970400427, 1e-12,
                     "eraApco", "eral", status);
    vvd(astrom.refa, 0.2014187790000000000e-3, 1e-15,
                     "eraApco", "refa", status);
@@ -716,7 +717,7 @@ static void t_apco13(int *status)
 **
 **  Called:  eraApco13, vvd, viv
 **
-**  This revision:  2017 March 15
+**  This revision:  2021 January 5
 */
 {
    double utc1, utc2, dut1, elong, phi, hm, xp, yp,
@@ -783,11 +784,11 @@ static void t_apco13(int *status)
                          "eraApco13", "bpn(2,3)", status);
    vvd(astrom.bpn[2][2], 0.9999991386008312212, 1e-12,
                          "eraApco13", "bpn(3,3)", status);
-   vvd(astrom.along, -0.5278008060301974337, 1e-12,
+   vvd(astrom.along, -0.5278008060295995733, 1e-12,
                      "eraApco13", "along", status);
-   vvd(astrom.xpl, 0.1133427418174939329e-5, 1e-17,
+   vvd(astrom.xpl, 0.1133427418130752958e-5, 1e-17,
                    "eraApco13", "xpl", status);
-   vvd(astrom.ypl, 0.1453347595745898629e-5, 1e-17,
+   vvd(astrom.ypl, 0.1453347595780646207e-5, 1e-17,
                    "eraApco13", "ypl", status);
    vvd(astrom.sphi, -0.9440115679003211329, 1e-12,
                     "eraApco13", "sphi", status);
@@ -795,7 +796,7 @@ static void t_apco13(int *status)
                     "eraApco13", "cphi", status);
    vvd(astrom.diurab, 0, 0,
                       "eraApco13", "diurab", status);
-   vvd(astrom.eral, 2.617608909189066140, 1e-12,
+   vvd(astrom.eral, 2.617608909189664000, 1e-12,
                     "eraApco13", "eral", status);
    vvd(astrom.refa, 0.2014187785940396921e-3, 1e-15,
                     "eraApco13", "refa", status);
@@ -1042,7 +1043,7 @@ static void t_apio(int *status)
 **
 **  Called:  eraApio, vvd
 **
-**  This revision:  2013 October 3
+**  This revision:  2021 January 5
 */
 {
    double sp, theta, elong, phi, hm, xp, yp, refa, refb;
@@ -1061,11 +1062,11 @@ static void t_apio(int *status)
 
    eraApio(sp, theta, elong, phi, hm, xp, yp, refa, refb, &astrom);
 
-   vvd(astrom.along, -0.5278008060301974337, 1e-12,
+   vvd(astrom.along, -0.5278008060295995734, 1e-12,
                      "eraApio", "along", status);
-   vvd(astrom.xpl, 0.1133427418174939329e-5, 1e-17,
+   vvd(astrom.xpl, 0.1133427418130752958e-5, 1e-17,
                    "eraApio", "xpl", status);
-   vvd(astrom.ypl, 0.1453347595745898629e-5, 1e-17,
+   vvd(astrom.ypl, 0.1453347595780646207e-5, 1e-17,
                    "eraApio", "ypl", status);
    vvd(astrom.sphi, -0.9440115679003211329, 1e-12,
                     "eraApio", "sphi", status);
@@ -1073,7 +1074,7 @@ static void t_apio(int *status)
                     "eraApio", "cphi", status);
    vvd(astrom.diurab, 0.5135843661699913529e-6, 1e-12,
                       "eraApio", "diurab", status);
-   vvd(astrom.eral, 2.617608903969802566, 1e-12,
+   vvd(astrom.eral, 2.617608903970400427, 1e-12,
                     "eraApio", "eral", status);
    vvd(astrom.refa, 0.2014187790000000000e-3, 1e-15,
                     "eraApio", "refa", status);
@@ -1095,7 +1096,7 @@ static void t_apio13(int *status)
 **
 **  Called:  eraApio13, vvd, viv
 **
-**  This revision:  2013 October 4
+**  This revision:  2021 January 5
 */
 {
    double utc1, utc2, dut1, elong, phi, hm, xp, yp, phpa, tc, rh, wl;
@@ -1119,11 +1120,11 @@ static void t_apio13(int *status)
    j = eraApio13(utc1, utc2, dut1, elong, phi, hm, xp, yp,
                  phpa, tc, rh, wl, &astrom);
 
-   vvd(astrom.along, -0.5278008060301974337, 1e-12,
+   vvd(astrom.along, -0.5278008060295995733, 1e-12,
                      "eraApio13", "along", status);
-   vvd(astrom.xpl, 0.1133427418174939329e-5, 1e-17,
+   vvd(astrom.xpl, 0.1133427418130752958e-5, 1e-17,
                    "eraApio13", "xpl", status);
-   vvd(astrom.ypl, 0.1453347595745898629e-5, 1e-17,
+   vvd(astrom.ypl, 0.1453347595780646207e-5, 1e-17,
                    "eraApio13", "ypl", status);
    vvd(astrom.sphi, -0.9440115679003211329, 1e-12,
                     "eraApio13", "sphi", status);
@@ -1131,13 +1132,86 @@ static void t_apio13(int *status)
                     "eraApio13", "cphi", status);
    vvd(astrom.diurab, 0.5135843661699913529e-6, 1e-12,
                       "eraApio13", "diurab", status);
-   vvd(astrom.eral, 2.617608909189066140, 1e-12,
+   vvd(astrom.eral, 2.617608909189664000, 1e-12,
                     "eraApio13", "eral", status);
    vvd(astrom.refa, 0.2014187785940396921e-3, 1e-15,
                     "eraApio13", "refa", status);
    vvd(astrom.refb, -0.2361408314943696227e-6, 1e-18,
                     "eraApio13", "refb", status);
    viv(j, 0, "eraApio13", "j", status);
+
+}
+
+static void t_atcc13(int *status)
+/*
+**  - - - - - - - - -
+**   t _ a t c c 1 3
+**  - - - - - - - - -
+**
+**  Test eraAtcc13 function.
+**
+**  Returned:
+**     status    int         FALSE = success, TRUE = fail
+**
+**  Called:  eraAtcc13, vvd
+**
+**  This revision:  2021 April 18
+*/
+{
+   double rc, dc, pr, pd, px, rv, date1, date2, ra, da;
+
+
+   rc = 2.71;
+   dc = 0.174;
+   pr = 1e-5;
+   pd = 5e-6;
+   px = 0.1;
+   rv = 55.0;
+   date1 = 2456165.5;
+   date2 = 0.401182685;
+
+   eraAtcc13(rc, dc, pr, pd, px, rv, date1, date2, &ra, &da);
+
+   vvd(ra,  2.710126504531372384, 1e-12,
+           "eraAtcc13", "ra", status);
+   vvd(da, 0.1740632537628350152, 1e-12,
+           "eraAtcc13", "da", status);
+
+}
+
+static void t_atccq(int *status)
+/*
+**  - - - - - - - -
+**   t _ a t c c q
+**  - - - - - - - -
+**
+**  Test eraAtccq function.
+**
+**  Returned:
+**     status    int         FALSE = success, TRUE = fail
+**
+**  Called:  eraApcc13, eraAtccq, vvd
+**
+**  This revision:  2021 April 18
+*/
+{
+   double date1, date2, eo, rc, dc, pr, pd, px, rv, ra, da;
+   eraASTROM astrom;
+
+   date1 = 2456165.5;
+   date2 = 0.401182685;
+   eraApci13(date1, date2, &astrom, &eo);
+   rc = 2.71;
+   dc = 0.174;
+   pr = 1e-5;
+   pd = 5e-6;
+   px = 0.1;
+   rv = 55.0;
+
+   eraAtccq(rc, dc, pr, pd, px, rv, &astrom, &ra, &da);
+
+   vvd(ra, 2.710126504531372384, 1e-12, "eraAtccq", "ra", status);
+   vvd(da, 0.1740632537628350152, 1e-12, "eraAtccq", "da", status);
 
 }
 
@@ -1323,7 +1397,7 @@ static void t_atco13(int *status)
 **
 **  Called:  eraAtco13, vvd, viv
 **
-**  This revision:  2017 March 15
+**  This revision:  2021 January 5
 */
 {
    double rc, dc, pr, pd, px, rv, utc1, utc2, dut1,
@@ -1356,11 +1430,11 @@ static void t_atco13(int *status)
                  phpa, tc, rh, wl,
                  &aob, &zob, &hob, &dob, &rob, &eo);
 
-   vvd(aob, 0.09251774485385390973, 1e-12, "eraAtco13", "aob", status);
-   vvd(zob, 1.407661405256671703, 1e-12, "eraAtco13", "zob", status);
-   vvd(hob, -0.09265154431430045141, 1e-12, "eraAtco13", "hob", status);
-   vvd(dob, 0.1716626560074556029, 1e-12, "eraAtco13", "dob", status);
-   vvd(rob, 2.710260453503366591, 1e-12, "eraAtco13", "rob", status);
+   vvd(aob, 0.9251774485485515207e-1, 1e-12, "eraAtco13", "aob", status);
+   vvd(zob, 1.407661405256499357, 1e-12, "eraAtco13", "zob", status);
+   vvd(hob, -0.9265154431529724692e-1, 1e-12, "eraAtco13", "hob", status);
+   vvd(dob, 0.1716626560072526200, 1e-12, "eraAtco13", "dob", status);
+   vvd(rob, 2.710260453504961012, 1e-12, "eraAtco13", "rob", status);
    vvd(eo, -0.003020548354802412839, 1e-14, "eraAtco13", "eo", status);
    viv(j, 0, "eraAtco13", "j", status);
 
@@ -1502,7 +1576,7 @@ static void t_atio13(int *status)
 **
 **  Called:  eraAtio13, vvd, viv
 **
-**  This revision:  2013 October 3
+**  This revision:  2021 January 5
 */
 {
    double ri, di, utc1, utc2, dut1, elong, phi, hm, xp, yp,
@@ -1529,11 +1603,11 @@ static void t_atio13(int *status)
                  xp, yp, phpa, tc, rh, wl,
                  &aob, &zob, &hob, &dob, &rob);
 
-   vvd(aob, 0.09233952224794989993, 1e-12, "eraAtio13", "aob", status);
-   vvd(zob, 1.407758704513722461, 1e-12, "eraAtio13", "zob", status);
-   vvd(hob, -0.09247619879782006106, 1e-12, "eraAtio13", "hob", status);
-   vvd(dob, 0.1717653435758265198, 1e-12, "eraAtio13", "dob", status);
-   vvd(rob, 2.710085107986886201, 1e-12, "eraAtio13", "rob", status);
+   vvd(aob, 0.9233952224895122499e-1, 1e-12, "eraAtio13", "aob", status);
+   vvd(zob, 1.407758704513549991, 1e-12, "eraAtio13", "zob", status);
+   vvd(hob, -0.9247619879881698140e-1, 1e-12, "eraAtio13", "hob", status);
+   vvd(dob, 0.1717653435756234676, 1e-12, "eraAtio13", "dob", status);
+   vvd(rob, 2.710085107988480746, 1e-12, "eraAtio13", "rob", status);
    viv(j, 0, "eraAtio13", "j", status);
 
 }
@@ -1551,7 +1625,7 @@ static void t_atioq(int *status)
 **
 **  Called:  eraApio13, eraAtioq, vvd, viv
 **
-**  This revision:  2013 October 4
+**  This revision:  2021 January 5
 */
 {
    double utc1, utc2, dut1, elong, phi, hm, xp, yp,
@@ -1578,11 +1652,11 @@ static void t_atioq(int *status)
 
    eraAtioq(ri, di, &astrom, &aob, &zob, &hob, &dob, &rob);
 
-   vvd(aob, 0.09233952224794989993, 1e-12, "eraAtioq", "aob", status);
-   vvd(zob, 1.407758704513722461, 1e-12, "eraAtioq", "zob", status);
-   vvd(hob, -0.09247619879782006106, 1e-12, "eraAtioq", "hob", status);
-   vvd(dob, 0.1717653435758265198, 1e-12, "eraAtioq", "dob", status);
-   vvd(rob, 2.710085107986886201, 1e-12, "eraAtioq", "rob", status);
+   vvd(aob, 0.9233952224895122499e-1, 1e-12, "eraAtioq", "aob", status);
+   vvd(zob, 1.407758704513549991, 1e-12, "eraAtioq", "zob", status);
+   vvd(hob, -0.9247619879881698140e-1, 1e-12, "eraAtioq", "hob", status);
+   vvd(dob, 0.1717653435756234676, 1e-12, "eraAtioq", "dob", status);
+   vvd(rob, 2.710085107988480746, 1e-12, "eraAtioq", "rob", status);
 
 }
 
@@ -1599,7 +1673,7 @@ static void t_atoc13(int *status)
 **
 **  Called:  eraAtoc13, vvd, viv
 **
-**  This revision:  2017 March 15
+**  This revision:  2021 January 5
 */
 {
    double utc1, utc2, dut1,
@@ -1626,8 +1700,8 @@ static void t_atoc13(int *status)
    j = eraAtoc13 ( "R", ob1, ob2, utc1, utc2, dut1,
                    elong, phi, hm, xp, yp, phpa, tc, rh, wl,
                    &rc, &dc);
-   vvd(rc, 2.709956744660731630, 1e-12, "eraAtoc13", "R/rc", status);
-   vvd(dc, 0.1741696500896438967, 1e-12, "eraAtoc13", "R/dc", status);
+   vvd(rc, 2.709956744659136129, 1e-12, "eraAtoc13", "R/rc", status);
+   vvd(dc, 0.1741696500898471362, 1e-12, "eraAtoc13", "R/dc", status);
    viv(j, 0, "eraAtoc13", "R/j", status);
 
    ob1 = -0.09247619879782006106;
@@ -1635,8 +1709,8 @@ static void t_atoc13(int *status)
    j = eraAtoc13 ( "H", ob1, ob2, utc1, utc2, dut1,
                    elong, phi, hm, xp, yp, phpa, tc, rh, wl,
                    &rc, &dc);
-   vvd(rc, 2.709956744660731630, 1e-12, "eraAtoc13", "H/rc", status);
-   vvd(dc, 0.1741696500896438967, 1e-12, "eraAtoc13", "H/dc", status);
+   vvd(rc, 2.709956744659734086, 1e-12, "eraAtoc13", "H/rc", status);
+   vvd(dc, 0.1741696500898471362, 1e-12, "eraAtoc13", "H/dc", status);
    viv(j, 0, "eraAtoc13", "H/j", status);
 
    ob1 = 0.09233952224794989993;
@@ -1644,8 +1718,8 @@ static void t_atoc13(int *status)
    j = eraAtoc13 ( "A", ob1, ob2, utc1, utc2, dut1,
                    elong, phi, hm, xp, yp, phpa, tc, rh, wl,
                    &rc, &dc);
-   vvd(rc, 2.709956744660731630, 1e-12, "eraAtoc13", "A/rc", status);
-   vvd(dc, 0.1741696500896438970, 1e-12, "eraAtoc13", "A/dc", status);
+   vvd(rc, 2.709956744659734086, 1e-12, "eraAtoc13", "A/rc", status);
+   vvd(dc, 0.1741696500898471366, 1e-12, "eraAtoc13", "A/dc", status);
    viv(j, 0, "eraAtoc13", "A/j", status);
 
 }
@@ -1663,7 +1737,7 @@ static void t_atoi13(int *status)
 **
 **  Called:  eraAtoi13, vvd, viv
 **
-**  This revision:  2013 October 3
+**  This revision:  2021 January 5
 */
 {
    double utc1, utc2, dut1, elong, phi, hm, xp, yp, phpa, tc, rh, wl,
@@ -1689,8 +1763,8 @@ static void t_atoi13(int *status)
    j = eraAtoi13 ( "R", ob1, ob2, utc1, utc2, dut1,
                    elong, phi, hm, xp, yp, phpa, tc, rh, wl,
                    &ri, &di);
-   vvd(ri, 2.710121574449135955, 1e-12, "eraAtoi13", "R/ri", status);
-   vvd(di, 0.1729371839114567725, 1e-12, "eraAtoi13", "R/di", status);
+   vvd(ri, 2.710121574447540810, 1e-12, "eraAtoi13", "R/ri", status);
+   vvd(di, 0.1729371839116608778, 1e-12, "eraAtoi13", "R/di", status);
    viv(j, 0, "eraAtoi13", "R/J", status);
 
    ob1 = -0.09247619879782006106;
@@ -1698,8 +1772,8 @@ static void t_atoi13(int *status)
    j = eraAtoi13 ( "H", ob1, ob2, utc1, utc2, dut1,
                    elong, phi, hm, xp, yp, phpa, tc, rh, wl,
                    &ri, &di);
-   vvd(ri, 2.710121574449135955, 1e-12, "eraAtoi13", "H/ri", status);
-   vvd(di, 0.1729371839114567725, 1e-12, "eraAtoi13", "H/di", status);
+   vvd(ri, 2.710121574448138676, 1e-12, "eraAtoi13", "H/ri", status);
+   vvd(di, 0.1729371839116608778, 1e-12, "eraAtoi13", "H/di", status);
    viv(j, 0, "eraAtoi13", "H/J", status);
 
    ob1 = 0.09233952224794989993;
@@ -1707,8 +1781,8 @@ static void t_atoi13(int *status)
    j = eraAtoi13 ( "A", ob1, ob2, utc1, utc2, dut1,
                    elong, phi, hm, xp, yp, phpa, tc, rh, wl,
                    &ri, &di);
-   vvd(ri, 2.710121574449135955, 1e-12, "eraAtoi13", "A/ri", status);
-   vvd(di, 0.1729371839114567728, 1e-12, "eraAtoi13", "A/di", status);
+   vvd(ri, 2.710121574448138676, 1e-12, "eraAtoi13", "A/ri", status);
+   vvd(di, 0.1729371839116608781, 1e-12, "eraAtoi13", "A/di", status);
    viv(j, 0, "eraAtoi13", "A/J", status);
 
 }
@@ -1726,7 +1800,7 @@ static void t_atoiq(int *status)
 *
 **  Called:  eraApio13, eraAtoiq, vvd
 *
-**  This revision:  2013 October 4
+**  This revision:  2021 January 5
 */
 {
    double utc1, utc2, dut1, elong, phi, hm, xp, yp, phpa, tc, rh, wl,
@@ -1752,25 +1826,25 @@ static void t_atoiq(int *status)
    ob1 = 2.710085107986886201;
    ob2 = 0.1717653435758265198;
    eraAtoiq("R", ob1, ob2, &astrom, &ri, &di);
-   vvd(ri, 2.710121574449135955, 1e-12,
+   vvd(ri, 2.710121574447540810, 1e-12,
            "eraAtoiq", "R/ri", status);
-   vvd(di, 0.1729371839114567725, 1e-12,
+   vvd(di, 0.17293718391166087785, 1e-12,
            "eraAtoiq", "R/di", status);
 
    ob1 = -0.09247619879782006106;
    ob2 = 0.1717653435758265198;
    eraAtoiq("H", ob1, ob2, &astrom, &ri, &di);
-   vvd(ri, 2.710121574449135955, 1e-12,
+   vvd(ri, 2.710121574448138676, 1e-12,
            "eraAtoiq", "H/ri", status);
-   vvd(di, 0.1729371839114567725, 1e-12,
+   vvd(di, 0.1729371839116608778, 1e-12,
            "eraAtoiq", "H/di", status);
 
    ob1 = 0.09233952224794989993;
    ob2 = 1.407758704513722461;
    eraAtoiq("A", ob1, ob2, &astrom, &ri, &di);
-   vvd(ri, 2.710121574449135955, 1e-12,
+   vvd(ri, 2.710121574448138676, 1e-12,
            "eraAtoiq", "A/ri", status);
-   vvd(di, 0.1729371839114567728, 1e-12,
+   vvd(di, 0.1729371839116608781, 1e-12,
            "eraAtoiq", "A/di", status);
 
 }
@@ -3973,7 +4047,7 @@ static void t_fk52h(int *status)
 **
 **  Called:  eraFk52h, vvd
 **
-**  This revision:  2017 January 3
+**  This revision:  2021 January 5
 */
 {
    double r5, d5, dr5, dd5, px5, rv5, rh, dh, drh, ddh, pxh, rvh;
@@ -3993,7 +4067,7 @@ static void t_fk52h(int *status)
        "eraFk52h", "ra", status);
    vvd(dh,  -0.2917516070530391757, 1e-14,
        "eraFk52h", "dec", status);
-   vvd(drh, -0.19618741256057224e-6,1e-19,
+   vvd(drh, -0.1961874125605721270e-6,1e-19,
        "eraFk52h", "dr5", status);
    vvd(ddh, -0.58459905176693911e-5, 1e-19,
        "eraFk52h", "dd5", status);
@@ -5269,6 +5343,43 @@ static void t_ltpequ(int *status)
        "eraLtpequ", "veq2", status);
    vvd(veq[2], 0.9118552442250819624, 1e-14,
        "eraLtpequ", "veq3", status);
+
+}
+
+static void t_moon98(int *status)
+/*
+**  - - - - - - - - -
+**   t _ m o o n 9 8
+**  - - - - - - - - -
+**
+**  Test eraMoon98 function.
+**
+**  Returned:
+**     status    int         FALSE = success, TRUE = fail
+**
+**  Called:  eraMoon98, vvd, viv
+**
+**  This revision:  2021 April 12
+*/
+{
+   double pv[2][3];
+
+
+   eraMoon98(2400000.5, 43999.9, pv);
+
+   vvd(pv[0][0], -0.2601295959971044180e-2, 1e-11,
+       "eraMoon98", "x 4", status);
+   vvd(pv[0][1], 0.6139750944302742189e-3, 1e-11,
+       "eraMoon98", "y 4", status);
+   vvd(pv[0][2], 0.2640794528229828909e-3, 1e-11,
+       "eraMoon98", "z 4", status);
+
+   vvd(pv[1][0], -0.1244321506649895021e-3, 1e-11,
+       "eraMoon98", "xd 4", status);
+   vvd(pv[1][1], -0.5219076942678119398e-3, 1e-11,
+       "eraMoon98", "yd 4", status);
+   vvd(pv[1][2], -0.1716132214378462047e-3, 1e-11,
+       "eraMoon98", "zd 4", status);
 
 }
 
@@ -7715,7 +7826,7 @@ static void t_pvu(int *status)
 **
 **  Called:  eraPvu, vvd
 **
-**  This revision:  2013 August 7
+**  This revision:  2021 January 5
 */
 {
    double pv[2][3], upv[2][3];
@@ -7731,11 +7842,11 @@ static void t_pvu(int *status)
 
    eraPvu(2920.0, pv, upv);
 
-   vvd(upv[0][0], 126656.7598605317105, 1e-12,
+   vvd(upv[0][0], 126656.7598605317105, 1e-6,
        "eraPvu", "p1", status);
-   vvd(upv[0][1], 2118.531271155726332, 1e-12,
+   vvd(upv[0][1], 2118.531271155726332, 1e-8,
        "eraPvu", "p2", status);
-   vvd(upv[0][2], -245216.5048590656190, 1e-12,
+   vvd(upv[0][2], -245216.5048590656190, 1e-6,
        "eraPvu", "p3", status);
 
    vvd(upv[1][0], -0.4051854035740713039e-2, 1e-12,
@@ -7760,7 +7871,7 @@ static void t_pvup(int *status)
 **
 **  Called:  eraPvup, vvd
 **
-**  This revision:  2013 August 7
+**  This revision:  2021 January 5
 */
 {
    double pv[2][3], p[3];
@@ -7776,9 +7887,9 @@ static void t_pvup(int *status)
 
    eraPvup(2920.0, pv, p);
 
-   vvd(p[0],  126656.7598605317105,   1e-12, "eraPvup", "1", status);
-   vvd(p[1],    2118.531271155726332, 1e-12, "eraPvup", "2", status);
-   vvd(p[2], -245216.5048590656190,   1e-12, "eraPvup", "3", status);
+   vvd(p[0],  126656.7598605317105,   1e-6, "eraPvup", "1", status);
+   vvd(p[1],    2118.531271155726332, 1e-8, "eraPvup", "2", status);
+   vvd(p[2], -245216.5048590656190,   1e-6, "eraPvup", "3", status);
 
 }
 
@@ -9877,16 +9988,93 @@ static void t_zr(int *status)
 
 }
 
+/*
+**
+**  Validate the ERFA C functions that are not derived from SOFA (SOFA-derived tests are in t_erfa_c)
+**
+*/
+
+static void t_versions(int *status)
+/*
+**  Test that the version-checking functions yield something.
+*/
+{
+  char buf[3];
+  char* res;
+  const char* version_str = eraVersion();
+
+  sprintf(buf, "%d", eraVersionMajor());
+  res = strstr(version_str, buf);
+  if (!res) {
+    *status = 1;
+    printf("t_versions failed - major version not in version string %s\n", version_str);
+  }
+
+  sprintf(buf, "%d", eraVersionMinor());
+  res = strstr(version_str, buf);
+  if (!res) {
+    *status = 1;
+    printf("t_versions failed - minor version not in version string %s\n", version_str);
+  }
+
+  sprintf(buf, "%d", eraVersionMicro());
+  res = strstr(version_str, buf);
+  if (!res) {
+    *status = 1;
+    printf("t_versions failed - micro version not in version string %s\n", version_str);
+  }
+
+  if (*status == 0) {
+    printf("t_versions passed\n");
+  }
+
+}
+
+static void t_leap_seconds(int *status)
+/*
+**  Test that the leap-second machinery yields something
+*/
+{
+  int count_init, count_postset, count_postreset;
+  eraLEAPSECOND* leapseconds_init;
+  eraLEAPSECOND* leapseconds_postset;
+  eraLEAPSECOND* leapseconds_postreset;
+
+  eraLEAPSECOND fake_leapsecond[1] = {{ 2050, 5, 55.0 }};
+
+  count_init = eraGetLeapSeconds(&leapseconds_init);
+
+  eraSetLeapSeconds(fake_leapsecond, 1);
+  count_postset = eraGetLeapSeconds(&leapseconds_postset);
+
+  if (count_postset == 1) {
+    printf("t_leap_seconds set passed\n");
+  } else {
+    *status = 1;
+    printf("t_leap_seconds set failed - leap second table has %d entries instead of %d\n", count_postreset, 1);
+  }
+
+  eraSetLeapSeconds(fake_leapsecond, -1);
+  count_postreset = eraGetLeapSeconds(&leapseconds_postreset);
+
+  if (count_postreset == count_init) {
+    printf("t_leap_seconds reset passed\n");
+  } else {
+    *status = 1;
+    printf("t_leap_seconds reset failed - leap second table has %d entries instead of %d\n", count_postreset, count_init);
+  }
+}
+
 int main(int argc, char *argv[])
 /*
 **  - - - - -
 **   m a i n
 **  - - - - -
 **
-**  This revision:  2017 October 21
+**  This revision:  2021 April 18
 */
 {
-   int status;
+   int status, status_extra;
 
 
 /* If any command-line argument, switch to verbose reporting. */
@@ -9918,6 +10106,8 @@ int main(int argc, char *argv[])
    t_aper13(&status);
    t_apio(&status);
    t_apio13(&status);
+   t_atcc13(&status);
+   t_atccq(&status);
    t_atci13(&status);
    t_atciq(&status);
    t_atciqn(&status);
@@ -10030,6 +10220,7 @@ int main(int argc, char *argv[])
    t_ltpb(&status);
    t_ltpecl(&status);
    t_ltpequ(&status);
+   t_moon98(&status);
    t_num00a(&status);
    t_num00b(&status);
    t_num06a(&status);
@@ -10150,12 +10341,27 @@ int main(int argc, char *argv[])
    } else {
       printf("t_erfa_c validation successful\n");
    }
-   return status;
+
+/* Preset the &status to FALSE = success. */
+   status_extra = 0;
+
+/* Test all of the extra functions. */
+   t_versions(&status_extra);
+   t_leap_seconds(&status_extra);
+
+/* Report, set up an appropriate exit status, and finish. */
+   if (status_extra) {
+      printf("t_erfa_c_extra validation failed!\n");
+   } else {
+      printf("t_erfa_c_extra validation successful\n");
+   }
+
+   return status | status_extra;
 }
 /*----------------------------------------------------------------------
 **  
 **  
-**  Copyright (C) 2013-2020, NumFOCUS Foundation.
+**  Copyright (C) 2013-2021, NumFOCUS Foundation.
 **  All rights reserved.
 **  
 **  This library is derived, with permission, from the International

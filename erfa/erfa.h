@@ -12,41 +12,6 @@
 **
 */
 
-/* Star-independent astrometry parameters */
-typedef struct {
-   double pmt;        /* PM time interval (SSB, Julian years) */
-   double eb[3];      /* SSB to observer (vector, au) */
-   double eh[3];      /* Sun to observer (unit vector) */
-   double em;         /* distance from Sun to observer (au) */
-   double v[3];       /* barycentric observer velocity (vector, c) */
-   double bm1;        /* sqrt(1-|v|^2): reciprocal of Lorenz factor */
-   double bpn[3][3];  /* bias-precession-nutation matrix */
-   double along;      /* longitude + s' + dERA(DUT) (radians) */
-   double phi;        /* geodetic latitude (radians) */
-   double xpl;        /* polar motion xp wrt local meridian (radians) */
-   double ypl;        /* polar motion yp wrt local meridian (radians) */
-   double sphi;       /* sine of geodetic latitude */
-   double cphi;       /* cosine of geodetic latitude */
-   double diurab;     /* magnitude of diurnal aberration vector */
-   double eral;       /* "local" Earth rotation angle (radians) */
-   double refa;       /* refraction constant A (radians) */
-   double refb;       /* refraction constant B (radians) */
-} eraASTROM;
-/* (Vectors eb, eh, em and v are all with respect to BCRS axes.) */
-
-/* Body parameters for light deflection */
-typedef struct {
-   double bm;         /* mass of the body (solar masses) */
-   double dl;         /* deflection limiter (radians^2/2) */
-   double pv[2][3];   /* barycentric PV of the body (au, au/day) */
-} eraLDBODY;
-
-/* Leap second definition */
-typedef struct {
-   int iyear, month;
-   double delat;
-} eraLEAPSECOND;
-
 /* Pi */
 #define ERFA_DPI (3.141592653589793238462643)
 
@@ -153,6 +118,35 @@ typedef struct {
 extern "C" {
 #endif
 
+/* Star-independent astrometry parameters */
+typedef struct {
+   double pmt;        /* PM time interval (SSB, Julian years) */
+   double eb[3];      /* SSB to observer (vector, au) */
+   double eh[3];      /* Sun to observer (unit vector) */
+   double em;         /* distance from Sun to observer (au) */
+   double v[3];       /* barycentric observer velocity (vector, c) */
+   double bm1;        /* sqrt(1-|v|^2): reciprocal of Lorenz factor */
+   double bpn[3][3];  /* bias-precession-nutation matrix */
+   double along;      /* longitude + s' + dERA(DUT) (radians) */
+   double phi;        /* geodetic latitude (radians) */
+   double xpl;        /* polar motion xp wrt local meridian (radians) */
+   double ypl;        /* polar motion yp wrt local meridian (radians) */
+   double sphi;       /* sine of geodetic latitude */
+   double cphi;       /* cosine of geodetic latitude */
+   double diurab;     /* magnitude of diurnal aberration vector */
+   double eral;       /* "local" Earth rotation angle (radians) */
+   double refa;       /* refraction constant A (radians) */
+   double refb;       /* refraction constant B (radians) */
+} eraASTROM;
+/* (Vectors eb, eh, em and v are all with respect to BCRS axes.) */
+
+/* Body parameters for light deflection */
+typedef struct {
+   double bm;         /* mass of the body (solar masses) */
+   double dl;         /* deflection limiter (radians^2/2) */
+   double pv[2][3];   /* barycentric PV of the body (au, au/day) */
+} eraLDBODY;
+
 /* Astronomy/Calendars */
 int eraCal2jd(int iy, int im, int id, double *djm0, double *djm);
 double eraEpb(double dj1, double dj2);
@@ -202,6 +196,13 @@ int eraApio13(double utc1, double utc2, double dut1,
               double elong, double phi, double hm, double xp, double yp,
               double phpa, double tc, double rh, double wl,
               eraASTROM *astrom);
+void eraAtcc13(double rc, double dc,
+               double pr, double pd, double px, double rv,
+               double date1, double date2,
+               double *ra, double *da);
+void eraAtccq(double rc, double dc,
+              double pr, double pd, double px, double rv,
+              eraASTROM *astrom, double *ra, double *da);
 void eraAtci13(double rc, double dc,
                double pr, double pd, double px, double rv,
                double date1, double date2,
@@ -271,6 +272,7 @@ void eraRefco(double phpa, double tc, double rh, double wl,
 /* Astronomy/Ephemerides */
 int eraEpv00(double date1, double date2,
              double pvh[2][3], double pvb[2][3]);
+void eraMoon98(double date1, double date2, double pv[2][3]);
 int eraPlan94(double date1, double date2, int np, double pv[2][3]);
 
 /* Astronomy/FundamentalArgs */
@@ -617,18 +619,6 @@ void eraS2xpv(double s1, double s2, double pv[2][3], double spv[2][3]);
 void eraSxp(double s, double p[3], double sp[3]);
 void eraSxpv(double s, double pv[2][3], double spv[2][3]);
 
-
-/*
-**  Get the leap second table, initializing it to the built-in version
-**  if necessary.
-**
-**  This function is for internal use in dat.c only and should
-**  not be used elsewhere.
-*/
-int eraDatini(const eraLEAPSECOND *builtin, int n_builtin,
-              eraLEAPSECOND **leapseconds);
-
-
 /*
 ** Returns the package version
 ** as defined in configure.ac
@@ -664,18 +654,31 @@ int eraVersionMicro(void);
 */
 const char* eraSofaVersion(void);
 
-
 /*
 ** Get and set leap seconds (not supported by SOFA; EXPERIMENTAL)
 */
+
+typedef struct {
+   int iyear, month;
+   double delat;
+} eraLEAPSECOND;
+
 int eraGetLeapSeconds(eraLEAPSECOND **leapseconds);
 void eraSetLeapSeconds(eraLEAPSECOND *leapseconds, int count);
+
+/*
+**  Get the leap second table, initializing it to the built-in version
+**  if necessary.
+**
+**  This function is for internal use in dat.c only and should
+**  not be used elsewhere.
+*/
+int eraDatini(const eraLEAPSECOND *builtin, int n_builtin,
+              eraLEAPSECOND **leapseconds);
 
 
 #ifdef __cplusplus
 }
 #endif
 
-
 #endif
-
