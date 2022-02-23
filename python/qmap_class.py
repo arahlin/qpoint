@@ -1057,33 +1057,11 @@ class QMap(QPoint):
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
         # calculate for each pixel
-        # faster if numpy.linalg handles broadcasting
-        npv = np.__version__.split('.')
-        if len(npv) > 3:
-            if 'dev' in npv[-1]:
-                npv = [0, 0, 0]
-            else:
-                npv = np.version.short_version.split('.')
-        npv = [int(x) for x in npv]
-        if npv >= [1, 10, 0]:
-            proj[:, ~m] = 0
-            cond = np.linalg.cond(proj[idx].transpose(2, 0, 1), p=mode)
-            cond[~m] = np.inf
-            # threshold at machine precision
-            cond[cond > 1.0 / np.finfo(float).eps] = np.inf
-            return cond
-
-        # slow method, loop over pixels
-        def func(x):
-            if not np.isfinite(x[0]):
-                return np.inf
-            c = np.linalg.cond(x[idx], p=mode)
-            # threshold at machine precision
-            if c > 1.0 / np.finfo(float).eps:
-                return np.inf
-            return c
-
-        cond = np.apply_along_axis(func, 0, proj)
+        proj[:, ~m] = 0
+        cond = np.linalg.cond(proj[idx].transpose(2, 0, 1), p=mode)
+        cond[~m] = np.inf
+        # threshold at machine precision
+        cond[cond > 1.0 / np.finfo(float).eps] = np.inf
         return cond
 
     def solve_map(
@@ -1205,9 +1183,7 @@ class QMap(QPoint):
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
         # solve
-        # faster if numpy.linalg handles broadcasting
-        npv = [int(x) for x in np.version.short_version.split('.')]
-        if method == 'exact' and npv >= [1, 8, 0]:
+        if method == "exact":
             if cond is None:
                 cond = self.proj_cond(proj=proj, partial=partial)
             mask &= cond < cond_thresh
@@ -1223,6 +1199,9 @@ class QMap(QPoint):
                 return ret[0]
             return ret
 
+        if method != "cho":
+            raise ValueError("Unrecognized method {}".format(method))
+
         # slow method, loop over pixels
         from scipy.linalg import cho_factor, cho_solve
 
@@ -1232,10 +1211,7 @@ class QMap(QPoint):
                 vec[:, ii] = fill
                 continue
             try:
-                if method == 'cho':
-                    vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
-                elif method == 'exact':
-                    vec[:, ii] = np.linalg.solve(A, v)
+                vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
             except:
                 mask[ii] = False
                 proj[:, ii] = 0
