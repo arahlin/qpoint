@@ -18,7 +18,7 @@ Other Contributors:
 * Python 2.7, Python 3+
 * `numpy` library, version 1.10.0 or newer (for python bindings)
 * `astropy` library, version 1.2 or newer (optional, for baking in IERS-A data)
-* [ERFA C library](https://github.com/liberfa/erfa) (version 2.0.0, based on SOFA issue 2021-05-02 bundled with this package)
+* [ERFA C library](https://github.com/liberfa/erfa) (version 2.0.0, based on SOFA issue 2021-05-12 bundled with this package)
 * [HEALPix C library](http://healpix.sourceforge.net/) (v. 3.31 bundled with this package)
 
 ### Installation
