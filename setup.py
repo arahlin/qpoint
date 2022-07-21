@@ -111,6 +111,7 @@ setup(
     ext_modules=[ext_qp],
     cmdclass={
         'build': BuildLib,
+        'build_src': BuildLib,
         'build_ext': BuildExt,
         'build_sphinx': BuildDoc,
     },
