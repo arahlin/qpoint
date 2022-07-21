@@ -24,10 +24,7 @@ import os
 import sys
 import sysconfig
 import subprocess as sp
-
-build_dir = '../build/lib.{platform}-{version[0]}.{version[1]}'.format(
-    platform=sysconfig.get_platform(), version=sys.version_info)
-sys.path.insert(0, os.path.abspath(build_dir))
+import qpoint
 
 # -- General configuration ------------------------------------------------
 
@@ -74,10 +71,7 @@ author = u'Alexandra Rahlin'
 # built documents.
 #
 # The short X.Y version.
-try:
-    version = os.getenv("QPOINT_VERSION").split('-')[0]
-except:
-    version = sp.check_output(['git', 'describe']).decode().split('-')[0]
+version = qpoint.__version__.split("-")[0]
 # The full version, including alpha/beta/rc tags.
 release = version
 
