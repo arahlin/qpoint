@@ -75,7 +75,7 @@ author = u'Alexandra Rahlin'
 #
 # The short X.Y version.
 try:
-    version = os.getenv("GITHUB_REF").replace("ref/tag/", "").split('-')[0]
+    version = os.getenv("QPOINT_VERSION").split('-')[0]
 except:
     version = sp.check_output(['git', 'describe']).decode().split('-')[0]
 # The full version, including alpha/beta/rc tags.
