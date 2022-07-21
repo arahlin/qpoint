@@ -21,7 +21,7 @@ version_simple = version.split('-')[0]
 # write version file
 with open('python/_version.py', 'w') as f:
     vtup = tuple(int(x) for x in version_simple.split('.'))
-    f.write('__version__ = {:r}\n'.format(version_simple))
+    f.write('__version__ = {!r}\n'.format(version_simple))
 
 print('qpoint version {}'.format(version_simple))
 varg = '-DQP_VERSION=\"{}\"'.format(version)
