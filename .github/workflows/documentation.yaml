@@ -17,7 +17,7 @@ jobs:
     - name: Build docs
       uses: ammaraskar/sphinx-action@master
       with:
-        pre-build-command: "apt-get --allow-releaseinfo-change update -y && apt-get install -y pandoc"
+        pre-build-command: "apt-get --allow-releaseinfo-change update -y && apt-get install -y git && apt-get install -y pandoc"
         docs-folder: "docs/"
     # Create an artifact of the html output.
     - uses: actions/upload-artifact@v2
