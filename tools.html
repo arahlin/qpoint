@@ -23,6 +23,9 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
           <a href="qmap_class.html" title="QMap Class"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.0 documentation</a> &#187;</li> 
@@ -60,6 +63,173 @@
             
   <div class="section" id="tools">
 <h1>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="qpoint.version">
+<code class="sig-prename descclassname">qpoint.</code><code class="sig-name descname">version</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint.html#version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print version string</p>
+</dd></dl>
+
+<span class="target" id="module-qpoint.qpoint_class"></span><dl class="function">
+<dt id="qpoint.qpoint_class.check_input">
+<code class="sig-prename descclassname">qpoint.qpoint_class.</code><code class="sig-name descname">check_input</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">arg</em>, <em class="sig-param">shape=None</em>, <em class="sig-param">quat=False</em>, <em class="sig-param">dtype=&lt;class 'numpy.float64'&gt;</em>, <em class="sig-param">inplace=True</em>, <em class="sig-param">fill=0</em>, <em class="sig-param">allow_transpose=True</em>, <em class="sig-param">allow_tuple=True</em>, <em class="sig-param">output=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/_libqpoint.html#check_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qpoint_class.check_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure input argument is an aligned array of the right type and shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>string</em>) – Name of the argument</p></li>
+<li><p><strong>arg</strong> (<em>array_like</em>) – The argument itself</p></li>
+<li><p><strong>shape</strong> (<em>tuple</em><em>, </em><em>optional</em>) – If supplied, ensure <cite>arg</cite> has this shape.</p></li>
+<li><p><strong>quat</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, ensure that the last dimension of the array has length 4.</p></li>
+<li><p><strong>dtype</strong> (<em>numpy.dtype</em><em>, </em><em>optional</em>) – Ensure <cite>arg</cite> is of this dtype.  Default: numpy.double.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False make sure that a copy of the input <cite>arg</cite> is made prior to
+returning.  Otherwise, the output <cite>arg</cite> may share memory with the
+input.</p></li>
+<li><p><strong>fill</strong> (<em>scalar</em><em>, </em><em>optional</em>) – If the input is missing or empty, fill with this value.
+If None, leave the array empty.</p></li>
+<li><p><strong>allow_transpose</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, transpose the input array if the transposed shape matches
+<cite>shape</cite>.</p></li>
+<li><p><strong>allow_tuple</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, <cite>numpy.vstack</cite> the input <cite>arg</cite> if it is a tuple.</p></li>
+<li><p><strong>output</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, ensure that the output <cite>arg</cite> is a writeable array.
+Otherwise, the array is only ensured to be aligned and
+C-contiguous.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><em>arg</em> – Aligned, contiguous and properly typed and shaped array for
+passing to the C library.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qpoint.qpoint_class.check_inputs">
+<code class="sig-prename descclassname">qpoint.qpoint_class.</code><code class="sig-name descname">check_inputs</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/_libqpoint.html#check_inputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qpoint_class.check_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure that a group of input arguments have the same shape by broadcasting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – A list of broadcastable array_like arguments.</p></li>
+<li><p><strong>kwargs</strong> – Dictionary of arguments to pass to <cite>check_input</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><em>args</em> – A list of broadcast and properly aligned/shaped/typed arrays for
+passing to the C library as a set of timestreams.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qpoint.qpoint_class.check_output">
+<code class="sig-prename descclassname">qpoint.qpoint_class.</code><code class="sig-name descname">check_output</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">arg=None</em>, <em class="sig-param">shape=None</em>, <em class="sig-param">quat=False</em>, <em class="sig-param">dtype=&lt;class 'numpy.float64'&gt;</em>, <em class="sig-param">inplace=True</em>, <em class="sig-param">fill=None</em>, <em class="sig-param">allow_transpose=True</em>, <em class="sig-param">allow_tuple=True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/_libqpoint.html#check_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qpoint_class.check_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure that the output argument is properly aligned/shaped/typed.
+Check input kwargs to see if a pointer to the output array
+has been passed in.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>string</em>) – Name of the argument</p></li>
+<li><p><strong>arg</strong> (<em>array_like</em><em>, </em><em>optional</em>) – The argument itself.  If not supplied, kwargs is checked.</p></li>
+<li><p><strong>shape</strong> (<em>tuple</em><em>, </em><em>optional</em>) – If supplied, ensure <cite>arg</cite> has this shape.  If <cite>arg</cite> is None,
+this argument is required.</p></li>
+<li><p><strong>dtype</strong> (<em>numpy.dtype</em><em>, </em><em>optional</em>) – Ensure <cite>arg</cite> is of this dtype.  Default: numpy.double.</p></li>
+<li><p><strong>inplace</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False make sure that a copy of the input <cite>arg</cite> is made prior to
+returning.  Otherwise, the output <cite>arg</cite> may share memory with the
+input.</p></li>
+<li><p><strong>fill</strong> (<em>scalar</em><em>, </em><em>optional</em>) – If the input is missing or empty, fill with this value.
+If None, leave the array empty.</p></li>
+<li><p><strong>allow_transpose</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, transpose the input array if the transposed shape matches
+<cite>shape</cite>.</p></li>
+<li><p><strong>allow_tuple</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, <cite>numpy.vstack</cite> the input <cite>arg</cite> if it is a tuple.</p></li>
+<li><p><strong>kwargs</strong> – Any remaining input arguments.  If <cite>arg</cite> is None,
+<cite>kwargs</cite> is searched for the <cite>name</cite> key.  If not found, a
+an empty array is created of the appropriate shape.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><em>arg</em> – Aligned, contiguous, writeable and properly typed and shaped array
+for passing to the C library.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-qpoint.qmap_class"></span><dl class="function">
+<dt id="qpoint.qmap_class.check_map">
+<code class="sig-prename descclassname">qpoint.qmap_class.</code><code class="sig-name descname">check_map</code><span class="sig-paren">(</span><em class="sig-param">map_in</em>, <em class="sig-param">copy=False</em>, <em class="sig-param">partial=False</em>, <em class="sig-param">dtype=&lt;class 'numpy.float64'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qmap_class.html#check_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qmap_class.check_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a properly transposed and memory-aligned map and its nside.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>map_in</strong> (<em>map</em><em> or </em><em>list of maps</em>) – Input map(s)</p></li>
+<li><p><strong>copy</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, ensure that output map does not share memory with
+the input map.   Use if you do not want in-place operations to
+modify the map contents.</p></li>
+<li><p><strong>partial</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the map is not checked to ensure a proper healpix nside,
+and the number of pixels is returned instead.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>map_out</strong> (<em>numpy.ndarray</em>) – Properly shaped and memory-aligned map, copied from the input
+if necessary.</p></li>
+<li><p><strong>nside or npix</strong> (<em>int</em>) – If partial is False, the map nside. Otherwise, the number of pixels.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="qpoint.qmap_class.check_proj">
+<code class="sig-prename descclassname">qpoint.qmap_class.</code><code class="sig-name descname">check_proj</code><span class="sig-paren">(</span><em class="sig-param">proj_in</em>, <em class="sig-param">copy=False</em>, <em class="sig-param">partial=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qmap_class.html#check_proj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qmap_class.check_proj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a properly transposed and memory-aligned projection map,
+its nside, and the map dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>proj_in</strong> (<em>map</em><em> or </em><em>list of maps</em>) – Input projection matrix map</p></li>
+<li><p><strong>copy</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, ensure that output map does not share memory with
+the input map.   Use if you do not want in-place operations to
+modify the map contents.</p></li>
+<li><p><strong>partial</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the map is not checked to ensure a proper healpix nside,
+and the number of pixels is returned instead.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>map_out</strong> (<em>numpy.ndarray</em>) – Properly shaped and memory-aligned map, copied from the input
+if necessary.</p></li>
+<li><p><strong>nside or npix</strong> (<em>int</em>) – If partial is False, the map nside. Otherwise, the number of pixels.</p></li>
+<li><p><strong>nmap</strong> (<em>int</em>) – The map size this projection matrix is intended to invert, i.e.
+the solution to <cite>len(proj) = nmap * (nmap + 1) / 2</cite>.  Raises an
+error if an integer solution is not found.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-qpoint.tools"></span><dl class="function">
+<dt id="qpoint.tools.refraction">
+<code class="sig-prename descclassname">qpoint.tools.</code><code class="sig-name descname">refraction</code><span class="sig-paren">(</span><em class="sig-param">el</em>, <em class="sig-param">temp</em>, <em class="sig-param">press</em>, <em class="sig-param">hum</em>, <em class="sig-param">freq=150.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/tools.html#refraction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.tools.refraction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standalone function for calculating the refraction correction without
+storing any parameters.  Useful for testing, numpy-vectorized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>el</strong> (<em>array_like</em>) – Observer elevation angle, degrees</p></li>
+<li><p><strong>temperature</strong> (<em>array_like</em>) – Ambient temperature, Celcius</p></li>
+<li><p><strong>pressure</strong> (<em>array_like</em>) – Ambient pressure, mbar</p></li>
+<li><p><strong>humidity</strong> (<em>array_like</em>) – Relative humidity, fraction</p></li>
+<li><p><strong>frequency</strong> (<em>array_like</em>) – Observing frequency, GHz</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>delta</strong> (<em>array_like</em>) – Refraction correction, in degrees</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
@@ -74,6 +244,9 @@
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li class="right" >
           <a href="qmap_class.html" title="QMap Class"
              >previous</a> |</li>
