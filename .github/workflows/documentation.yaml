@@ -13,6 +13,8 @@ jobs:
     steps:
     - name: Checkout github repo
       uses: actions/checkout@v2
+    - name: Print version
+      run: echo $GITHUB_REF
     # Standard drop-in approach that should work for most people.
     - name: Build docs
       uses: ammaraskar/sphinx-action@master
