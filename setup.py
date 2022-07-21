@@ -102,7 +102,7 @@ ext_qp = Extension(
 setup(
     name='qpoint',
     version=version,
-    description='Pointing for SPIDER',
+    description='A lightweight quaternion-based library for efficient telescope pointing.',
     author='Alexandra Rahlin',
     packages=['qpoint'],
     package_dir={'qpoint': 'python'},
