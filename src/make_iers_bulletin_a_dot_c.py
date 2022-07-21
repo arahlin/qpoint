@@ -10,8 +10,6 @@
 # 2015 ASR <arahlin@princeton.edu>
 # 2017 ASR <arahlin@fnal.gov> -- use astropy utilities for auto update
 
-import numpy as np
-
 header = """
 /*
  IERS Bulletin A interpolation
@@ -146,6 +144,8 @@ if __name__ == '__main__':
         mjd_max = 0
 
     else:
+        import numpy as np
+
         columns = ['year', 'month', 'day', 'MJD', 'PM_x', 'PM_y', 'UT1_UTC']
         iers_table = IERS_Auto.open()[columns].as_array()
 

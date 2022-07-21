@@ -29,11 +29,13 @@ jobs:
       uses: actions/setup-python@v2
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade build numpy
+        python -m pip install --upgrade build
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.8.1
       env:
-        CIBW_BEFORE_BUILD: pip install numpy
+        CIBW_SKIP: cp36-* *-musllinux_*
+        CIBW_ARCHS_LINUX: x86_64
+        CIBW_ARCHS_MACOS: all
     - uses: actions/upload-artifact@v3
       with:
         path: ./wheelhouse/*.whl

@@ -23,7 +23,7 @@ jobs:
     - name: Build docs
       uses: ammaraskar/sphinx-action@master
       with:
-        pre-build-command: "apt-get --allow-releaseinfo-change update -y && apt-get install -y python3-dev build-essential && pip install numpy"
+        pre-build-command: "apt-get --allow-releaseinfo-change update -y && apt-get install -y python3-dev build-essential"
         docs-folder: "docs/"
     # Create an artifact of the html output.
     - uses: actions/upload-artifact@v2

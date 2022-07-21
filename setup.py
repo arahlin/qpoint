@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# numpy.distutils handles intel compiler
+# build_ext handles intel compiler
 # need to pass --compiler=intel (or add to [build_ext] section of setup.cfg)
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
