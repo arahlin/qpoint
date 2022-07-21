@@ -10,6 +10,7 @@ from setuptools.command.build_ext import build_ext
 import os, glob
 import sys
 import subprocess as sp
+import sysconfig
 
 # get version from git tag
 version = os.getenv("QPOINT_VERSION")
@@ -39,13 +40,15 @@ class BuildExt(build_ext):
     def build_extensions(self):
         c = self.compiler.compiler[0]
         print("Building extension with {}".format(c))
-        if 'gcc' in c:
-            for e in self.extensions:
-                e.extra_compile_args.append('-fopenmp')
-                e.libraries.append('gomp')
-        elif 'intel' in c:
-            for e in self.extensions:
-                e.extra_compile_args.append('-qopenmp')
+        plat = sysconfig.get_platform()
+        if 'macosx' not in plat:
+            if 'gcc' in c:
+                for e in self.extensions:
+                    e.extra_compile_args.append('-fopenmp')
+                    e.libraries.append('gomp')
+            elif 'intel' in c:
+                for e in self.extensions:
+                    e.extra_compile_args.append('-qopenmp')
         build_ext.build_extensions(self)
 
 
