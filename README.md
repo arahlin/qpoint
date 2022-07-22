@@ -4,6 +4,8 @@ A lightweight quaternion-based library for telescope pointing.  This library is 
 
 Written and maintained by Alexandra Rahlin.
 
+Documentation can be found [here](https://arahlin.github.io/qpoint/).
+
 Other Contributors:
 
 * Steve Benton
