@@ -2,10 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-try:
-    import itertools.izip as zip
-except ImportError:
-    pass
 import numpy as np
 from .qpoint_class import QPoint
 import ctypes as ct

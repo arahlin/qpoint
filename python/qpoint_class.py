@@ -2,11 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-try:
-    import itertools.izip as zip
-except ImportError:
-    pass
 import numpy as np
+from warnings import warn
 from . import _libqpoint as lib
 from ._libqpoint import libqp as qp
 from ._libqpoint import check_input, check_inputs, check_output
@@ -15,17 +12,25 @@ __all__ = ['QPoint', 'check_input', 'check_inputs', 'check_output']
 
 
 class QPoint(object):
-    def __init__(self, **kwargs):
+    def __init__(self, update_iers=False, **kwargs):
         """
         Initialize a `QPoint` memory instance for keeping track of pointing
         corrections over time.
 
-        Any keyword arguments are passed to
+        If `update_iers` is `True`, attempt to call the method
+        :meth:`qpoint.qpoint_class.QPoint.update_bulletin_a` to update the
+        internal IERS-A database (requires `astropy` version 1.2 or newer).
+
+        Any remaining keyword arguments are passed to
         :meth:`qpoint.qpoint_class.QPoint.set` to update memory.
         """
 
         # initialize memory
         self._memory = qp.qp_init_memory()
+
+        # try to update IERS-A bulletin
+        if update_iers:
+            self.update_bulletin_a()
 
         # collect all parameter functions
         self._funcs = lib.qp_funcs
@@ -1647,8 +1652,6 @@ class QPoint(object):
         Only full-sky maps are currently supported.
         """
 
-        from warnings import warn
-
         warn('This code is buggy, use at your own risk', UserWarning)
 
         interp_orig = self.get('interp_pix')
@@ -1900,8 +1903,6 @@ class QPoint(object):
         try:
             from astropy.utils.iers import IERS_Auto
         except ImportError:
-            from warnings import warn
-
             warn(
                 'Compatible Astropy not found.  Install astropy v1.2 or newer '
                 'for accurate polar motion and UT1 corrections',
