@@ -39,6 +39,16 @@ if not os.path.exists("src/qp_iers_bulletin_a.c"):
         shell=True,
     )
 
+
+def read(rel_path):
+    # type: (str) -> str
+    here = os.path.abspath(os.path.dirname(__file__))
+    # intentionally *not* adding an encoding option to open, See:
+    #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
+    with open(os.path.join(here, rel_path)) as fp:
+        return fp.read()
+
+
 # build classes
 class BuildExt(build_ext):
     def build_extensions(self):
@@ -76,6 +86,8 @@ setup(
     name='qpoint',
     version=version_simple,
     description='A lightweight quaternion-based library for efficient telescope pointing.',
+    long_description=read("README.md"),
+    long_description_content_type="text/markdown",
     author='Alexandra Rahlin',
     packages=['qpoint'],
     package_dir={'qpoint': 'python'},
