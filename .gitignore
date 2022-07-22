@@ -7,3 +7,4 @@ local
 .*.swp
 python/_version.py
 *.nfs*
+*.egg-info
