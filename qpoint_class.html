@@ -72,14 +72,17 @@
 <h1>QPoint Class<a class="headerlink" href="#qpoint-class" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="qpoint.qpoint_class.QPoint">
-<em class="property">class </em><code class="sig-prename descclassname">qpoint.qpoint_class.</code><code class="sig-name descname">QPoint</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">qpoint.qpoint_class.</code><code class="sig-name descname">QPoint</code><span class="sig-paren">(</span><em class="sig-param">update_iers=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="qpoint.qpoint_class.QPoint.__init__">
-<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">update_iers=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize a <cite>QPoint</cite> memory instance for keeping track of pointing
 corrections over time.</p>
-<p>Any keyword arguments are passed to
+<p>If <cite>update_iers</cite> is <cite>True</cite>, attempt to call the method
+<a class="reference internal" href="#qpoint.qpoint_class.QPoint.update_bulletin_a" title="qpoint.qpoint_class.QPoint.update_bulletin_a"><code class="xref py py-meth docutils literal notranslate"><span class="pre">qpoint.qpoint_class.QPoint.update_bulletin_a()</span></code></a> to update the
+internal IERS-A database (requires <cite>astropy</cite> version 1.2 or newer).</p>
+<p>Any remaining keyword arguments are passed to
 <a class="reference internal" href="#qpoint.qpoint_class.QPoint.set" title="qpoint.qpoint_class.QPoint.set"><code class="xref py py-meth docutils literal notranslate"><span class="pre">qpoint.qpoint_class.QPoint.set()</span></code></a> to update memory.</p>
 </dd></dl>
 

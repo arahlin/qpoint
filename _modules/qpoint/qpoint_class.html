@@ -54,11 +54,8 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">itertools.izip</span> <span class="k">as</span> <span class="nn">zip</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="k">pass</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_libqpoint</span> <span class="k">as</span> <span class="n">lib</span>
 <span class="kn">from</span> <span class="nn">._libqpoint</span> <span class="kn">import</span> <span class="n">libqp</span> <span class="k">as</span> <span class="n">qp</span>
 <span class="kn">from</span> <span class="nn">._libqpoint</span> <span class="kn">import</span> <span class="n">check_input</span><span class="p">,</span> <span class="n">check_inputs</span><span class="p">,</span> <span class="n">check_output</span>
@@ -67,17 +64,25 @@
 
 
 <div class="viewcode-block" id="QPoint"><a class="viewcode-back" href="../../qpoint_class.html#qpoint.qpoint_class.QPoint">[docs]</a><span class="k">class</span> <span class="nc">QPoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-<div class="viewcode-block" id="QPoint.__init__"><a class="viewcode-back" href="../../qpoint_class.html#qpoint.qpoint_class.QPoint.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="QPoint.__init__"><a class="viewcode-back" href="../../qpoint_class.html#qpoint.qpoint_class.QPoint.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_iers</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize a `QPoint` memory instance for keeping track of pointing</span>
 <span class="sd">        corrections over time.</span>
 
-<span class="sd">        Any keyword arguments are passed to</span>
+<span class="sd">        If `update_iers` is `True`, attempt to call the method</span>
+<span class="sd">        :meth:`qpoint.qpoint_class.QPoint.update_bulletin_a` to update the</span>
+<span class="sd">        internal IERS-A database (requires `astropy` version 1.2 or newer).</span>
+
+<span class="sd">        Any remaining keyword arguments are passed to</span>
 <span class="sd">        :meth:`qpoint.qpoint_class.QPoint.set` to update memory.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># initialize memory</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_memory</span> <span class="o">=</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_init_memory</span><span class="p">()</span>
+
+        <span class="c1"># try to update IERS-A bulletin</span>
+        <span class="k">if</span> <span class="n">update_iers</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_bulletin_a</span><span class="p">()</span>
 
         <span class="c1"># collect all parameter functions</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_funcs</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">qp_funcs</span>
@@ -1699,8 +1704,6 @@
 <span class="sd">        Only full-sky maps are currently supported.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
-
         <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;This code is buggy, use at your own risk&#39;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
 
         <span class="n">interp_orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;interp_pix&#39;</span><span class="p">)</span>
@@ -1952,8 +1955,6 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">astropy.utils.iers</span> <span class="kn">import</span> <span class="n">IERS_Auto</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
-
             <span class="n">warn</span><span class="p">(</span>
                 <span class="s1">&#39;Compatible Astropy not found.  Install astropy v1.2 or newer &#39;</span>
                 <span class="s1">&#39;for accurate polar motion and UT1 corrections&#39;</span><span class="p">,</span>
