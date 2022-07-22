@@ -76,6 +76,7 @@ setup(
     packages=['qpoint'],
     package_dir={'qpoint': 'python'},
     ext_modules=[ext_qp],
+    license_files=('LICENSE',),
     cmdclass={
         'build_ext': BuildExt,
     },

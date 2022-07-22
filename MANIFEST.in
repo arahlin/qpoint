@@ -1,0 +1,2 @@
+include docs/*.*
+global-include *.c *.h *.py Makefile* LICENSE README*
