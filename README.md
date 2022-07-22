@@ -26,7 +26,7 @@ Other Contributors:
 For most users, it should be sufficient to run the following to install the python library:
 
 ```
-python setup.py install
+pip install qpoint
 ```
 
 This will install the python bindings and library code compiled with OpenMP support, if found.
