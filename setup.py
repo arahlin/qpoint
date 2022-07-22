@@ -15,8 +15,12 @@ import sysconfig
 # get version from git tag
 version = os.getenv("QPOINT_VERSION")
 if version is None:
-    cmd = 'git describe --abbrev=4 --dirty --always --tags'.split()
-    version = sp.check_output(cmd).strip().decode()
+    if os.path.exists(".git"):
+        cmd = 'git describe --abbrev=4 --dirty --always --tags'.split()
+        version = sp.check_output(cmd).strip().decode()
+    else:
+        vline = open('python/_version.py', 'r').read().strip()
+        version = vline.split()[-1].strip("'\"")
 version_simple = version.split('-')[0]
 
 # write version file
