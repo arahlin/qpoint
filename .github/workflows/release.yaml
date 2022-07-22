@@ -95,7 +95,7 @@ jobs:
         path: dist/*.tar.gz
 
   upload:
-    needs: wheels sdist
+    needs: [wheels, sdist]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/download-artifact@v3
