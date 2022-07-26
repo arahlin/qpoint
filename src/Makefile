@@ -31,7 +31,7 @@ LIBNAME = $(LIBNAME_FULL)
 OBJNAME = .o
 endif
 
-ifeq ($(ENABLE_OMP),y)
+ifneq ($(ENABLE_OMP), )
 ifeq ($(CC),icc)
 OPENMP = -qopenmp
 OPENMP_LD =

@@ -1,2 +1,3 @@
-recursive-include docs examples test
+recursive-include docs *
+recursive-include examples *
 global-include *.c *.h *.py Makefile* LICENSE README*

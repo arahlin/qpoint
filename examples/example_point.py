@@ -1,29 +1,27 @@
 import qpoint as qp
 import numpy as np
-import healpy as hp
 
 # initialize, maybe change a few options from their defaults
-Q = qp.QPoint(accuracy='low', fast_math=True, mean_aber=True,
-              num_threads=4)
+Q = qp.QPoint(update_iers=True, accuracy="low", fast_math=True, mean_aber=True)
 
-print('simulate pointing')
+print("simulate pointing")
 
 # dumb simulation
 n = 100000
-ctime = 1418662800. + np.arange(n)/100.
-az = 100. + 40.*np.sin(2*np.pi*np.arange(n)/4000.)
-el = 32. + 10.*np.mod(np.arange(n,dtype=float),500000.)/500000.
-el = np.floor(el/0.1)*0.1
-pitch = None # np.zeros_like(ctime)
-roll = None # np.zeros_like(ctime)
-lat = -77.6*np.ones_like(ctime)
-lon = 165.7 - np.arange(n)*3/850000.
+ctime = 1418662800.0 + np.arange(n) / 100.0
+az = 100.0 + 40.0 * np.sin(2 * np.pi * np.arange(n) / 4000.0)
+el = 32.0 + 10.0 * np.mod(np.arange(n, dtype=float), 500000.0) / 500000.0
+el = np.floor(el / 0.1) * 0.1
+pitch = None  # np.zeros_like(ctime)
+roll = None  # np.zeros_like(ctime)
+lat = -77.6 * np.ones_like(ctime)
+lon = 165.7 - np.arange(n) * 3 / 850000.0
 
 # step waveplate twice a day...
 lmst = Q.lmst(ctime, lon)
 hwp = np.ones_like(lmst)
-hwp[lmst<=12] = 22.5
-hwp[lmst>12] = 45.0
+hwp[lmst <= 12] = 22.5
+hwp[lmst > 12] = 45.0
 q_hwp = Q.hwp_quat(hwp)
 
 # calculate boresight quaternions
@@ -47,7 +45,7 @@ print(dec.min(), dec.max())
 print(pix.min(), pix.max())
 
 # Check round-trip conversions
-ra1, dec1, pa1 = Q.bore2radec(np.asarray([1,0,0,0]), ctime, q_bore, return_pa=True)
+ra1, dec1, pa1 = Q.bore2radec(np.asarray([1, 0, 0, 0]), ctime, q_bore, return_pa=True)
 az2, el2, pa2 = Q.radec2azel(ra1, dec1, pa1, lon, lat, ctime)
 
 az_diff = az2 - az

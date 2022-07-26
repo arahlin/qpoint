@@ -32,7 +32,16 @@ print('qpoint version {}'.format(version_simple))
 varg = '-DQP_VERSION=\"{}\"'.format(version)
 
 # build dependencies
-if not os.path.exists("src/qp_iers_bulletin_a.c"):
+build_iers = False
+try:
+    # try to get the latest IERS tables baked in, because why not
+    from astropy.utils.iers import IERS_Auto
+    build_iers = True
+except ImportError:
+    if not os.path.exists("src/qp_iers_bulletin_a.c"):
+        build_iers = True
+
+if build_iers:
     print('make qp_iers_bulletin_a.c')
     sp.check_call(
         'cd src && {} make_iers_bulletin_a_dot_c.py'.format(sys.executable),
