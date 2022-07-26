@@ -103,12 +103,18 @@ int qp_copy_iers_bulletin_a(qp_memory_t *memdest, qp_memory_t *memsrc) {
   qp_bulletina_t *bdest = &memdest->bulletinA;
   qp_bulletina_t *bsrc = &memsrc->bulletinA;
 
+
+  // nothing to do, since both source and dest point to factory
+  if (bdest->entries == bsrc->entries && bsrc->entries == bulletinA_factory)
+    return 0;
+
   if (bsrc->entries != bulletinA_factory && bsrc->entries != NULL) {
     int n_mjd = bsrc->mjd_max - bsrc->mjd_min + 1;
     bdest->mjd_max = bsrc->mjd_max;
     bdest->mjd_min = bsrc->mjd_min;
     if (bdest->entries != bulletinA_factory && bdest->entries != NULL) {
-      free(bdest->entries);
+      if (bdest->entries != bsrc->entries)
+        free(bdest->entries);
       bdest->entries = NULL;
     }
     bdest->entries = malloc(n_mjd*sizeof(*(bdest->entries)));
