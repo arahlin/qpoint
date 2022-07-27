@@ -137,24 +137,23 @@ class QMap(QPoint):
         vpol : bool, optional
             If True, output maps contain V polarization.
         source_map : array_like, optional
-            If supplied, passed to `init_source()` to initialize
-            the source map structure.
+            If supplied, passed to :meth:`init_source` to initialize the source
+            map structure.
         source_pol : bool, optional
-            If True, source_map is polarized.  See `init_source()`
-            for details.
+            If True, source_map is polarized.  See :meth:`init_source` for
+            details.
         source_vpol : bool, optional
             If True, source_map contains V polarization.
         q_bore, ctime, q_hwp : array_like, optional
-            Boresight pointing data.  See `init_point()` for details.
-            If not supplied, the pointing structure is left
-            uninitialized.
+            Boresight pointing data.  See :meth:`init_point` for details.  If
+            not supplied, the pointing structure is left uninitialized.
 
         Notes
         -----
         Remaining keyword arguments are passed to the
-        :meth:`qpoint.qpoint_class.QPoint.set` method.
+        :meth:`~qpoint.qpoint_class.QPoint.set` method.
 
-        An internal `depo` dictionary attribute stores the source and output
+        An internal :attr:`depo` dictionary attribute stores the source and output
         maps, timestreams, and pointing data for retrieval by the user.
         Only pointers to these arrays in memory are passed to the C
         library.  To ensure that extraneous copies of data are not made,
@@ -903,7 +902,7 @@ class QMap(QPoint):
         Notes
         -----
         The remaining keyword arguments are passed to the
-        :meth:`qpoint.qpoint_class.QPoint.set` method.
+        :meth:`~qpoint.qpoint_class.QPoint.set` method.
         """
 
         self.set(**kwargs)
@@ -987,7 +986,7 @@ class QMap(QPoint):
         Notes
         -----
         The remaining keyword arguments are passed to the
-        :meth:`qpoint.qpoint_class.QPoint.set` method.
+        :meth:`~qpoint.qpoint_class.QPoint.set` method.
         """
 
         self.set(**kwargs)
@@ -1081,10 +1080,12 @@ class QMap(QPoint):
         Arguments
         ---------
         vec : array_like, optional
-            A map or list of N maps.  Default to `depo['vec']`.
+            A map or list of N maps.  Default to the `"vec"` entry in
+            :attr:`depo`.
         proj : array_like, optional
-            An array of upper-triangular projection matrices for each pixel,
-            of shape (N*(N+1)/2, npix).  Default to `depo['proj']`.
+            An array of upper-triangular projection matrices for each pixel, of
+            shape (N*(N+1)/2, npix).  Default to the `"proj"` entry in
+            :attr:`depo`.
         mask : array_like, optional
             A mask of shape (npix,), evaluates to True where pixels are valid.
             The input mask in converted to a boolean array if supplied.
@@ -1105,7 +1106,7 @@ class QMap(QPoint):
             Fill the solved map where proj == 0 with this value.  Default: 0.
         cond : array_like, optional
             A map of condition number per pixel.  If not supplied, this will be
-            calculated using `proj_cond`
+            calculated using :meth:`proj_cond`
         cond_thresh : scalar, optional
             A threshold to place on the condition number to exclude pixels
             prior to solving.  Reduce this to avoid `LinAlgError` due to
@@ -1231,10 +1232,12 @@ class QMap(QPoint):
         Arguments
         ---------
         vec : array_like, optional
-            A map or list of N maps.  Default to `depo['vec']`.
+            A map or list of N maps.  Default to the `"vec"` entry in
+            :attr:`depo`.
         proj : array_like, optional
-            An array of upper-triangular projection matrices for each pixel,
-            of shape (N*(N+1)/2, npix).  Default to `depo['proj']`.
+            An array of upper-triangular projection matrices for each pixel, of
+            shape (N*(N+1)/2, npix).  Default to the `"proj"` entry in
+            :attr:`depo`.
         mask : array_like, optional
             A mask of shape (npix,), evaluates to True where pixels are valid.
             The input mask in converted to a boolean array if supplied.
@@ -1255,7 +1258,7 @@ class QMap(QPoint):
             Fill the solved map where proj == 0 with this value.  Default: 0.
         cond : array_like, optional
             A map of condition number per pixel.  If not supplied, this will be
-            calculated using `proj_cond`
+            calculated using :meth:`proj_cond`
         cond_thresh : scalar, optional
             A threshold to place on the condition number to exclude pixels
             prior to solving.  Reduce this to avoid `LinAlgError` due to
@@ -1293,8 +1296,9 @@ class QMap(QPoint):
         map_in : array_like
             A map or list of N maps.
         proj : array_like, optional
-            An array of upper-triangular projection matrices for each pixel,
-            of shape (N*(N+1)/2, npix).  Default to `depo['proj']`.
+            An array of upper-triangular projection matrices for each pixel, of
+            shape (N*(N+1)/2, npix).  Default to the `"proj"` entry in
+            :attr:`depo`.
         mask : array_like, optional
             A mask of shape (npix,), evaluates to True where pixels are valid.
             The input mask in converted to a boolean array if supplied.

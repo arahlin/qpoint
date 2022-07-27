@@ -15,9 +15,7 @@ QPoint Documentation
    :caption: Contents:
 
    quickstart
-   qpoint_class
-   qmap_class
-   tools
+   api
 
 Indices and tables
 ==================

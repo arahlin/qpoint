@@ -18,11 +18,11 @@ class QPoint(object):
         corrections over time.
 
         If `update_iers` is `True`, attempt to call the method
-        :meth:`qpoint.qpoint_class.QPoint.update_bulletin_a` to update the
-        internal IERS-A database (requires `astropy` version 1.2 or newer).
+        :meth:`update_bulletin_a` to update the internal IERS-A database
+        (requires `astropy` version 1.2 or newer).
 
-        Any remaining keyword arguments are passed to
-        :meth:`qpoint.qpoint_class.QPoint.set` to update memory.
+        Any remaining keyword arguments are passed to :meth:`set` to update
+        memory.
         """
 
         # initialize memory
@@ -55,8 +55,8 @@ class QPoint(object):
 
     def _set(self, key, val):
         """
-        Set a single parameter to the given value.  See
-        :meth:`qpoint.qpoint_class.QPoint.set` for a list of parameter names.
+        Set a single parameter to the given value.  See :meth:`set` for a list
+        of parameter names.
         """
         if key not in self._all_funcs:
             raise KeyError('Unknown parameter {}'.format(key))
@@ -65,8 +65,8 @@ class QPoint(object):
 
     def _get(self, key):
         """
-        Get the value for a single parameter.  See
-        :meth:`qpoint.qpoint_class.QPoint.set` for a list of parameter names.
+        Get the value for a single parameter.  See :meth:`set` for a list of
+        parameter names.
         """
         if key not in self._all_funcs:
             raise KeyError('Unknown parameter {}'.format(key))
@@ -98,8 +98,8 @@ class QPoint(object):
             Rate at which the annual aberration correction
             (due to the earth's orbital velocity) is updated
         rate_ref : {'never', 'once', 'always'}, or float
-            Rate at which the refaction correction is updated
-            (NB: this correction can also be updated manually -- see `refraction`)
+            Rate at which the refaction correction is updated (NB: this
+            correction can also be updated manually -- see :meth:`refraction`)
         accuracy : 'low' or 'high'
             If 'low', use a truncated form (2000b) for the NPB correction,
             which is much faster but less accurate. If 'high' (default), use
@@ -153,8 +153,8 @@ class QPoint(object):
         """
         Returns a dictionary of the requested state parameters.  If no
         parameters are supplied, then all are returned.  If a single parameter
-        is supplied, then just that value is returned.  See
-        :meth:`qpoint.qpoint_class.QPoint.set` for a list of parameter names.
+        is supplied, then just that value is returned.  See :meth:`set` for a
+        list of parameter names.
 
         Can also select 'options', 'rates', 'weather', or 'params' to return
         all of that subset of parameters.
@@ -285,9 +285,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -321,9 +320,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -359,9 +357,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -384,13 +381,13 @@ class QPoint(object):
         ---------
         q_off : quaternion
             Detector offset quaternion for a single detector, calculated using
-            `det_offset`
+            :meth:`det_offset`
         ctime : array_like
             Array of unix times in seconds UTC
         q_bore : quaternion or array of quaternions
-            Array of quaternions encoding the boresight orientation
-            on the sky (as output by `azel2radec` or similar).
-            Broadcastable to the same length as `ctime`.
+            Array of quaternions encoding the boresight orientation on the sky
+            (as output by :meth:`azel2radec` or similar).  Broadcastable to the
+            same length as `ctime`.
 
         Returns
         -------
@@ -399,9 +396,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -546,9 +542,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -604,9 +599,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -650,16 +644,16 @@ class QPoint(object):
         ---------
         q_off : quaternion
             Detector offset quaternion for a single detector, calculated using
-            `det_offset`.
+            :meth:`det_offset`.
         ctime : array_like
             Unix time in seconds UTC, broadcastable to shape (N,),
             the long dimension of `q_bore`.
         q_bore : quaternion or array of quaternions
-            Nx4 array of quaternions encoding the boresight orientation
-            on the sky (as output by `azel2radec` or equivalent)
+            Nx4 array of quaternions encoding the boresight orientation on the
+            sky (as output by :meth:`azel2radec` or equivalent)
         q_hwp : quaternion or array of quaternions, optional
-            HWP angle quaternions calculated using `hwp_quat`.
-            Must be broadcastable to the same shape as `q_bore`.
+            HWP angle quaternions calculated using :meth:`hwp_quat`.  Must be
+            broadcastable to the same shape as `q_bore`.
         sindec : bool, optional
             If `True`, return sin(dec) instead of dec in degrees
             (default False).
@@ -680,9 +674,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
 
         Pre-allocated output arguments can also be supplied as input keywords
         for in-place operation.
@@ -837,9 +830,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -1061,9 +1053,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -1245,9 +1236,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -1284,9 +1274,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
         self.set(**kwargs)
 
@@ -1319,9 +1308,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
         self.set(**kwargs)
 
@@ -1354,9 +1342,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
         self.set(**kwargs)
 
@@ -1391,9 +1378,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -1433,9 +1419,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -1497,9 +1482,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
         self.set(**kwargs)
 
@@ -1546,8 +1530,8 @@ class QPoint(object):
         self, ra, dec, pa=None, sin2psi=None, cos2psi=None, inplace=True, **kwargs
     ):
         """
-        Rotate celestial (equatorial) coordinates to galactic coordinates.
-        This is equivalent to calling `rotate_coord(..., coord=['C', 'G'])`.
+        Rotate celestial (equatorial) coordinates to galactic coordinates.  This
+        is equivalent to calling :meth:`rotate_coord` with `coord=['C', 'G']`.
         Vectorized, input arguments must be broadcastable to the same shape.
 
         Arguments
@@ -1555,9 +1539,8 @@ class QPoint(object):
         ra, dec, pa : array_like
           -- or --
         ra, dec, sin2psi, cos2psi : array_like
-            arrays of coordinates, of shape (n,)
-            If none of pa, sin2psi or cos2psi are supplied,
-            pa = 0 is assumed.
+            arrays of coordinates, of shape (n,).  If none of pa, sin2psi or
+            cos2psi are supplied, pa = 0 is assumed.
         inplace : bool, optional
             If True, apply the rotation in-place on the input quaternion.
             Otherwise, return a copy of the input array.  Default: True.
@@ -1571,9 +1554,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
         return self.rotate_coord(
             ra, dec, pa, sin2psi, cos2psi, coord=['C', 'G'], inplace=inplace, **kwargs
@@ -1583,8 +1565,8 @@ class QPoint(object):
         self, ra, dec, pa=None, sin2psi=None, cos2psi=None, inplace=True, **kwargs
     ):
         """
-        Rotate galactic coordinates to celestial (equatorial) coordinates.
-        This is equivalent to calling `rotate_coord(..., coord=['G', 'C'])`.
+        Rotate galactic coordinates to celestial (equatorial) coordinates.  This
+        is equivalent to calling :meth:`rotate_coord` with `coord=['G', 'C']`.
         Vectorized, input arguments must be broadcastable to the same shape.
 
         Arguments
@@ -1592,9 +1574,8 @@ class QPoint(object):
         l, b, pa : array_like
           -- or --
         l, b, sin2psi, cos2psi : array_like
-            arrays of coordinates, of shape (n,)
-            If none of pa, sin2psi or cos2psi are supplied,
-            pa = 0 is assumed.
+            arrays of coordinates, of shape (n,).  If none of pa, sin2psi or
+            cos2psi are supplied, pa = 0 is assumed.
         inplace : bool, optional
             If True, apply the rotation in-place on the input quaternion.
             Otherwise, return a copy of the input array.  Default: True.
@@ -1608,9 +1589,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
         return self.rotate_coord(
             ra, dec, pa, sin2psi, cos2psi, coord=['G', 'C'], inplace=inplace, **kwargs
@@ -1645,9 +1625,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
 
         Only full-sky maps are currently supported.
         """
@@ -1702,9 +1681,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
@@ -1745,16 +1723,16 @@ class QPoint(object):
         ---------
         q_off : quaternion
             Detector offset quaternion for a single detector,
-            calculated using `det_offset`.
+            calculated using :meth:`det_offset`.
         ctime : array_like
             Unix times in seconds UTC, broadcastable to shape (N,),
             the long dimenions of `q_bore`.
         q_bore : quaternion or array of quaternions
-            Nx4 array of quaternions encoding the boresight orientation
-            on the sky (as output by `azel2radec` or equivalent)
+            Nx4 array of quaternions encoding the boresight orientation on the
+            sky (as output by :meth:`azel2radec` or equivalent)
         q_hwp : quaternion or array of quaternions, optional
-            HWP angle quaternions calculated using `hwp_quat`.
-            Must be broadcastable to the same shape as `q_bore`.
+            HWP angle quaternions calculated using :meth:`hwp_quat`.  Must be
+            broadcastable to the same shape as `q_bore`.
         nside : int, optional
             HEALpix map dimension.  Default: 256.
         pol : bool, optional
@@ -1774,9 +1752,8 @@ class QPoint(object):
 
         Notes
         -----
-        Any keywords accepted by the :meth:`qpoint.qpoint_class.QPoint.set`
-        method can also be passed here, and will be processed prior to
-        calculation.
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
         """
 
         self.set(**kwargs)
