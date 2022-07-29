@@ -1,6 +1,7 @@
 # qpoint
 
 [![](https://badge.fury.io/py/qpoint.svg)](https://badge.fury.io/py/qpoint)
+[![](https://github.com/arahlin/qpoint/actions/workflows/documentation.yaml/badge.svg)](https://github.com/arahlin/qpoint/actions/workflows/documentation.yaml)
 [![](https://github.com/arahlin/qpoint/actions/workflows/release.yaml/badge.svg)](https://github.com/arahlin/qpoint/actions/workflows/release.yaml)
 
 A lightweight quaternion-based library for telescope pointing.  This library is
