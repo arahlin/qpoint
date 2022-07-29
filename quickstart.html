@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Getting Started &#8212; qpoint 1.12.1 documentation</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="prev" title="QPoint Documentation" href="index.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="API Reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="QPoint Documentation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Getting Started</a><ul>
+<li><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#algorithms">Algorithms</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">QPoint Documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="api.html"
+                        title="next chapter">API Reference</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/quickstart.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>The following Python package dependencies should be installed on your system.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code> (required)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">healpy</span></code> (optional, for handling healpix maps)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> (optional, for updating internal IERS-A tables)</p></li>
+</ul>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>To use the latest version of QPoint, install via <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install qpoint
+</pre></div>
+</div>
+<p>Otherwise, for developement work, clone the repository
+(<a class="reference external" href="https://github.com/arahlin/qpoint">https://github.com/arahlin/qpoint</a>) and install manually:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python setup.py install
+</pre></div>
+</div>
+<p>Or, if installing on a shared machine:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python setup.py install --user
+</pre></div>
+</div>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>Several example scripts are provided in the <a class="reference external" href="https://github.com/arahlin/qpoint/blob/master/examples/">examples/</a> directory.</p>
+<p>The script <a class="reference external" href="https://github.com/arahlin/qpoint/blob/master/examples/example_point.py">example_point.py</a>
+shows some typical usage of the <a class="reference internal" href="api.html#qpoint.qpoint_class.QPoint" title="qpoint.qpoint_class.QPoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">QPoint</span></code></a> class,
+e.g. to construct timestreams in celestial coordinates from a set of local
+coordinates, and to compute offset detector pointing from a boresight location.</p>
+<p>The script <a class="reference external" href="https://github.com/arahlin/qpoint/blob/master/examples/example_map.py">example_map.py</a> shows
+some typical usage of the <a class="reference internal" href="api.html#qpoint.qmap_class.QMap" title="qpoint.qmap_class.QMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">QMap</span></code></a> class, e.g. to
+simulate detector timestreams with offset pointing from an input HEALpix sky
+realization, and to bin individual detector timestreams into a HEALpix map.</p>
+</div>
+<div class="section" id="algorithms">
+<h2>Algorithms<a class="headerlink" href="#algorithms" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="./qpoint.pdf">This document</a> describes the quaternion-based algorithm used
+for computing equatorial right ascension and declination from the local
+coordinates of the (potentially moving) observing platform, including the
+various approximations that can be made to speed up the calculation.  The
+document also covers computing detector pointing offset from the telescope
+boresight, using the same quaternion formalism.</p>
+<p><a class="reference external" href="./mapmaking_hwp.pdf">Another document</a> describes the mapmaking algorithm
+(implemented in the <a class="reference internal" href="api.html#qpoint.qmap_class.QMap" title="qpoint.qmap_class.QMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">QMap</span></code></a> class) for projecting
+time-ordered data onto a <a class="reference external" href="https://healpix.sourceforce.io">HEALPix</a> spherical
+coordinate grid to make sky maps of Stokes parameters, typically used by
+telescopes designed for observing the cosmic microwave background (e.g. <a class="reference external" href="https://spider.princeton.edu">SPIDER</a>).</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="API Reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="QPoint Documentation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017-2022, Alexandra Rahlin.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    </div>
+  </body>
+</html>
