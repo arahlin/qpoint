@@ -1349,7 +1349,7 @@ class QPoint(object):
 
         quat = check_input('quat', np.atleast_2d(quat), quat=True)
         n = quat.shape[0]
-        pix = check_output('pix', shape=(n,), dtype=np.int, **kwargs)
+        pix = check_output('pix', shape=(n,), dtype=int, **kwargs)
         pa = check_output('pa', shape=(n,), dtype=np.double, **kwargs)
 
         qp.qp_quat2pixpan(self._memory, quat, pix, pa, n)
@@ -1387,7 +1387,7 @@ class QPoint(object):
         ra, dec = check_inputs(ra, dec)
         n = ra.size
 
-        pix = check_output('pix', shape=ra.shape, dtype=np.int, **kwargs)
+        pix = check_output('pix', shape=ra.shape, dtype=int, **kwargs)
         qp.qp_radec2pixn(self._memory, ra, dec, nside, pix, n)
 
         if n == 1:
@@ -1691,7 +1691,7 @@ class QPoint(object):
 
         n = quat.shape[0]
         shape = (n,)
-        pix = check_output('pix', shape=shape, dtype=np.int, **kwargs)
+        pix = check_output('pix', shape=shape, dtype=int, **kwargs)
         sin2psi = check_output('sin2psi', shape=shape, **kwargs)
         cos2psi = check_output('cos2psi', shape=shape, **kwargs)
         qp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
@@ -1765,7 +1765,7 @@ class QPoint(object):
                 raise ValueError('ctime required if mean_aber is False')
             ctime = np.zeros((q_bore.size // 4,), dtype=q_bore.dtype)
         ctime = check_input('ctime', ctime)
-        pix = check_output('pix', shape=ctime.shape, dtype=np.int, **kwargs)
+        pix = check_output('pix', shape=ctime.shape, dtype=int, **kwargs)
         if return_pa:
             pa = check_output('pa', shape=ctime.shape, **kwargs)
         else:

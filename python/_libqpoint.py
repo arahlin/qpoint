@@ -30,10 +30,10 @@ wvec3_t_p = NDP(np.double, ndim=2, flags=['A', 'C', 'W'])
 arr = NDP(np.double, ndim=1, flags=['A', 'C'])
 arrf = NDP(np.uint8, ndim=1, flags=['A', 'C'])
 warr = NDP(np.double, ndim=1, flags=['A', 'C', 'W'])
-warri = NDP(np.int_, ndim=1, flags=['A', 'C', 'W'])
+warri = NDP(int, ndim=1, flags=['A', 'C', 'W'])
 
 arr2 = NDP(np.uintp, ndim=1, flags=['A', 'C'])
-larr = NDP(np.int_, ndim=1, flags=['A', 'C'])
+larr = NDP(int, ndim=1, flags=['A', 'C'])
 
 QP_DO_ALWAYS = ct.c_int.in_dll(libqp, "QP_DO_ALWAYS").value
 QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
