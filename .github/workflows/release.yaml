@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Checkout github repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Query version
       id: tagger
       uses: jimschubert/query-tag-action@v1
@@ -23,7 +23,7 @@ jobs:
       run: |
         echo QPOINT_VERSION=${{steps.tagger.outputs.tag}} >> $GITHUB_ENV
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.8.1
+      uses: pypa/cibuildwheel@v2.15.0
       env:
         CIBW_SKIP: cp36-* *-musllinux_*
         CIBW_ARCHS_LINUX: x86_64
@@ -37,7 +37,7 @@ jobs:
 
     steps:
     - name: Checkout github repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Query version
       id: tagger
       uses: jimschubert/query-tag-action@v1
@@ -47,7 +47,7 @@ jobs:
       run: |
         echo QPOINT_VERSION=${{steps.tagger.outputs.tag}} >> $GITHUB_ENV
     - name: Setup python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
     - name: Install dependencies
       run: |
         python -m pip install --upgrade build
@@ -67,7 +67,7 @@ jobs:
         name: artifact
         path: dist
     - name: Upload to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_PASSWORD }}
