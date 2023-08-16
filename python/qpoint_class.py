@@ -108,6 +108,10 @@ class QPoint(object):
             If True, apply the aberration correction as an average for the
             entire field of view.  This is gives a 1-2 arcsec deviation
             at the edges of the SPIDER field of view.
+        fast_aber : bool
+            If True, apply the aberration correction using the exact
+            angle and quaternion rotation.  Otherwise, use a small-angle
+            approximation for the aberration quaternion (default).
         fast_math : bool
             If True, use polynomial approximations for trig functions
         polconv : 'cosmo' or 'iau'

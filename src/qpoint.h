@@ -96,6 +96,7 @@ extern "C" {
     // options
     int accuracy;          // 0=full accuracy, 1=low accuracy
     int mean_aber;         // 0=per-detector aberration, 1=mean
+    int fast_aber;         // 0=full accuracy aberration, 1=fast calculation (small angles only)
     int fast_math;         // 0=regular trig, 1=polynomial trig approximations
     int polconv;           // polarization convention (0=healpix,1=IAU)
     int pix_order;         // pixel ordering (1=nest, 0=ring)
@@ -193,6 +194,7 @@ extern "C" {
   void qp_set_options(qp_memory_t *mem,
 		      int accuracy,
 		      int mean_aber,
+		      int fast_aber,
 		      int fast_math,
 		      int polconv,
 		      int pix_order,
@@ -208,6 +210,7 @@ extern "C" {
   int qp_get_opt_##opt(qp_memory_t *mem);
   OPTIONFUNC(accuracy);
   OPTIONFUNC(mean_aber);
+  OPTIONFUNC(fast_aber);
   OPTIONFUNC(fast_math);
   OPTIONFUNC(polconv);
   OPTIONFUNC(pix_order);
@@ -309,7 +312,7 @@ extern "C" {
 
   /* Calculate aberration correction quaternion
      v = (R(q)*z) x beta, angle = |v|, qa = quat(-angle,v) */
-  void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv);
+  void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv, int fast);
 
   /* Calculate earth orbital velocity vector as fraction of speed of light */
   void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta);

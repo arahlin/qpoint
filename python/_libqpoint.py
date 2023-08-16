@@ -111,6 +111,7 @@ class qp_memory_t(ct.Structure):
         ('bulletinA', qp_bulletina_t),
         ('accuracy', ct.c_int),
         ('mean_aber', ct.c_int),
+        ('fast_aber', ct.c_int),
         ('fast_math', ct.c_int),
         ('polconv', ct.c_int),
         ('pix_order', ct.c_int),
@@ -1006,6 +1007,9 @@ def check_set_bool(val):
 check_set_mean_aber = check_set_bool
 check_get_mean_aber = check_get_bool
 
+check_set_fast_aber = check_set_bool
+check_get_fast_aber = check_get_bool
+
 check_set_fast_math = check_set_bool
 check_get_fast_math = check_get_bool
 
@@ -1048,6 +1052,7 @@ def check_get_thread_num(tn):
 options = [
     'accuracy',
     'mean_aber',
+    'fast_aber',
     'fast_math',
     'polconv',
     'pix_order',

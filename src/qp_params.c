@@ -32,6 +32,7 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_ref_inv   , QP_DO_NEVER);
   mem->accuracy = 0;
   mem->mean_aber = 1;
+  mem->fast_aber = 1;
   mem->fast_math = 0;
   mem->polconv = 0;
   mem->pix_order = 0;
@@ -212,6 +213,7 @@ void qp_print_memory(qp_memory_t *mem) {
 
   printf("[%d]  opt: accuracy: %s\n", thread, mem->accuracy ? "low" : "full");
   printf("[%d]  opt: mean aber: %s\n", thread, mem->mean_aber ? "yes" : "no");
+  printf("[%d]  opt: fast aber: %s\n", thread, mem->fast_aber ? "yes" : "no");
   printf("[%d]  opt: fast math: %s\n", thread, mem->fast_math ? "yes" : "no");
   printf("[%d]  opt: polconv: %s\n", thread, mem->polconv ? "IAU" : "COSMO");
   printf("[%d]  opt: interp pix: %s\n", thread, mem->interp_pix ? "yes" : "no");
@@ -344,6 +346,7 @@ int qp_check_apply(qp_state_t *state) {
 
 OPTIONFUNCDR(accuracy, npb)
 OPTIONFUNCDR(mean_aber, aaber)
+OPTIONFUNCD(fast_aber)
 OPTIONFUNCD(fast_math)
 OPTIONFUNCD(polconv)
 OPTIONFUNCD(pix_order)
@@ -356,6 +359,7 @@ OPTIONFUNCD(interp_missing)
 void qp_set_options(qp_memory_t *mem,
 		    int accuracy,
 		    int mean_aber,
+		    int fast_aber,
 		    int fast_math,
 		    int polconv,
 		    int pix_order,
@@ -367,6 +371,7 @@ void qp_set_options(qp_memory_t *mem,
 		    int num_threads) {
   qp_set_opt_accuracy      (mem, accuracy);
   qp_set_opt_mean_aber     (mem, mean_aber);
+  qp_set_opt_fast_aber     (mem, fast_aber);
   qp_set_opt_fast_math     (mem, fast_math);
   qp_set_opt_polconv       (mem, polconv);
   qp_set_opt_pix_order     (mem, pix_order);

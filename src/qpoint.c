@@ -169,19 +169,24 @@ void qp_dipolen(qp_memory_t *mem, double *ctime, double *ra, double *dec,
   }
 }
 
-void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv) {
+void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv, int fast) {
   vec3_t u,n;
   Quaternion_to_matrix_col3(q,u);
   if (inv)
     vec3_cross_product(n, beta, u);
   else
     vec3_cross_product(n, u, beta);
-  // small angle approximation!
-  double sa_2 = 0.5*vec3_norm(n);
-  qa[0] = 1. - 0.5*sa_2*sa_2;
-  qa[1] = -0.5*n[0];
-  qa[2] = -0.5*n[1];
-  qa[3] = -0.5*n[2];
+  if (fast) {
+    // small angle approximation!
+    double sa_2 = 0.5*vec3_norm(n);
+    qa[0] = 1. - 0.5*sa_2*sa_2;
+    qa[1] = -0.5*n[0];
+    qa[2] = -0.5*n[1];
+    qa[3] = -0.5*n[2];
+  } else {
+    double ang = asin(vec3_norm(n));
+    Quaternion_rot(qa, -ang, n);
+  }
 }
 
 void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta) {
@@ -306,7 +311,7 @@ void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
     mem->beta_rot[1] = -clat * D_ABER_RAD;
   }
   if (qp_check_apply(&mem->state_daber)) {
-    qp_aberration(q, (double *)mem->beta_rot, q_aber, inv);
+    qp_aberration(q, (double *)mem->beta_rot, q_aber, inv, mem->fast_aber);
     Quaternion_mul_left(q_aber, q);
 #ifdef DEBUG
     qp_print_quat(inv ? "daber inv" : "daber", q_aber);
@@ -324,7 +329,7 @@ void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q, int in
     qp_earth_orbital_beta(jd_tt, mem->beta_earth);
   }
   if (qp_check_apply(&mem->state_aaber)) {
-    qp_aberration(q, mem->beta_earth, q_aber, inv);
+    qp_aberration(q, mem->beta_earth, q_aber, inv, mem->fast_aber);
     Quaternion_mul_left(q_aber, q);
 #ifdef DEBUG
     qp_print_quat(inv ? "aaber inv" : "aaber", q_aber);
