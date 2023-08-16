@@ -945,7 +945,7 @@ def get_ofunc(option):
 
 opts = {
     'accuracy': {0: 'high', 1: 'low'},
-    'polconv': {0: ['healpix', 'cosmo'], 1: 'iau'},
+    'polconv': {0: ['cosmo', 'healpix'], 1: 'iau'},
     'pix_order': {0: 'ring', 1: ['nest', 'nested']},
 }
 defaults = {'accuracy': 0, 'polconv': 0, 'pix_order': 0}

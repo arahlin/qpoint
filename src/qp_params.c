@@ -213,7 +213,7 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  opt: accuracy: %s\n", thread, mem->accuracy ? "low" : "full");
   printf("[%d]  opt: mean aber: %s\n", thread, mem->mean_aber ? "yes" : "no");
   printf("[%d]  opt: fast math: %s\n", thread, mem->fast_math ? "yes" : "no");
-  printf("[%d]  opt: polconv: %s\n", thread, mem->polconv ? "IAU" : "healpix");
+  printf("[%d]  opt: polconv: %s\n", thread, mem->polconv ? "IAU" : "COSMO");
   printf("[%d]  opt: interp pix: %s\n", thread, mem->interp_pix ? "yes" : "no");
   printf("[%d]  opt: fast pix: %s\n", thread, mem->fast_pix ? "yes" : "no");
   printf("[%d]  opt: error missing: %s\n", thread, mem->error_missing ? "yes" : "no");
