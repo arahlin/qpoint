@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>qpoint.qpoint_class &#8212; qpoint 1.12.3 documentation</title>
+    <title>qpoint.qpoint_class &#8212; qpoint 1.12.4 documentation</title>
     <link rel="stylesheet" href="../../_static/sphinxdoc.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" accesskey="U">qpoint</a> &#187;</li> 
       </ul>
@@ -160,6 +160,10 @@
 <span class="sd">            If True, apply the aberration correction as an average for the</span>
 <span class="sd">            entire field of view.  This is gives a 1-2 arcsec deviation</span>
 <span class="sd">            at the edges of the SPIDER field of view.</span>
+<span class="sd">        fast_aber : bool</span>
+<span class="sd">            If True, apply the aberration correction using the exact</span>
+<span class="sd">            angle and quaternion rotation.  Otherwise, use a small-angle</span>
+<span class="sd">            approximation for the aberration quaternion (default).</span>
 <span class="sd">        fast_math : bool</span>
 <span class="sd">            If True, use polynomial approximations for trig functions</span>
 <span class="sd">        polconv : &#39;cosmo&#39; or &#39;iau&#39;</span>
@@ -2040,7 +2044,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" >qpoint</a> &#187;</li> 
       </ul>

@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>qpoint._libqpoint &#8212; qpoint 1.12.3 documentation</title>
+    <title>qpoint._libqpoint &#8212; qpoint 1.12.4 documentation</title>
     <link rel="stylesheet" href="../../_static/sphinxdoc.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" accesskey="U">qpoint</a> &#187;</li> 
       </ul>
@@ -163,6 +163,7 @@
         <span class="p">(</span><span class="s1">&#39;bulletinA&#39;</span><span class="p">,</span> <span class="n">qp_bulletina_t</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;accuracy&#39;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;mean_aber&#39;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;fast_aber&#39;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;fast_math&#39;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;polconv&#39;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;pix_order&#39;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
@@ -997,7 +998,7 @@
 
 <span class="n">opts</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;high&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;low&#39;</span><span class="p">},</span>
-    <span class="s1">&#39;polconv&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;healpix&#39;</span><span class="p">,</span> <span class="s1">&#39;cosmo&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;iau&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;polconv&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;cosmo&#39;</span><span class="p">,</span> <span class="s1">&#39;healpix&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;iau&#39;</span><span class="p">},</span>
     <span class="s1">&#39;pix_order&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;ring&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;nest&#39;</span><span class="p">,</span> <span class="s1">&#39;nested&#39;</span><span class="p">]},</span>
 <span class="p">}</span>
 <span class="n">defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;polconv&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;pix_order&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
@@ -1058,6 +1059,9 @@
 <span class="n">check_set_mean_aber</span> <span class="o">=</span> <span class="n">check_set_bool</span>
 <span class="n">check_get_mean_aber</span> <span class="o">=</span> <span class="n">check_get_bool</span>
 
+<span class="n">check_set_fast_aber</span> <span class="o">=</span> <span class="n">check_set_bool</span>
+<span class="n">check_get_fast_aber</span> <span class="o">=</span> <span class="n">check_get_bool</span>
+
 <span class="n">check_set_fast_math</span> <span class="o">=</span> <span class="n">check_set_bool</span>
 <span class="n">check_get_fast_math</span> <span class="o">=</span> <span class="n">check_get_bool</span>
 
@@ -1100,6 +1104,7 @@
 <span class="n">options</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s1">&#39;accuracy&#39;</span><span class="p">,</span>
     <span class="s1">&#39;mean_aber&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;fast_aber&#39;</span><span class="p">,</span>
     <span class="s1">&#39;fast_math&#39;</span><span class="p">,</span>
     <span class="s1">&#39;polconv&#39;</span><span class="p">,</span>
     <span class="s1">&#39;pix_order&#39;</span><span class="p">,</span>
@@ -1350,7 +1355,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" >qpoint</a> &#187;</li> 
       </ul>

@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>API Reference &#8212; qpoint 1.12.3 documentation</title>
+    <title>API Reference &#8212; qpoint 1.12.4 documentation</title>
     <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -28,7 +28,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Getting Started"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4 documentation</a> &#187;</li> 
       </ul>
     </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -901,6 +901,9 @@ the full 2006/2000a form.</p></li>
 <li><p><strong>mean_aber</strong> (<em>bool</em>) – If True, apply the aberration correction as an average for the
 entire field of view.  This is gives a 1-2 arcsec deviation
 at the edges of the SPIDER field of view.</p></li>
+<li><p><strong>fast_aber</strong> (<em>bool</em>) – If True, apply the aberration correction using the exact
+angle and quaternion rotation.  Otherwise, use a small-angle
+approximation for the aberration quaternion (default).</p></li>
 <li><p><strong>fast_math</strong> (<em>bool</em>) – If True, use polynomial approximations for trig functions</p></li>
 <li><p><strong>polconv</strong> (<em>'cosmo'</em><em> or </em><em>'iau'</em>) – Specify the ‘cosmo’ or ‘iau’ polarization convention</p></li>
 <li><p><strong>pix_order</strong> (<em>'nest'</em><em> or </em><em>'ring'</em>) – HEALPix pixel ordering</p></li>
@@ -1618,7 +1621,7 @@ storing any parameters.  Useful for testing, numpy-vectorized.</p>
         <li class="right" >
           <a href="quickstart.html" title="Getting Started"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
