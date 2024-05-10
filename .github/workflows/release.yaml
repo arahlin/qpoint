@@ -15,6 +15,7 @@ jobs:
     - name: Checkout github repo
       uses: actions/checkout@v4
       with:
+         fetch-depth: 0
          fetch-tags: true
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.17.0
