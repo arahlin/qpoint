@@ -20,11 +20,11 @@ To use the latest version of QPoint, install via ``pip``::
 Otherwise, for developement work, clone the repository
 (`<https://github.com/arahlin/qpoint>`_) and install manually::
 
-  $ python setup.py install
+  $ pip install .
 
 Or, if installing on a shared machine::
 
-  $ python setup.py install --user
+  $ pip install --user .
 
 Examples
 --------
