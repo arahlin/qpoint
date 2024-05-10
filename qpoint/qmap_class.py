@@ -5,7 +5,8 @@ import ctypes as ct
 from . import _libqpoint as lib
 from ._libqpoint import libqp as qp
 
-__all__ = ['QMap', 'check_map', 'check_proj']
+__all__ = ["QMap", "check_map", "check_proj"]
+
 
 # healpix bookkeeping
 def nside2npix(nside):
@@ -58,7 +59,7 @@ def check_map(map_in, copy=False, partial=False, dtype=np.double):
         dim2 = len(map_out[0])
     else:
         dim2 = npix2nside(len(map_out[0]))
-    map_out = lib.check_input('map', map_out, dtype=dtype)
+    map_out = lib.check_input("map", map_out, dtype=dtype)
     if copy and np.may_share_memory(map_in, map_out):
         map_out = map_out.copy()
     return map_out, dim2
@@ -96,7 +97,7 @@ def check_proj(proj_in, copy=False, partial=False):
     proj_out, dim2 = check_map(proj_in, copy=copy, partial=partial)
     nmap = int((np.sqrt(8 * len(proj_out) + 1) - 1)) // 2
     if nmap * (nmap + 1) // 2 != len(proj_out):
-        raise ValueError('proj has incompatible shape')
+        raise ValueError("proj has incompatible shape")
     return proj_out, dim2, nmap
 
 
@@ -117,7 +118,7 @@ class QMap(QPoint):
         q_bore=None,
         ctime=None,
         q_hwp=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize the internal structures and data depo for
@@ -178,7 +179,7 @@ class QMap(QPoint):
         """
         Return True if the source map is initialized, otherwise False.
         """
-        if not hasattr(self, '_source'):
+        if not hasattr(self, "_source"):
             return False
         if not self._source.contents.init:
             return False
@@ -253,27 +254,27 @@ class QMap(QPoint):
                 source = self._source.contents
                 if (
                     source_map.squeeze().shape[-1]
-                    != self.depo['source_map'].squeeze().shape[-1]
+                    != self.depo["source_map"].squeeze().shape[-1]
                 ):
-                    raise ValueError('source_map shape mismatch')
+                    raise ValueError("source_map shape mismatch")
                 source_map, _ = check_map(source_map, partial=True)
                 source.num_vec = len(source_map)
                 source.vec_mode = lib.get_vec_mode(source_map, pol, vpol)
                 source.vec1d = lib.as_ctypes(source_map.ravel())
-                self.depo['source_map'] = source_map
+                self.depo["source_map"] = source_map
                 if qp.qp_reshape_map(self._source):
-                    raise RuntimeError('Error reshaping source map')
+                    raise RuntimeError("Error reshaping source map")
                 return
 
             else:
-                raise RuntimeError('source already initialized')
+                raise RuntimeError("source already initialized")
 
         if pixels is None:
             partial = False
         else:
             partial = True
             if nside is None:
-                raise ValueError('nside required for partial maps')
+                raise ValueError("nside required for partial maps")
 
         # check map shape and create pointer
         smap, snside = check_map(source_map, partial=partial)
@@ -284,10 +285,10 @@ class QMap(QPoint):
             npix = len(pixels)
 
         # store map
-        self.depo['source_map'] = smap
-        self.depo['source_nside'] = nside
+        self.depo["source_map"] = smap
+        self.depo["source_nside"] = nside
         if partial:
-            self.depo['source_pixels'] = pixels
+            self.depo["source_pixels"] = pixels
 
         # initialize
         source = self._source.contents
@@ -314,21 +315,21 @@ class QMap(QPoint):
 
         if partial:
             if qp.qp_init_map_pixhash(self._source, pixels, npix):
-                raise RuntimeError('Error initializing source pixhash')
+                raise RuntimeError("Error initializing source pixhash")
 
         if qp.qp_reshape_map(self._source):
-            raise RuntimeError('Error reshaping source map')
+            raise RuntimeError("Error reshaping source map")
 
     def reset_source(self):
         """
         Reset the source map structure.  Must be reinitialized to
         produce more timestreams.
         """
-        if hasattr(self, '_source'):
+        if hasattr(self, "_source"):
             qp.qp_free_map(self._source)
-        self.depo.pop('source_map', None)
-        self.depo.pop('source_nside', None)
-        self.depo.pop('source_pixels', None)
+        self.depo.pop("source_map", None)
+        self.depo.pop("source_nside", None)
+        self.depo.pop("source_pixels", None)
         self._source = ct.pointer(lib.qp_map_t())
 
     def source_is_pol(self):
@@ -337,7 +338,7 @@ class QMap(QPoint):
         Raise an error if source map is not initialized.
         """
         if not self.source_is_init():
-            raise RuntimeError('source map not initialized')
+            raise RuntimeError("source map not initialized")
 
         if self._source.contents.vec_mode in [2, 3, 5, 7]:
             return True
@@ -350,7 +351,7 @@ class QMap(QPoint):
         Raise an error if source map is not initialized.
         """
         if not self.source_is_init():
-            raise RuntimeError('source map not initialized')
+            raise RuntimeError("source map not initialized")
 
         return self._source.contents.vec_mode == 3
 
@@ -358,7 +359,7 @@ class QMap(QPoint):
         """
         Return True if the dest map is initialized, otherwise False.
         """
-        if not hasattr(self, '_dest'):
+        if not hasattr(self, "_dest"):
             return False
         if not self._dest.contents.init:
             return False
@@ -416,7 +417,7 @@ class QMap(QPoint):
         """
 
         if vec is False and proj is False:
-            raise ValueError('one of vec or proj must not be False')
+            raise ValueError("one of vec or proj must not be False")
 
         if self.dest_is_init():
             if reset:
@@ -428,42 +429,42 @@ class QMap(QPoint):
                 dest = self._dest.contents
                 ret = ()
 
-                if self.depo['vec'] is not False:
+                if self.depo["vec"] is not False:
                     if vec is None:
-                        vec = np.zeros_like(self.depo['vec'])
-                    if vec.squeeze().shape[-1] != self.depo['vec'].squeeze().shape[-1]:
-                        raise ValueError('vec shape mismatch')
+                        vec = np.zeros_like(self.depo["vec"])
+                    if vec.squeeze().shape[-1] != self.depo["vec"].squeeze().shape[-1]:
+                        raise ValueError("vec shape mismatch")
                     vec, _ = check_map(vec, copy=copy, partial=True)
                     dest.num_vec = len(vec)
                     dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
                     dest.vec1d = lib.as_ctypes(vec.ravel())
-                    self.depo['vec'] = vec
+                    self.depo["vec"] = vec
                     ret += (vec.squeeze(),)
 
-                if self.depo['proj'] is not False:
+                if self.depo["proj"] is not False:
                     if proj is None:
-                        proj = np.zeros_like(self.depo['proj'])
+                        proj = np.zeros_like(self.depo["proj"])
                     if (
                         proj.squeeze().shape[-1]
-                        != self.depo['proj'].squeeze().shape[-1]
+                        != self.depo["proj"].squeeze().shape[-1]
                     ):
-                        raise ValueError('proj shape mismatch')
+                        raise ValueError("proj shape mismatch")
                     proj, _ = check_map(proj, copy=copy, partial=True)
                     dest.num_proj = len(proj)
                     dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
                     dest.proj1d = lib.as_ctypes(proj.ravel())
-                    self.depo['proj'] = proj
+                    self.depo["proj"] = proj
                     ret += (proj.squeeze(),)
 
                 if qp.qp_reshape_map(self._dest):
-                    raise RuntimeError('Error reshaping dest map')
+                    raise RuntimeError("Error reshaping dest map")
 
                 if len(ret) == 1:
                     return ret[0]
                 return ret
 
             else:
-                raise RuntimeError('dest already initialized')
+                raise RuntimeError("dest already initialized")
 
         if pixels is None:
             if nside is None:
@@ -472,7 +473,7 @@ class QMap(QPoint):
             partial = False
         else:
             if nside is None:
-                raise ValueError('nside required for partial maps')
+                raise ValueError("nside required for partial maps")
             npix = len(pixels)
             partial = True
 
@@ -490,7 +491,7 @@ class QMap(QPoint):
                 nside = vdim2
                 npix = nside2npix(nside)
             elif vdim2 != npix:
-                raise ValueError('vec has incompatible shape')
+                raise ValueError("vec has incompatible shape")
             if len(vec) == 1:
                 pol = False
                 vpol = False
@@ -501,7 +502,7 @@ class QMap(QPoint):
                 pol = True
                 vpol = True
             else:
-                raise ValueError('vec has incompatible shape')
+                raise ValueError("vec has incompatible shape")
 
         if proj is None:
             if vpol:
@@ -516,11 +517,11 @@ class QMap(QPoint):
 
             if vec is not False:
                 if pnmap != len(vec):
-                    raise ValueError('proj has incompatible shape')
+                    raise ValueError("proj has incompatible shape")
                 if len(proj) != [[1, 6][pol], 10][vpol]:
-                    raise ValueError('proj has incompatible shape')
+                    raise ValueError("proj has incompatible shape")
                 if pdim2 != vdim2:
-                    raise ValueError('proj has incompatible nside')
+                    raise ValueError("proj has incompatible nside")
             else:
                 if len(proj) == 1:
                     pol = False
@@ -532,20 +533,20 @@ class QMap(QPoint):
                     pol = True
                     vpol = True
                 else:
-                    raise ValueError('proj has incompatible shape')
+                    raise ValueError("proj has incompatible shape")
                 if not partial:
                     nside = pdim2
                     npix = nside2npix(nside)
                 elif pdim2 != npix:
-                    raise ValueError('proj has incompatible shape')
+                    raise ValueError("proj has incompatible shape")
 
         # store arrays for later retrieval
-        self.depo['vec'] = vec
-        self.depo['proj'] = proj
-        self.depo['dest_nside'] = nside
+        self.depo["vec"] = vec
+        self.depo["proj"] = proj
+        self.depo["dest_nside"] = nside
 
         if partial:
-            self.depo['dest_pixels'] = pixels
+            self.depo["dest_pixels"] = pixels
 
         # initialize
         ret = ()
@@ -577,10 +578,10 @@ class QMap(QPoint):
 
         if partial:
             if qp.qp_init_map_pixhash(self._dest, pixels, npix):
-                raise RuntimeError('Error initializing dest pixhash')
+                raise RuntimeError("Error initializing dest pixhash")
 
         if qp.qp_reshape_map(self._dest):
-            raise RuntimeError('Error reshaping dest map')
+            raise RuntimeError("Error reshaping dest map")
 
         # return
         if len(ret) == 1:
@@ -592,12 +593,12 @@ class QMap(QPoint):
         Reset the destination map structure.
         Must be reinitialized to continue mapmaking.
         """
-        if hasattr(self, '_dest'):
+        if hasattr(self, "_dest"):
             qp.qp_free_map(self._dest)
-        self.depo.pop('vec', None)
-        self.depo.pop('proj', None)
-        self.depo.pop('dest_nside', None)
-        self.depo.pop('dest_pixels', None)
+        self.depo.pop("vec", None)
+        self.depo.pop("proj", None)
+        self.depo.pop("dest_nside", None)
+        self.depo.pop("dest_pixels", None)
         self._dest = ct.pointer(lib.qp_map_t())
 
     def dest_is_pol(self):
@@ -606,7 +607,7 @@ class QMap(QPoint):
         Raise an error if destination map is not initialized.
         """
         if not self.dest_is_init():
-            raise RuntimeError('dest map not initialized')
+            raise RuntimeError("dest map not initialized")
 
         if 2 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
             return True
@@ -621,7 +622,7 @@ class QMap(QPoint):
         Raise an error if destination map is not initialized.
         """
         if not self.dest_is_init():
-            raise RuntimeError('dest map not initialized')
+            raise RuntimeError("dest map not initialized")
 
         if 3 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
             return True
@@ -631,7 +632,7 @@ class QMap(QPoint):
         """
         Return True if the point map is initialized, otherwise False.
         """
-        if not hasattr(self, '_point'):
+        if not hasattr(self, "_point"):
             return False
         if not self._point.contents.init:
             return False
@@ -655,7 +656,7 @@ class QMap(QPoint):
             updated to this. Shape must be (nsamp, 4)
         """
 
-        if not hasattr(self, '_point'):
+        if not hasattr(self, "_point"):
             self.reset_point()
 
         point = self._point.contents
@@ -664,16 +665,16 @@ class QMap(QPoint):
             if point.init:
                 self.reset_point()
             point = self._point.contents
-            q_bore = lib.check_input('q_bore', np.atleast_2d(q_bore), quat=True)
+            q_bore = lib.check_input("q_bore", np.atleast_2d(q_bore), quat=True)
             n = q_bore.size // 4
             point.n = n
-            self.depo['q_bore'] = q_bore
+            self.depo["q_bore"] = q_bore
             point.q_bore = lib.as_ctypes(q_bore)
             point.q_bore_init = lib.QP_ARR_INIT_PTR
             point.init = lib.QP_STRUCT_INIT
 
         if not point.init:
-            raise RuntimeError('point not initialized')
+            raise RuntimeError("point not initialized")
 
         n = point.n
 
@@ -681,8 +682,8 @@ class QMap(QPoint):
             point.ctime_init = 0
             point.ctime = None
         elif ctime is not None:
-            ctime = lib.check_input('ctime', ctime, shape=(n,))
-            self.depo['ctime'] = ctime
+            ctime = lib.check_input("ctime", ctime, shape=(n,))
+            self.depo["ctime"] = ctime
             point.ctime_init = lib.QP_ARR_INIT_PTR
             point.ctime = lib.as_ctypes(ctime)
 
@@ -690,8 +691,8 @@ class QMap(QPoint):
             point.q_hwp_init = 0
             point.q_hwp = None
         elif q_hwp is not None:
-            q_hwp = lib.check_input('q_hwp', q_hwp, shape=(n, 4), quat=True)
-            self.depo['q_hwp'] = q_hwp
+            q_hwp = lib.check_input("q_hwp", q_hwp, shape=(n, 4), quat=True)
+            self.depo["q_hwp"] = q_hwp
             point.q_hwp_init = lib.QP_ARR_INIT_PTR
             point.q_hwp = lib.as_ctypes(q_hwp)
 
@@ -699,11 +700,11 @@ class QMap(QPoint):
         """
         Reset the pointing data structure.
         """
-        if hasattr(self, '_point'):
+        if hasattr(self, "_point"):
             qp.qp_free_point(self._point)
-        self.depo.pop('q_bore', None)
-        self.depo.pop('ctime', None)
-        self.depo.pop('q_hwp', None)
+        self.depo.pop("q_bore", None)
+        self.depo.pop("ctime", None)
+        self.depo.pop("q_hwp", None)
         self._point = ct.pointer(lib.qp_point_t())
 
     def init_detarr(
@@ -758,12 +759,12 @@ class QMap(QPoint):
         self.reset_detarr()
 
         # check inputs
-        q_off = lib.check_input('q_off', np.atleast_2d(q_off), quat=True)
+        q_off = lib.check_input("q_off", np.atleast_2d(q_off), quat=True)
         n = q_off.size // 4
-        weight = lib.check_input('weight', weight, shape=(n,), fill=1)
-        gain = lib.check_input('gain', gain, shape=(n,), fill=1)
+        weight = lib.check_input("weight", weight, shape=(n,), fill=1)
+        gain = lib.check_input("gain", gain, shape=(n,), fill=1)
         mueller = lib.check_input(
-            'mueller', mueller, shape=(n, 4), fill=np.array([1, 1, 0, 1])
+            "mueller", mueller, shape=(n, 4), fill=np.array([1, 1, 0, 1])
         )
 
         ns = self._point.contents.n
@@ -773,19 +774,19 @@ class QMap(QPoint):
             tod = np.atleast_2d(tod)
 
         if write:
-            tod = lib.check_output('tod', tod, shape=shape, fill=0)
-            self.depo['tod'] = tod
+            tod = lib.check_output("tod", tod, shape=shape, fill=0)
+            self.depo["tod"] = tod
         elif tod is not None:
-            tod = lib.check_input('tod', tod, shape=shape)
-            self.depo['tod'] = tod
+            tod = lib.check_input("tod", tod, shape=shape)
+            self.depo["tod"] = tod
         if flag is not None:
             flag = lib.check_input(
-                'flag', np.atleast_2d(flag), dtype=np.uint8, shape=shape
+                "flag", np.atleast_2d(flag), dtype=np.uint8, shape=shape
             )
-            self.depo['flag'] = flag
+            self.depo["flag"] = flag
         if weights is not None:
-            weights = lib.check_input('weights', np.atleast_2d(weights), shape=shape)
-            self.depo['weights'] = weights
+            weights = lib.check_input("weights", np.atleast_2d(weights), shape=shape)
+            self.depo["weights"] = weights
 
         # populate array
         dets = (lib.qp_det_t * n)()
@@ -828,18 +829,18 @@ class QMap(QPoint):
         """
         Reset the detector array structure.
         """
-        if hasattr(self, '_detarr') and self._detarr is not None:
+        if hasattr(self, "_detarr") and self._detarr is not None:
             qp.qp_free_detarr(self._detarr)
         self._detarr = None
-        self.depo.pop('tod', None)
-        self.depo.pop('flag', None)
-        self.depo.pop('weights', None)
+        self.depo.pop("tod", None)
+        self.depo.pop("flag", None)
+        self.depo.pop("weights", None)
 
     def reset(self):
         """
         Reset the internal data structures, and clear the data depo.
         """
-        if not hasattr(self, 'depo'):
+        if not hasattr(self, "depo"):
             self.depo = dict()
         self.reset_source()
         self.reset_dest()
@@ -858,7 +859,7 @@ class QMap(QPoint):
         flag=None,
         weights=None,
         do_diff=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Calculate signal and hits maps for given detectors.
@@ -917,12 +918,12 @@ class QMap(QPoint):
 
         # check modes
         return_vec = True
-        if tod is None or tod is False or self.depo['vec'] is False:
+        if tod is None or tod is False or self.depo["vec"] is False:
             return_vec = False
         return_proj = True
-        if not count_hits or self.depo['proj'] is False:
+        if not count_hits or self.depo["proj"] is False:
             if return_vec is False:
-                raise RuntimeError('Nothing to do')
+                raise RuntimeError("Nothing to do")
             return_proj = False
 
         # cache modes
@@ -948,9 +949,9 @@ class QMap(QPoint):
         # return
         ret = ()
         if return_vec:
-            ret += (self.depo['vec'].squeeze(),)
+            ret += (self.depo["vec"].squeeze(),)
         if return_proj:
-            ret += (self.depo['proj'].squeeze(),)
+            ret += (self.depo["proj"].squeeze(),)
         if len(ret) == 1:
             return ret[0]
         return ret
@@ -995,7 +996,7 @@ class QMap(QPoint):
         # run
         if qp.qp_map2tod(self._memory, self._detarr, self._point, self._source):
             raise RuntimeError(qp.qp_get_error_string(self._memory))
-        tod = self.depo.pop('tod')
+        tod = self.depo.pop("tod")
 
         # clean up
         self.reset_detarr()
@@ -1027,9 +1028,9 @@ class QMap(QPoint):
 
         # check inputs
         if proj is None:
-            proj = self.depo['proj']
+            proj = self.depo["proj"]
         if proj is None or proj is False:
-            raise ValueError('missing proj')
+            raise ValueError("missing proj")
         proj, _, nmap = check_proj(proj, copy=True, partial=partial)
         nproj = len(proj)
 
@@ -1067,7 +1068,7 @@ class QMap(QPoint):
         fill=0,
         cond=None,
         cond_thresh=1e6,
-        method='exact',
+        method="exact",
     ):
         """
         Solve for a map, given the binned map and the projection matrix
@@ -1125,27 +1126,27 @@ class QMap(QPoint):
 
         # check if we're dealing with a partial map
         if partial is None:
-            if vec is None and 'dest_pixels' in self.depo:
+            if vec is None and "dest_pixels" in self.depo:
                 partial = True
             else:
                 partial = False
 
         # ensure properly shaped arrays
         if vec is None:
-            vec = self.depo['vec']
+            vec = self.depo["vec"]
         if vec is None or vec is False:
-            raise ValueError('missing vec')
+            raise ValueError("missing vec")
         vec, nside = check_map(vec, copy=copy, partial=partial)
 
         if proj is None:
-            proj = self.depo['proj']
+            proj = self.depo["proj"]
         if proj is None or proj is False:
-            raise ValueError('missing proj')
+            raise ValueError("missing proj")
         pcopy = True if not return_proj else copy
         proj, pnside, nmap = check_proj(proj, copy=pcopy, partial=partial)
 
         if pnside != nside or nmap != len(vec):
-            raise ValueError('vec and proj have incompatible shapes')
+            raise ValueError("vec and proj have incompatible shapes")
         nproj = len(proj)
 
         # deal with mask
@@ -1155,7 +1156,7 @@ class QMap(QPoint):
             mcopy = True if not return_mask else copy
             mask, mnside = check_map(mask, copy=mcopy, partial=partial)
             if mnside != nside:
-                raise ValueError('mask has incompatible shape')
+                raise ValueError("mask has incompatible shape")
             mask = mask.squeeze().astype(bool)
         mask &= proj[0].astype(bool)
 
@@ -1270,7 +1271,7 @@ class QMap(QPoint):
         mask : array_like
             1-d array, True for valid pixels, if `return_mask` is True
         """
-        kwargs['method'] = 'cho'
+        kwargs["method"] = "cho"
         return self.solve_map(*args, **kwargs)
 
     def unsolve_map(
@@ -1327,20 +1328,20 @@ class QMap(QPoint):
 
         # check if we're dealing with a partial map
         if partial is None:
-            partial = 'dest_pixels' in self.depo
+            partial = "dest_pixels" in self.depo
 
         # ensure properly shaped arrays
         map_in, nside = check_map(map_in, copy=copy, partial=partial)
 
         if proj is None:
-            proj = self.depo['proj']
+            proj = self.depo["proj"]
         if proj is None or proj is False:
-            raise ValueError('missing proj')
+            raise ValueError("missing proj")
         pcopy = True if not return_proj else copy
         proj, pnside, nmap = check_proj(proj, copy=pcopy, partial=partial)
 
         if pnside != nside or nmap != len(map_in):
-            raise ValueError('map_in and proj have incompatible shapes')
+            raise ValueError("map_in and proj have incompatible shapes")
         nproj = len(proj)
 
         # deal with mask
@@ -1350,7 +1351,7 @@ class QMap(QPoint):
             mcopy = True if not return_mask else copy
             mask, mnside = check_map(mask, copy=mcopy, partial=partial)
             if mnside != nside:
-                raise ValueError('mask has incompatible shape')
+                raise ValueError("mask has incompatible shape")
             mask = mask.squeeze().astype(bool)
         mask &= proj[0].astype(bool)
 
@@ -1365,7 +1366,7 @@ class QMap(QPoint):
             idx = np.zeros((nmap, nmap), dtype=int)
             rtri, ctri = np.triu_indices(nmap)
             idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
-            map_in[:] = np.einsum('ij...,j...->i...', proj[idx], map_in)
+            map_in[:] = np.einsum("ij...,j...->i...", proj[idx], map_in)
             map_in[:, ~mask] = fill
 
         # return

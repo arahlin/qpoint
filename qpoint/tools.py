@@ -1,7 +1,7 @@
 import numpy as np
 from ._libqpoint import libqp as qp
 
-__all__ = ['refraction']
+__all__ = ["refraction"]
 
 
 def refraction(el, temp, press, hum, freq=150.0):

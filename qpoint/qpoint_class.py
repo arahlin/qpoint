@@ -4,7 +4,7 @@ from . import _libqpoint as lib
 from ._libqpoint import libqp as qp
 from ._libqpoint import check_input, check_inputs, check_output
 
-__all__ = ['QPoint', 'check_input', 'check_inputs', 'check_output']
+__all__ = ["QPoint", "check_input", "check_inputs", "check_output"]
 
 
 class QPoint(object):
@@ -55,9 +55,9 @@ class QPoint(object):
         of parameter names.
         """
         if key not in self._all_funcs:
-            raise KeyError('Unknown parameter {}'.format(key))
-        val = self._all_funcs[key]['check_set'](val)
-        self._all_funcs[key]['set'](self._memory, val)
+            raise KeyError("Unknown parameter {}".format(key))
+        val = self._all_funcs[key]["check_set"](val)
+        self._all_funcs[key]["set"](self._memory, val)
 
     def _get(self, key):
         """
@@ -65,9 +65,9 @@ class QPoint(object):
         parameter names.
         """
         if key not in self._all_funcs:
-            raise KeyError('Unknown parameter {}'.format(key))
-        val = self._all_funcs[key]['get'](self._memory)
-        return self._all_funcs[key]['check_get'](val)
+            raise KeyError("Unknown parameter {}".format(key))
+        val = self._all_funcs[key]["get"](self._memory)
+        return self._all_funcs[key]["check_get"](val)
 
     def set(self, **kwargs):
         """
@@ -236,23 +236,23 @@ class QPoint(object):
         if len(args) == 1 and len(kwargs) == 0:
             v = args[0]
             if np.isscalar(v):
-                self._set('ref_delta', v)
+                self._set("ref_delta", v)
                 return v
 
-        if 'delta' in kwargs:
-            v = kwargs.get('delta')
-            self._set('ref_delta', v)
+        if "delta" in kwargs:
+            v = kwargs.get("delta")
+            self._set("ref_delta", v)
             return v
 
-        arg_names = ['q'] + list(self._funcs['weather'])
+        arg_names = ["q"] + list(self._funcs["weather"])
         for idx, a in enumerate(args):
             kwargs[arg_names[idx]] = a
 
-        for w in self._funcs['weather']:
+        for w in self._funcs["weather"]:
             if w in kwargs:
                 self._set(w, kwargs.get(w))
 
-        q = kwargs.get('q', None)
+        q = kwargs.get("q", None)
         if q is not None:
 
             def func(x0, x1, x2, x3):
@@ -266,7 +266,7 @@ class QPoint(object):
             if delta.shape == ():
                 return delta[()]
             return delta
-        return self._get('ref_delta')
+        return self._get("ref_delta")
 
     def gmst(self, ctime, **kwargs):
         """
@@ -291,10 +291,10 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        ctime = check_input('ctime', np.atleast_1d(ctime))
+        ctime = check_input("ctime", np.atleast_1d(ctime))
         n = ctime.size
 
-        gmst = check_output('gmst', shape=ctime.shape)
+        gmst = check_output("gmst", shape=ctime.shape)
         qp.qp_gmstn(self._memory, ctime, gmst, n)
 
         if n == 1:
@@ -329,7 +329,7 @@ class QPoint(object):
         ctime, lon = check_inputs(ctime, lon)
         n = ctime.size
 
-        lmst = check_output('lmst', shape=ctime.shape)
+        lmst = check_output("lmst", shape=ctime.shape)
         qp.qp_lmstn(self._memory, ctime, lon, lmst, n)
 
         if n == 1:
@@ -366,7 +366,7 @@ class QPoint(object):
         ctime, ra, dec = check_inputs(ctime, ra, dec)
         n = ctime.size
 
-        dipole = check_output('dipole', shape=ctime.shape, **kwargs)
+        dipole = check_output("dipole", shape=ctime.shape, **kwargs)
         qp.qp_dipolen(self._memory, ctime, ra, dec, dipole, n)
 
         if n == 1:
@@ -402,12 +402,12 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off = check_input('q_off', q_off, shape=(4,), quat=True)
-        ctime = check_input('ctime', ctime)
+        q_off = check_input("q_off", q_off, shape=(4,), quat=True)
+        ctime = check_input("ctime", ctime)
         n = ctime.size
-        q_bore = check_input('q_bore', q_bore, shape=(n, 4), quat=True)
+        q_bore = check_input("q_bore", q_bore, shape=(n, 4), quat=True)
 
-        dipole = check_output('dipole', shape=ctime.shape, **kwargs)
+        dipole = check_output("dipole", shape=ctime.shape, **kwargs)
         qp.qp_bore2dipole(self._memory, q_off, ctime, q_bore, dipole, n)
 
         if n == 1:
@@ -438,7 +438,7 @@ class QPoint(object):
         delta_az, delta_el, delta_psi = check_inputs(delta_az, delta_el, delta_psi)
         ndet = delta_az.size
 
-        quat = check_output('quat', shape=(ndet, 4))
+        quat = check_output("quat", shape=(ndet, 4))
         qp.qp_det_offsetn(delta_az, delta_el, delta_psi, quat, ndet)
 
         if ndet == 1:
@@ -474,11 +474,11 @@ class QPoint(object):
             Offset boresight quaternion
         """
         q_bore = check_input(
-            'q_bore', np.atleast_2d(q_bore), quat=True, inplace=inplace, output=True
+            "q_bore", np.atleast_2d(q_bore), quat=True, inplace=inplace, output=True
         )
         n = q_bore.shape[0]
         if all([a is None for a in [ang1, ang2, ang3]]):
-            raise ValueError('One of ang1, ang2, ang3 is required')
+            raise ValueError("One of ang1, ang2, ang3 is required")
         ang1, ang2, ang3 = check_inputs(ang1, ang2, ang3, shape=(n,))
         qp.qp_bore_offset(self._memory, q_bore, ang1, ang2, ang3, n, int(post))
         return q_bore
@@ -498,10 +498,10 @@ class QPoint(object):
         q : array_like
             Quaternion for each hwp angle
         """
-        theta = check_input('theta', np.atleast_1d(theta))
+        theta = check_input("theta", np.atleast_1d(theta))
         n = theta.size
 
-        quat = check_output('quat', shape=(n, 4))
+        quat = check_output("quat", shape=(n, 4))
         qp.qp_hwp_quatn(theta, quat, n)
 
         if n == 1:
@@ -554,7 +554,7 @@ class QPoint(object):
         n = az.size
 
         # identity quaternion
-        q = check_output('q', q, shape=(n, 4), fill=[1, 0, 0, 0])
+        q = check_output("q", q, shape=(n, 4), fill=[1, 0, 0, 0])
 
         qp.qp_azel2bore(self._memory, az, el, pitch, roll, lon, lat, ctime, q, n)
 
@@ -611,7 +611,7 @@ class QPoint(object):
         n = az.size
 
         # identity quaternion
-        q = check_output('q', q, shape=(n, 4), fill=[1, 0, 0, 0])
+        q = check_output("q", q, shape=(n, 4), fill=[1, 0, 0, 0])
 
         qp.qp_azelpsi2bore(
             self._memory, az, el, psi, pitch, roll, lon, lat, ctime, q, n
@@ -632,7 +632,7 @@ class QPoint(object):
         pa=None,
         sin2psi=None,
         cos2psi=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Calculate the orientation on the sky for a detector offset from the
@@ -683,24 +683,24 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off = check_input('q_off', q_off, quat=True)
-        q_bore = check_input('q_bore', np.atleast_2d(q_bore), quat=True)
+        q_off = check_input("q_off", q_off, quat=True)
+        q_bore = check_input("q_bore", np.atleast_2d(q_bore), quat=True)
         shape = (q_bore.size // 4,)
         if ctime is None:
-            if not self.get('mean_aber'):
-                raise ValueError('ctime required if mean_aber is False')
+            if not self.get("mean_aber"):
+                raise ValueError("ctime required if mean_aber is False")
             ctime = np.zeros(shape, dtype=q_bore.dtype)
-        ctime = check_input('ctime', ctime, shape=shape)
+        ctime = check_input("ctime", ctime, shape=shape)
         pars = dict(shape=ctime.shape, dtype=np.double)
-        ra = check_output('ra', ra, **pars)
-        dec = check_output('dec', dec, **pars)
+        ra = check_output("ra", ra, **pars)
+        dec = check_output("dec", dec, **pars)
         if return_pa:
             if sindec:
-                raise ValueError('Cannot use sindec with return_pa=True')
-            pa = check_output('pa', pa, **pars)
+                raise ValueError("Cannot use sindec with return_pa=True")
+            pa = check_output("pa", pa, **pars)
         else:
-            sin2psi = check_output('sin2psi', sin2psi, **pars)
-            cos2psi = check_output('cos2psi', cos2psi, **pars)
+            sin2psi = check_output("sin2psi", sin2psi, **pars)
+            cos2psi = check_output("cos2psi", cos2psi, **pars)
         n = ctime.size
 
         if q_hwp is None:
@@ -715,7 +715,7 @@ class QPoint(object):
                     self._memory, q_off, ctime, q_bore, ra, dec, sin2psi, cos2psi, n
                 )
         else:
-            q_hwp = check_input('q_hwp', q_hwp, shape=q_bore.shape)
+            q_hwp = check_input("q_hwp", q_hwp, shape=q_bore.shape)
             if return_pa:
                 qp.qp_bore2radecpa_hwp(
                     self._memory, q_off, ctime, q_bore, q_hwp, ra, dec, pa, n
@@ -776,7 +776,7 @@ class QPoint(object):
         pa=None,
         sin2psi=None,
         cos2psi=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Estimate the orientation on the sky for a detector offset from
@@ -840,13 +840,13 @@ class QPoint(object):
             az, el, pitch, roll, lon, lat, ctime
         )
 
-        ra = check_output('ra', ra, shape=az.shape, dtype=np.double)
-        dec = check_output('dec', dec, shape=az.shape, dtype=np.double)
+        ra = check_output("ra", ra, shape=az.shape, dtype=np.double)
+        dec = check_output("dec", dec, shape=az.shape, dtype=np.double)
         if return_pa:
-            pa = check_output('pa', pa, shape=az.shape, dtype=np.double)
+            pa = check_output("pa", pa, shape=az.shape, dtype=np.double)
         else:
-            sin2psi = check_output('sin2psi', sin2psi, shape=az.shape, dtype=np.double)
-            cos2psi = check_output('cos2psi', cos2psi, shape=az.shape, dtype=np.double)
+            sin2psi = check_output("sin2psi", sin2psi, shape=az.shape, dtype=np.double)
+            cos2psi = check_output("cos2psi", cos2psi, shape=az.shape, dtype=np.double)
         n = az.size
 
         if hwp is None:
@@ -907,7 +907,7 @@ class QPoint(object):
                     n,
                 )
         else:
-            hwp = check_input('hwp', hwp, shape=az.shape)
+            hwp = check_input("hwp", hwp, shape=az.shape)
 
             if return_pa:
                 qp.qp_azel2radec_hwp(
@@ -994,7 +994,7 @@ class QPoint(object):
         pa=None,
         sin2psi=None,
         cos2psi=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Estimate the orientation on the sky for a detector offset from
@@ -1063,13 +1063,13 @@ class QPoint(object):
             az, el, psi, pitch, roll, lon, lat, ctime
         )
 
-        ra = check_output('ra', ra, shape=az.shape, dtype=np.double)
-        dec = check_output('dec', dec, shape=az.shape, dtype=np.double)
+        ra = check_output("ra", ra, shape=az.shape, dtype=np.double)
+        dec = check_output("dec", dec, shape=az.shape, dtype=np.double)
         if return_pa:
-            pa = check_output('pa', pa, shape=az.shape, dtype=np.double)
+            pa = check_output("pa", pa, shape=az.shape, dtype=np.double)
         else:
-            sin2psi = check_output('sin2psi', sin2psi, shape=az.shape, dtype=np.double)
-            cos2psi = check_output('cos2psi', cos2psi, shape=az.shape, dtype=np.double)
+            sin2psi = check_output("sin2psi", sin2psi, shape=az.shape, dtype=np.double)
+            cos2psi = check_output("cos2psi", cos2psi, shape=az.shape, dtype=np.double)
         n = az.size
 
         if hwp is None:
@@ -1133,7 +1133,7 @@ class QPoint(object):
                     n,
                 )
         else:
-            hwp = check_input('hwp', hwp, shape=az.shape)
+            hwp = check_input("hwp", hwp, shape=az.shape)
 
             if return_pa:
                 qp.qp_azelpsi2radec_hwp(
@@ -1244,9 +1244,9 @@ class QPoint(object):
 
         ra, dec, pa, lon, lat, ctime = check_inputs(ra, dec, pa, lon, lat, ctime)
 
-        az = check_output('az', az, shape=ra.shape, dtype=np.double)
-        el = check_output('el', el, shape=ra.shape, dtype=np.double)
-        hpa = check_output('hpa', hpa, shape=ra.shape, dtype=np.double)
+        az = check_output("az", az, shape=ra.shape, dtype=np.double)
+        el = check_output("el", el, shape=ra.shape, dtype=np.double)
+        hpa = check_output("hpa", hpa, shape=ra.shape, dtype=np.double)
         n = ra.size
 
         qp.qp_radec2azel(self._memory, ra, dec, pa, lon, lat, ctime, az, el, hpa, n)
@@ -1281,7 +1281,7 @@ class QPoint(object):
 
         ra, dec, pa = check_inputs(ra, dec, pa)
         n = ra.size
-        quat = check_output('quat', shape=(n, 4), dtype=np.double, **kwargs)
+        quat = check_output("quat", shape=(n, 4), dtype=np.double, **kwargs)
         qp.qp_radecpa2quatn(self._memory, ra, dec, pa, quat, n)
 
         if n == 1:
@@ -1313,11 +1313,11 @@ class QPoint(object):
         """
         self.set(**kwargs)
 
-        quat = check_input('quat', np.atleast_2d(quat), quat=True)
+        quat = check_input("quat", np.atleast_2d(quat), quat=True)
         n = quat.shape[0]
-        ra = check_output('ra', shape=(n,), dtype=np.double, **kwargs)
-        dec = check_output('dec', shape=(n,), dtype=np.double, **kwargs)
-        pa = check_output('pa', shape=(n,), dtype=np.double, **kwargs)
+        ra = check_output("ra", shape=(n,), dtype=np.double, **kwargs)
+        dec = check_output("dec", shape=(n,), dtype=np.double, **kwargs)
+        pa = check_output("pa", shape=(n,), dtype=np.double, **kwargs)
 
         qp.qp_quat2radecpan(self._memory, quat, ra, dec, pa, n)
         if n == 1:
@@ -1347,10 +1347,10 @@ class QPoint(object):
         """
         self.set(**kwargs)
 
-        quat = check_input('quat', np.atleast_2d(quat), quat=True)
+        quat = check_input("quat", np.atleast_2d(quat), quat=True)
         n = quat.shape[0]
-        pix = check_output('pix', shape=(n,), dtype=int, **kwargs)
-        pa = check_output('pa', shape=(n,), dtype=np.double, **kwargs)
+        pix = check_output("pix", shape=(n,), dtype=int, **kwargs)
+        pa = check_output("pa", shape=(n,), dtype=np.double, **kwargs)
 
         qp.qp_quat2pixpan(self._memory, quat, pix, pa, n)
         if n == 1:
@@ -1387,14 +1387,14 @@ class QPoint(object):
         ra, dec = check_inputs(ra, dec)
         n = ra.size
 
-        pix = check_output('pix', shape=ra.shape, dtype=int, **kwargs)
+        pix = check_output("pix", shape=ra.shape, dtype=int, **kwargs)
         qp.qp_radec2pixn(self._memory, ra, dec, nside, pix, n)
 
         if n == 1:
             return pix[0]
         return pix
 
-    def rotate_quat(self, quat, coord=['C', 'G'], inplace=True, **kwargs):
+    def rotate_quat(self, quat, coord=["C", "G"], inplace=True, **kwargs):
         """
         Rotate a quaternion from one coordinate system to another.
         Supported coordinates:
@@ -1426,16 +1426,16 @@ class QPoint(object):
         self.set(**kwargs)
 
         quat = check_input(
-            'quat', np.atleast_2d(quat), quat=True, inplace=inplace, output=True
+            "quat", np.atleast_2d(quat), quat=True, inplace=inplace, output=True
         )
         n = quat.size // 4
 
-        if coord[0] == 'C' and coord[1] == 'G':
+        if coord[0] == "C" and coord[1] == "G":
             qp.qp_radec2gal_quatn(self._memory, quat, n)
-        elif coord[0] == 'G' and coord[1] == 'C':
+        elif coord[0] == "G" and coord[1] == "C":
             qp.qp_gal2radec_quatn(self._memory, quat, n)
         else:
-            raise ValueError('unsupported coord {}'.format(coord))
+            raise ValueError("unsupported coord {}".format(coord))
 
         return quat.squeeze()
 
@@ -1446,9 +1446,9 @@ class QPoint(object):
         pa=None,
         sin2psi=None,
         cos2psi=None,
-        coord=['C', 'G'],
+        coord=["C", "G"],
         inplace=True,
-        **kwargs
+        **kwargs,
     ):
         """
         Rotate coordinates from one coordinate system to another. Vectorized,
@@ -1492,14 +1492,14 @@ class QPoint(object):
             if sin2psi is None and cos2psi is None:
                 pass
             elif sin2psi is None or cos2psi is None:
-                raise KeyError('both sin2psi and cos2psi arguments required')
+                raise KeyError("both sin2psi and cos2psi arguments required")
             else:
                 do_pa = False
         else:
             if sin2psi is not None or cos2psi is not None:
                 raise KeyError(
-                    'ambiguous pol arguments, supply either pa '
-                    'or sin2psi/cos2psi only'
+                    "ambiguous pol arguments, supply either pa "
+                    "or sin2psi/cos2psi only"
                 )
 
         ra, dec, pa, sin2psi, cos2psi = check_inputs(
@@ -1507,12 +1507,12 @@ class QPoint(object):
         )
         n = ra.size
 
-        if coord[0] == 'C' and coord[1] == 'G':
+        if coord[0] == "C" and coord[1] == "G":
             if do_pa:
                 qp.qp_radecpa2galn(self._memory, ra, dec, pa, n)
             else:
                 qp.qp_radec2galn(self._memory, ra, dec, sin2psi, cos2psi, n)
-        elif coord[0] == 'G' and coord[1] == 'C':
+        elif coord[0] == "G" and coord[1] == "C":
             if do_pa:
                 qp.qp_gal2radecpan(self._memory, ra, dec, pa, n)
             else:
@@ -1558,7 +1558,7 @@ class QPoint(object):
         and will be processed prior to calculation.
         """
         return self.rotate_coord(
-            ra, dec, pa, sin2psi, cos2psi, coord=['C', 'G'], inplace=inplace, **kwargs
+            ra, dec, pa, sin2psi, cos2psi, coord=["C", "G"], inplace=inplace, **kwargs
         )
 
     def gal2radec(
@@ -1593,11 +1593,11 @@ class QPoint(object):
         and will be processed prior to calculation.
         """
         return self.rotate_coord(
-            ra, dec, pa, sin2psi, cos2psi, coord=['G', 'C'], inplace=inplace, **kwargs
+            ra, dec, pa, sin2psi, cos2psi, coord=["G", "C"], inplace=inplace, **kwargs
         )
 
     def rotate_map(
-        self, map_in, coord=['C', 'G'], map_out=None, interp_pix=True, **kwargs
+        self, map_in, coord=["C", "G"], map_out=None, interp_pix=True, **kwargs
     ):
         """
         Rotate a polarized 3-x-npix map from one coordinate system to another.
@@ -1631,23 +1631,23 @@ class QPoint(object):
         Only full-sky maps are currently supported.
         """
 
-        warn('This code is buggy, use at your own risk', UserWarning)
+        warn("This code is buggy, use at your own risk", UserWarning)
 
-        interp_orig = self.get('interp_pix')
+        interp_orig = self.get("interp_pix")
         self.set(interp_pix=interp_pix, **kwargs)
 
         from .qmap_class import check_map
 
         map_in, nside = check_map(map_in)
         map_out = check_output(
-            'map_out', map_out, shape=map_in.shape, dtype=map_in.dtype, fill=0
+            "map_out", map_out, shape=map_in.shape, dtype=map_in.dtype, fill=0
         )
 
         try:
             coord_in = coord[0]
             coord_out = coord[1]
         except:
-            raise ValueError('unable to parse coord')
+            raise ValueError("unable to parse coord")
 
         map_in_p = lib.pointer_2d(map_in)
         map_out_p = lib.pointer_2d(map_out)
@@ -1687,13 +1687,13 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        quat = check_input('quat', np.atleast_2d(quat), quat=True)
+        quat = check_input("quat", np.atleast_2d(quat), quat=True)
 
         n = quat.shape[0]
         shape = (n,)
-        pix = check_output('pix', shape=shape, dtype=int, **kwargs)
-        sin2psi = check_output('sin2psi', shape=shape, **kwargs)
-        cos2psi = check_output('cos2psi', shape=shape, **kwargs)
+        pix = check_output("pix", shape=shape, dtype=int, **kwargs)
+        sin2psi = check_output("sin2psi", shape=shape, **kwargs)
+        cos2psi = check_output("cos2psi", shape=shape, **kwargs)
         qp.qp_quat2pixn(self._memory, quat, nside, pix, sin2psi, cos2psi, n)
 
         if n == 1:
@@ -1711,7 +1711,7 @@ class QPoint(object):
         nside=256,
         pol=True,
         return_pa=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Calculate the orientation on the sky for a detector offset from the
@@ -1758,19 +1758,19 @@ class QPoint(object):
 
         self.set(**kwargs)
 
-        q_off = check_input('q_off', q_off, quat=True)
-        q_bore = check_input('q_bore', q_bore, quat=True)
+        q_off = check_input("q_off", q_off, quat=True)
+        q_bore = check_input("q_bore", q_bore, quat=True)
         if ctime is None:
-            if not self.get('mean_aber'):
-                raise ValueError('ctime required if mean_aber is False')
+            if not self.get("mean_aber"):
+                raise ValueError("ctime required if mean_aber is False")
             ctime = np.zeros((q_bore.size // 4,), dtype=q_bore.dtype)
-        ctime = check_input('ctime', ctime)
-        pix = check_output('pix', shape=ctime.shape, dtype=int, **kwargs)
+        ctime = check_input("ctime", ctime)
+        pix = check_output("pix", shape=ctime.shape, dtype=int, **kwargs)
         if return_pa:
-            pa = check_output('pa', shape=ctime.shape, **kwargs)
+            pa = check_output("pa", shape=ctime.shape, **kwargs)
         else:
-            sin2psi = check_output('sin2psi', shape=ctime.shape, **kwargs)
-            cos2psi = check_output('cos2psi', shape=ctime.shape, **kwargs)
+            sin2psi = check_output("sin2psi", shape=ctime.shape, **kwargs)
+            cos2psi = check_output("cos2psi", shape=ctime.shape, **kwargs)
         n = ctime.size
 
         if q_hwp is None:
@@ -1781,7 +1781,7 @@ class QPoint(object):
                     self._memory, q_off, ctime, q_bore, nside, pix, sin2psi, cos2psi, n
                 )
         else:
-            q_hwp = check_input('q_hwp', q_hwp, shape=q_bore.shape)
+            q_hwp = check_input("q_hwp", q_hwp, shape=q_bore.shape)
 
             if return_pa:
                 qp.qp_bore2pixpa_hwp(
@@ -1831,11 +1831,11 @@ class QPoint(object):
             Array of interpolated map values, of shape (nmap, nsample).
         """
 
-        pix_order = self.get('pix_order')
+        pix_order = self.get("pix_order")
         if nest:
-            self.set(pix_order='nest')
+            self.set(pix_order="nest")
         else:
-            self.set(pix_order='ring')
+            self.set(pix_order="ring")
 
         ra, dec = check_inputs(ra, dec)
         n = ra.size
@@ -1844,7 +1844,7 @@ class QPoint(object):
 
         map_in, nside = check_map(map_in)
 
-        val = check_output('value', shape=(len(map_in), n))
+        val = check_output("value", shape=(len(map_in), n))
 
         for m, v in zip(map_in, val):
             qp.qp_get_interp_valn(self._memory, nside, m, ra, dec, v, n)
@@ -1881,37 +1881,37 @@ class QPoint(object):
             from astropy.utils.iers import IERS_Auto
         except ImportError:
             warn(
-                'Compatible Astropy not found.  Install astropy v1.2 or newer '
-                'for accurate polar motion and UT1 corrections',
+                "Compatible Astropy not found.  Install astropy v1.2 or newer "
+                "for accurate polar motion and UT1 corrections",
                 ImportWarning,
             )
             return
 
-        columns = ['MJD', 'UT1_UTC', 'PM_x', 'PM_y', 'year']
+        columns = ["MJD", "UT1_UTC", "PM_x", "PM_y", "year"]
         iers_table = IERS_Auto.open()[columns].as_array()
 
         # check year
-        year = iers_table['year'] + 1900
+        year = iers_table["year"] + 1900
         (wraps,) = np.where(np.ediff1d(year) < 0)
         for idx in wraps:
             year[idx + 1 :] += 100
-        iers_table['year'] = year
+        iers_table["year"] = year
         iers_table = iers_table[year >= start_year]
 
         # check MJD
-        mjds = iers_table['MJD']
+        mjds = iers_table["MJD"]
         mjd_min = int(mjds.min())
         mjd_max = int(mjds.max())
 
         # update table
-        dut1 = np.array(iers_table['UT1_UTC'])
-        x = np.array(iers_table['PM_x'])
-        y = np.array(iers_table['PM_y'])
+        dut1 = np.array(iers_table["UT1_UTC"])
+        x = np.array(iers_table["PM_x"])
+        y = np.array(iers_table["PM_y"])
         qp.qp_set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
 
         return mjds, dut1, x, y
 
-    def load_bulletin_a(self, filename, columns=['mjd', 'dut1', 'x', 'y'], **kwargs):
+    def load_bulletin_a(self, filename, columns=["mjd", "dut1", "x", "y"], **kwargs):
         """
         Load IERS Bulletin A from file and store in memory.  The file must be
         readable using `numpy.loadtxt` with `unpack=True`, and is assumed to be
@@ -1939,12 +1939,12 @@ class QPoint(object):
             Polar motion corrections
         """
 
-        req_columns = ['mjd', 'dut1', 'x', 'y']
+        req_columns = ["mjd", "dut1", "x", "y"]
         if not set(req_columns) <= set(columns):
             raise KeyError(
-                'Missing columns {}'.format(list(set(req_columns) - set(columns)))
+                "Missing columns {}".format(list(set(req_columns) - set(columns)))
             )
-        kwargs['unpack'] = True
+        kwargs["unpack"] = True
         data = np.loadtxt(filename, **kwargs)
         mjd, x, y, dut1 = (data[columns.index(x)] for x in req_columns)
         mjd_min, mjd_max = int(mjd[0]), int(mjd[-1])
@@ -1953,7 +1953,7 @@ class QPoint(object):
             qp.qp_set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
         except:
             raise RuntimeError(
-                'Error loading Bulletin A data from file {}'.format(filename)
+                "Error loading Bulletin A data from file {}".format(filename)
             )
 
         return mjd, dut1, x, y
