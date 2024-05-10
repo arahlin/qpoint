@@ -16,9 +16,9 @@ src = [
     "src/sincos.c",
 ]
 
-extra_args = ['-O3', '-Wall', '-std=c99', '-fPIC']
+extra_args = ["-O3", "-Wall", "-std=c99", "-fPIC"]
 
-ext_qp = Extension('qpoint.libqpoint', src, extra_compile_args=extra_args)
+ext_qp = Extension("qpoint.libqpoint", src, extra_compile_args=extra_args)
 
 # add openmp support if possible
 add_openmp_flags_if_available(ext_qp)
