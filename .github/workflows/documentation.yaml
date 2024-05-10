@@ -25,7 +25,7 @@ jobs:
         pip install --upgrade pip
         pip install -r ./docs/requirements.txt
         pip install sphinx
-        sphinx-build docs ./docs/_build_html/
+        sphinx-build docs ./docs/_build/html/
     - name: Checkout pages branch
       uses: actions/checkout@v4
       with:
