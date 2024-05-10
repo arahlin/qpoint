@@ -11,22 +11,23 @@ jobs:
 
     steps:
     - name: Checkout github repo
-      uses: actions/checkout@v2
-    - name: Query version
-      id: tagger
-      uses: jimschubert/query-tag-action@v1
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
-        commit-ish: "HEAD"
-    - name: Set version
-      run: |
-        echo QPOINT_VERSION=${{steps.tagger.outputs.tag}} >> $GITHUB_ENV
+          python-version: "3.11"
+    - name: Lint
+      uses: psf/black@stable
+      with:
+          version: "23.7.0"
     - name: Build docs
-      uses: ammaraskar/sphinx-action@master
-      with:
-        pre-build-command: "apt-get --allow-releaseinfo-change update -y && apt-get install -y python3-dev build-essential"
-        docs-folder: "docs/"
+      run: |
+        pip install --upgrade pip
+        pip install -r ./docs/requirements.txt
+        pip install sphinx
+        sphinx-build docs ./docs/_build_html/
     - name: Checkout pages branch
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: gh-pages
         path: gh-pages

@@ -13,19 +13,11 @@ jobs:
 
     steps:
     - name: Checkout github repo
-      uses: actions/checkout@v3
-    - name: Query version
-      id: tagger
-      uses: jimschubert/query-tag-action@v1
-      with:
-        commit-ish: "HEAD"
-    - name: Set version
-      run: |
-        echo QPOINT_VERSION=${{steps.tagger.outputs.tag}} >> $GITHUB_ENV
+      uses: actions/checkout@v4
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.15.0
+      uses: pypa/cibuildwheel@v2.17.0
       env:
-        CIBW_SKIP: cp36-* *-musllinux_*
+        CIBW_SKIP: cp36-* cp37-* *-musllinux_*
         CIBW_ARCHS_LINUX: x86_64
         CIBW_ARCHS_MACOS: all
     - uses: actions/upload-artifact@v3
@@ -37,15 +29,7 @@ jobs:
 
     steps:
     - name: Checkout github repo
-      uses: actions/checkout@v3
-    - name: Query version
-      id: tagger
-      uses: jimschubert/query-tag-action@v1
-      with:
-        commit-ish: "HEAD"
-    - name: Set version
-      run: |
-        echo QPOINT_VERSION=${{steps.tagger.outputs.tag}} >> $GITHUB_ENV
+      uses: actions/checkout@v4
     - name: Setup python
       uses: actions/setup-python@v3
     - name: Install dependencies
