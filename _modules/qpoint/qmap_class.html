@@ -1,17 +1,15 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../../">
   <head>
     <meta charset="utf-8" />
-    <title>qpoint.qmap_class &#8212; qpoint 1.12.4 documentation</title>
-    <link rel="stylesheet" href="../../_static/sphinxdoc.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/language_data.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qpoint.qmap_class &#8212; qpoint 0.0.post1.dev1+g7ae5d4b documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinxdoc.css?v=87629129" />
+    <script src="../../_static/documentation_options.js?v=bb379b02"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
   </head><body>
@@ -24,25 +22,12 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 0.0.post1.dev1+g7ae5d4b documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="../qpoint.html" accesskey="U">qpoint</a> &#187;</li> 
+          <li class="nav-item nav-item-2"><a href="../qpoint.html" accesskey="U">qpoint</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">qpoint.qmap_class</a></li> 
       </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
-        </div>
-      </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
@@ -50,29 +35,26 @@
           <div class="body" role="main">
             
   <h1>Source code for qpoint.qmap_class</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">.qpoint_class</span> <span class="kn">import</span> <span class="n">QPoint</span>
 <span class="kn">import</span> <span class="nn">ctypes</span> <span class="k">as</span> <span class="nn">ct</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_libqpoint</span> <span class="k">as</span> <span class="n">lib</span>
 <span class="kn">from</span> <span class="nn">._libqpoint</span> <span class="kn">import</span> <span class="n">libqp</span> <span class="k">as</span> <span class="n">qp</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;QMap&#39;</span><span class="p">,</span> <span class="s1">&#39;check_map&#39;</span><span class="p">,</span> <span class="s1">&#39;check_proj&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;QMap&quot;</span><span class="p">,</span> <span class="s2">&quot;check_map&quot;</span><span class="p">,</span> <span class="s2">&quot;check_proj&quot;</span><span class="p">]</span>
+
 
 <span class="c1"># healpix bookkeeping</span>
 <span class="k">def</span> <span class="nf">nside2npix</span><span class="p">(</span><span class="n">nside</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert healpix resolution (nside) to the number of healpix pixels in a full-sky map.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="mi">12</span> <span class="o">*</span> <span class="n">nside</span> <span class="o">*</span> <span class="n">nside</span>
 
 
 <span class="k">def</span> <span class="nf">npix2nside</span><span class="p">(</span><span class="n">npix</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert the number of healpix pixels in a full-sky map to healpix resolution (nside).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">nside</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">npix</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">)</span>
@@ -83,8 +65,10 @@
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">nside</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="check_map"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.check_map">[docs]</a><span class="k">def</span> <span class="nf">check_map</span><span class="p">(</span><span class="n">map_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="check_map">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.check_map">[docs]</a>
+<span class="k">def</span> <span class="nf">check_map</span><span class="p">(</span><span class="n">map_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a properly transposed and memory-aligned map and its nside.</span>
 
 <span class="sd">    Arguments</span>
@@ -114,14 +98,17 @@
         <span class="n">dim2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_out</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">dim2</span> <span class="o">=</span> <span class="n">npix2nside</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">map_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-    <span class="n">map_out</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;map&#39;</span><span class="p">,</span> <span class="n">map_out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">map_out</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;map&quot;</span><span class="p">,</span> <span class="n">map_out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">copy</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">may_share_memory</span><span class="p">(</span><span class="n">map_in</span><span class="p">,</span> <span class="n">map_out</span><span class="p">):</span>
         <span class="n">map_out</span> <span class="o">=</span> <span class="n">map_out</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">map_out</span><span class="p">,</span> <span class="n">dim2</span></div>
 
 
-<div class="viewcode-block" id="check_proj"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.check_proj">[docs]</a><span class="k">def</span> <span class="nf">check_proj</span><span class="p">(</span><span class="n">proj_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="check_proj">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.check_proj">[docs]</a>
+<span class="k">def</span> <span class="nf">check_proj</span><span class="p">(</span><span class="n">proj_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a properly transposed and memory-aligned projection map,</span>
 <span class="sd">    its nside, and the map dimension.</span>
 
@@ -152,17 +139,22 @@
     <span class="n">proj_out</span><span class="p">,</span> <span class="n">dim2</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">proj_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
     <span class="n">nmap</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_out</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">//</span> <span class="mi">2</span>
     <span class="k">if</span> <span class="n">nmap</span> <span class="o">*</span> <span class="p">(</span><span class="n">nmap</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_out</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;proj has incompatible shape&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;proj has incompatible shape&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">proj_out</span><span class="p">,</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">nmap</span></div>
 
 
-<div class="viewcode-block" id="QMap"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap">[docs]</a><span class="k">class</span> <span class="nc">QMap</span><span class="p">(</span><span class="n">QPoint</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap">[docs]</a>
+<span class="k">class</span> <span class="nc">QMap</span><span class="p">(</span><span class="n">QPoint</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Quaternion-based mapmaker that generates per-channel pointing</span>
 <span class="sd">    on-the-fly.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="QMap.__init__"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="QMap.__init__">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">nside</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -173,9 +165,9 @@
         <span class="n">q_bore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">q_hwp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the internal structures and data depo for</span>
 <span class="sd">        mapmaking and/or timestream generation.</span>
 
@@ -214,7 +206,7 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">QMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">depo</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Dictionary of source and output maps, timetreams and pointing data.</span>
 <span class="sd">        Pointers to these arrays in memory are passed to the C library.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -230,17 +222,23 @@
         <span class="k">if</span> <span class="n">q_bore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">init_point</span><span class="p">(</span><span class="n">q_bore</span><span class="p">,</span> <span class="n">ctime</span><span class="o">=</span><span class="n">ctime</span><span class="p">,</span> <span class="n">q_hwp</span><span class="o">=</span><span class="n">q_hwp</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QMap.source_is_init"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_init">[docs]</a>    <span class="k">def</span> <span class="nf">source_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.source_is_init">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_init">[docs]</a>
+    <span class="k">def</span> <span class="nf">source_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the source map is initialized, otherwise False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_source&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_source&quot;</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">init</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="kc">True</span></div>
 
-<div class="viewcode-block" id="QMap.init_source"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_source">[docs]</a>    <span class="k">def</span> <span class="nf">init_source</span><span class="p">(</span>
+
+<div class="viewcode-block" id="QMap.init_source">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_source">[docs]</a>
+    <span class="k">def</span> <span class="nf">init_source</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">source_map</span><span class="p">,</span>
         <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -250,7 +248,7 @@
         <span class="n">reset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the source map structure.  Timestreams are</span>
 <span class="sd">        produced by scanning this map.</span>
 
@@ -309,27 +307,27 @@
                 <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="o">.</span><span class="n">contents</span>
                 <span class="k">if</span> <span class="p">(</span>
                     <span class="n">source_map</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                    <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;source_map&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;source_map&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                 <span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;source_map shape mismatch&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;source_map shape mismatch&quot;</span><span class="p">)</span>
                 <span class="n">source_map</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">source_map</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="n">source</span><span class="o">.</span><span class="n">num_vec</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_map</span><span class="p">)</span>
                 <span class="n">source</span><span class="o">.</span><span class="n">vec_mode</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">get_vec_mode</span><span class="p">(</span><span class="n">source_map</span><span class="p">,</span> <span class="n">pol</span><span class="p">,</span> <span class="n">vpol</span><span class="p">)</span>
                 <span class="n">source</span><span class="o">.</span><span class="n">vec1d</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">source_map</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;source_map&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_map</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;source_map&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_map</span>
                 <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_reshape_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Error reshaping source map&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error reshaping source map&quot;</span><span class="p">)</span>
                 <span class="k">return</span>
 
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;source already initialized&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;source already initialized&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pixels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">partial</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">partial</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">if</span> <span class="n">nside</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;nside required for partial maps&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;nside required for partial maps&quot;</span><span class="p">)</span>
 
         <span class="c1"># check map shape and create pointer</span>
         <span class="n">smap</span><span class="p">,</span> <span class="n">snside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">source_map</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
@@ -340,10 +338,10 @@
             <span class="n">npix</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span>
 
         <span class="c1"># store map</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;source_map&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">smap</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;source_nside&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nside</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;source_map&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">smap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;source_nside&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nside</span>
         <span class="k">if</span> <span class="n">partial</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;source_pixels&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pixels</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;source_pixels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pixels</span>
 
         <span class="c1"># initialize</span>
         <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="o">.</span><span class="n">contents</span>
@@ -370,57 +368,72 @@
 
         <span class="k">if</span> <span class="n">partial</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_init_map_pixhash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">,</span> <span class="n">pixels</span><span class="p">,</span> <span class="n">npix</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Error initializing source pixhash&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error initializing source pixhash&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_reshape_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Error reshaping source map&#39;</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error reshaping source map&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QMap.reset_source"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_source">[docs]</a>    <span class="k">def</span> <span class="nf">reset_source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.reset_source">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_source">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset_source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the source map structure.  Must be reinitialized to</span>
 <span class="sd">        produce more timestreams.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_source&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_source&quot;</span><span class="p">):</span>
             <span class="n">qp</span><span class="o">.</span><span class="n">qp_free_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;source_map&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;source_nside&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;source_pixels&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;source_map&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;source_nside&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;source_pixels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">pointer</span><span class="p">(</span><span class="n">lib</span><span class="o">.</span><span class="n">qp_map_t</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="QMap.source_is_pol"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_pol">[docs]</a>    <span class="k">def</span> <span class="nf">source_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.source_is_pol">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_pol">[docs]</a>
+    <span class="k">def</span> <span class="nf">source_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the source map is polarized, otherwise False.</span>
 <span class="sd">        Raise an error if source map is not initialized.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_is_init</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;source map not initialized&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;source map not initialized&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">vec_mode</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span></div>
 
-<div class="viewcode-block" id="QMap.source_is_vpol"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_vpol">[docs]</a>    <span class="k">def</span> <span class="nf">source_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.source_is_vpol">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_vpol">[docs]</a>
+    <span class="k">def</span> <span class="nf">source_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the source map contains V polarization,</span>
 <span class="sd">        otherwise False.</span>
 <span class="sd">        Raise an error if source map is not initialized.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_is_init</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;source map not initialized&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;source map not initialized&quot;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">vec_mode</span> <span class="o">==</span> <span class="mi">3</span></div>
 
-<div class="viewcode-block" id="QMap.dest_is_init"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_init">[docs]</a>    <span class="k">def</span> <span class="nf">dest_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.dest_is_init">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_init">[docs]</a>
+    <span class="k">def</span> <span class="nf">dest_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the dest map is initialized, otherwise False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_dest&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_dest&quot;</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">init</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="kc">True</span></div>
 
-<div class="viewcode-block" id="QMap.init_dest"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_dest">[docs]</a>    <span class="k">def</span> <span class="nf">init_dest</span><span class="p">(</span>
+
+<div class="viewcode-block" id="QMap.init_dest">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_dest">[docs]</a>
+    <span class="k">def</span> <span class="nf">init_dest</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">nside</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -432,7 +445,7 @@
         <span class="n">reset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the destination map structure.  Timestreams are binned</span>
 <span class="sd">        and projection matrices accumulated into this structure.</span>
 
@@ -472,7 +485,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">vec</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;one of vec or proj must not be False&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;one of vec or proj must not be False&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest_is_init</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">reset</span><span class="p">:</span>
@@ -484,42 +497,42 @@
                 <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="o">.</span><span class="n">contents</span>
                 <span class="n">ret</span> <span class="o">=</span> <span class="p">()</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">])</span>
-                    <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;vec shape mismatch&#39;</span><span class="p">)</span>
+                        <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">vec</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;vec shape mismatch&quot;</span><span class="p">)</span>
                     <span class="n">vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                     <span class="n">dest</span><span class="o">.</span><span class="n">num_vec</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
                     <span class="n">dest</span><span class="o">.</span><span class="n">vec_mode</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">get_vec_mode</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">pol</span><span class="p">,</span> <span class="n">vpol</span><span class="p">)</span>
                     <span class="n">dest</span><span class="o">.</span><span class="n">vec1d</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vec</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vec</span>
                     <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),)</span>
 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">proj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">])</span>
+                        <span class="n">proj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">])</span>
                     <span class="k">if</span> <span class="p">(</span>
                         <span class="n">proj</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                        <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                     <span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;proj shape mismatch&#39;</span><span class="p">)</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;proj shape mismatch&quot;</span><span class="p">)</span>
                     <span class="n">proj</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                     <span class="n">dest</span><span class="o">.</span><span class="n">num_proj</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
                     <span class="n">dest</span><span class="o">.</span><span class="n">proj_mode</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">get_proj_mode</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">pol</span><span class="p">,</span> <span class="n">vpol</span><span class="p">)</span>
                     <span class="n">dest</span><span class="o">.</span><span class="n">proj1d</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">proj</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">proj</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">proj</span>
                     <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="n">proj</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),)</span>
 
                 <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_reshape_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Error reshaping dest map&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error reshaping dest map&quot;</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="k">return</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">return</span> <span class="n">ret</span>
 
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;dest already initialized&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;dest already initialized&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pixels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">nside</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -528,7 +541,7 @@
             <span class="n">partial</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">nside</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;nside required for partial maps&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;nside required for partial maps&quot;</span><span class="p">)</span>
             <span class="n">npix</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span>
             <span class="n">partial</span> <span class="o">=</span> <span class="kc">True</span>
 
@@ -546,7 +559,7 @@
                 <span class="n">nside</span> <span class="o">=</span> <span class="n">vdim2</span>
                 <span class="n">npix</span> <span class="o">=</span> <span class="n">nside2npix</span><span class="p">(</span><span class="n">nside</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">vdim2</span> <span class="o">!=</span> <span class="n">npix</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;vec has incompatible shape&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;vec has incompatible shape&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">pol</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="n">vpol</span> <span class="o">=</span> <span class="kc">False</span>
@@ -557,7 +570,7 @@
                 <span class="n">pol</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="n">vpol</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;vec has incompatible shape&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;vec has incompatible shape&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">vpol</span><span class="p">:</span>
@@ -572,11 +585,11 @@
 
             <span class="k">if</span> <span class="n">vec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">pnmap</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vec</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;proj has incompatible shape&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;proj has incompatible shape&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span> <span class="o">!=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">][</span><span class="n">pol</span><span class="p">],</span> <span class="mi">10</span><span class="p">][</span><span class="n">vpol</span><span class="p">]:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;proj has incompatible shape&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;proj has incompatible shape&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">pdim2</span> <span class="o">!=</span> <span class="n">vdim2</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;proj has incompatible nside&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;proj has incompatible nside&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="n">pol</span> <span class="o">=</span> <span class="kc">False</span>
@@ -588,20 +601,20 @@
                     <span class="n">pol</span> <span class="o">=</span> <span class="kc">True</span>
                     <span class="n">vpol</span> <span class="o">=</span> <span class="kc">True</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;proj has incompatible shape&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;proj has incompatible shape&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">partial</span><span class="p">:</span>
                     <span class="n">nside</span> <span class="o">=</span> <span class="n">pdim2</span>
                     <span class="n">npix</span> <span class="o">=</span> <span class="n">nside2npix</span><span class="p">(</span><span class="n">nside</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">pdim2</span> <span class="o">!=</span> <span class="n">npix</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;proj has incompatible shape&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;proj has incompatible shape&quot;</span><span class="p">)</span>
 
         <span class="c1"># store arrays for later retrieval</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vec</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">proj</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;dest_nside&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nside</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">proj</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;dest_nside&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nside</span>
 
         <span class="k">if</span> <span class="n">partial</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;dest_pixels&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pixels</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;dest_pixels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pixels</span>
 
         <span class="c1"># initialize</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="p">()</span>
@@ -633,36 +646,42 @@
 
         <span class="k">if</span> <span class="n">partial</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_init_map_pixhash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="p">,</span> <span class="n">pixels</span><span class="p">,</span> <span class="n">npix</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Error initializing dest pixhash&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error initializing dest pixhash&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_reshape_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Error reshaping dest map&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error reshaping dest map&quot;</span><span class="p">)</span>
 
         <span class="c1"># return</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="QMap.reset_dest"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_dest">[docs]</a>    <span class="k">def</span> <span class="nf">reset_dest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.reset_dest">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_dest">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset_dest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the destination map structure.</span>
 <span class="sd">        Must be reinitialized to continue mapmaking.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_dest&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_dest&quot;</span><span class="p">):</span>
             <span class="n">qp</span><span class="o">.</span><span class="n">qp_free_map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;vec&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;proj&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;dest_nside&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;dest_pixels&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;vec&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;proj&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dest_nside&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dest_pixels&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dest</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">pointer</span><span class="p">(</span><span class="n">lib</span><span class="o">.</span><span class="n">qp_map_t</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="QMap.dest_is_pol"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_pol">[docs]</a>    <span class="k">def</span> <span class="nf">dest_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.dest_is_pol">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_pol">[docs]</a>
+    <span class="k">def</span> <span class="nf">dest_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the destination map is polarized, otherwise False.</span>
 <span class="sd">        Raise an error if destination map is not initialized.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest_is_init</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;dest map not initialized&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;dest map not initialized&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="mi">2</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">vec_mode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">proj_mode</span><span class="p">]:</span>
             <span class="k">return</span> <span class="kc">True</span>
@@ -670,31 +689,40 @@
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span></div>
 
-<div class="viewcode-block" id="QMap.dest_is_vpol"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_vpol">[docs]</a>    <span class="k">def</span> <span class="nf">dest_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.dest_is_vpol">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_vpol">[docs]</a>
+    <span class="k">def</span> <span class="nf">dest_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the destination map contains V polarization,</span>
 <span class="sd">        otherwise False.</span>
 <span class="sd">        Raise an error if destination map is not initialized.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dest_is_init</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;dest map not initialized&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;dest map not initialized&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="mi">3</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">vec_mode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">proj_mode</span><span class="p">]:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span></div>
 
-<div class="viewcode-block" id="QMap.point_is_init"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.point_is_init">[docs]</a>    <span class="k">def</span> <span class="nf">point_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.point_is_init">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.point_is_init">[docs]</a>
+    <span class="k">def</span> <span class="nf">point_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the point map is initialized, otherwise False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_point&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_point&quot;</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">init</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="kc">True</span></div>
 
-<div class="viewcode-block" id="QMap.init_point"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_point">[docs]</a>    <span class="k">def</span> <span class="nf">init_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_bore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q_hwp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.init_point">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_point">[docs]</a>
+    <span class="k">def</span> <span class="nf">init_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_bore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q_hwp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize or update the boresight pointing data structure.</span>
 
 <span class="sd">        Arguments</span>
@@ -711,7 +739,7 @@
 <span class="sd">            updated to this. Shape must be (nsamp, 4)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_point&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_point&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">reset_point</span><span class="p">()</span>
 
         <span class="n">point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="o">.</span><span class="n">contents</span>
@@ -720,16 +748,16 @@
             <span class="k">if</span> <span class="n">point</span><span class="o">.</span><span class="n">init</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">reset_point</span><span class="p">()</span>
             <span class="n">point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="o">.</span><span class="n">contents</span>
-            <span class="n">q_bore</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;q_bore&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">q_bore</span><span class="p">),</span> <span class="n">quat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">q_bore</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;q_bore&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">q_bore</span><span class="p">),</span> <span class="n">quat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="n">q_bore</span><span class="o">.</span><span class="n">size</span> <span class="o">//</span> <span class="mi">4</span>
             <span class="n">point</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;q_bore&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_bore</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;q_bore&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_bore</span>
             <span class="n">point</span><span class="o">.</span><span class="n">q_bore</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">q_bore</span><span class="p">)</span>
             <span class="n">point</span><span class="o">.</span><span class="n">q_bore_init</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">QP_ARR_INIT_PTR</span>
             <span class="n">point</span><span class="o">.</span><span class="n">init</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">QP_STRUCT_INIT</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">point</span><span class="o">.</span><span class="n">init</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;point not initialized&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;point not initialized&quot;</span><span class="p">)</span>
 
         <span class="n">n</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">n</span>
 
@@ -737,8 +765,8 @@
             <span class="n">point</span><span class="o">.</span><span class="n">ctime_init</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">point</span><span class="o">.</span><span class="n">ctime</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">elif</span> <span class="n">ctime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">ctime</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;ctime&#39;</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;ctime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctime</span>
+            <span class="n">ctime</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;ctime&quot;</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;ctime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctime</span>
             <span class="n">point</span><span class="o">.</span><span class="n">ctime_init</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">QP_ARR_INIT_PTR</span>
             <span class="n">point</span><span class="o">.</span><span class="n">ctime</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">ctime</span><span class="p">)</span>
 
@@ -746,23 +774,29 @@
             <span class="n">point</span><span class="o">.</span><span class="n">q_hwp_init</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">point</span><span class="o">.</span><span class="n">q_hwp</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">elif</span> <span class="n">q_hwp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">q_hwp</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;q_hwp&#39;</span><span class="p">,</span> <span class="n">q_hwp</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">quat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;q_hwp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_hwp</span>
+            <span class="n">q_hwp</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;q_hwp&quot;</span><span class="p">,</span> <span class="n">q_hwp</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">quat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;q_hwp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_hwp</span>
             <span class="n">point</span><span class="o">.</span><span class="n">q_hwp_init</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">QP_ARR_INIT_PTR</span>
             <span class="n">point</span><span class="o">.</span><span class="n">q_hwp</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">q_hwp</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QMap.reset_point"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_point">[docs]</a>    <span class="k">def</span> <span class="nf">reset_point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.reset_point">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_point">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset_point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the pointing data structure.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_point&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_point&quot;</span><span class="p">):</span>
             <span class="n">qp</span><span class="o">.</span><span class="n">qp_free_point</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;q_bore&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;ctime&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;q_hwp&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;q_bore&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ctime&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;q_hwp&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_point</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">pointer</span><span class="p">(</span><span class="n">lib</span><span class="o">.</span><span class="n">qp_point_t</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="QMap.init_detarr"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_detarr">[docs]</a>    <span class="k">def</span> <span class="nf">init_detarr</span><span class="p">(</span>
+
+<div class="viewcode-block" id="QMap.init_detarr">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_detarr">[docs]</a>
+    <span class="k">def</span> <span class="nf">init_detarr</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">q_off</span><span class="p">,</span>
         <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -774,7 +808,7 @@
         <span class="n">do_diff</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">write</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the detector listing structure.  Detector properties and</span>
 <span class="sd">        timestreams are passed to and from the mapmaker through this structure.</span>
 
@@ -814,12 +848,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_detarr</span><span class="p">()</span>
 
         <span class="c1"># check inputs</span>
-        <span class="n">q_off</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;q_off&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">q_off</span><span class="p">),</span> <span class="n">quat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">q_off</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;q_off&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">q_off</span><span class="p">),</span> <span class="n">quat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">n</span> <span class="o">=</span> <span class="n">q_off</span><span class="o">.</span><span class="n">size</span> <span class="o">//</span> <span class="mi">4</span>
-        <span class="n">weight</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,),</span> <span class="n">fill</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">gain</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;gain&#39;</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,),</span> <span class="n">fill</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,),</span> <span class="n">fill</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">gain</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;gain&quot;</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,),</span> <span class="n">fill</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">mueller</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span>
-            <span class="s1">&#39;mueller&#39;</span><span class="p">,</span> <span class="n">mueller</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">fill</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="s2">&quot;mueller&quot;</span><span class="p">,</span> <span class="n">mueller</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">fill</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
         <span class="p">)</span>
 
         <span class="n">ns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">n</span>
@@ -829,19 +863,19 @@
             <span class="n">tod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">tod</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">write</span><span class="p">:</span>
-            <span class="n">tod</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="s1">&#39;tod&#39;</span><span class="p">,</span> <span class="n">tod</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;tod&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tod</span>
+            <span class="n">tod</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="s2">&quot;tod&quot;</span><span class="p">,</span> <span class="n">tod</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;tod&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tod</span>
         <span class="k">elif</span> <span class="n">tod</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">tod</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;tod&#39;</span><span class="p">,</span> <span class="n">tod</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;tod&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tod</span>
+            <span class="n">tod</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;tod&quot;</span><span class="p">,</span> <span class="n">tod</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;tod&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tod</span>
         <span class="k">if</span> <span class="n">flag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">flag</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span>
-                <span class="s1">&#39;flag&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">flag</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span>
+                <span class="s2">&quot;flag&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">flag</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">flag</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;flag&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">flag</span>
         <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">weights</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;weights&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">weights</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;weights&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;weights&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">weights</span>
 
         <span class="c1"># populate array</span>
         <span class="n">dets</span> <span class="o">=</span> <span class="p">(</span><span class="n">lib</span><span class="o">.</span><span class="n">qp_det_t</span> <span class="o">*</span> <span class="n">n</span><span class="p">)()</span>
@@ -880,22 +914,28 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">pointer</span><span class="p">(</span><span class="n">detarr</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QMap.reset_detarr"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_detarr">[docs]</a>    <span class="k">def</span> <span class="nf">reset_detarr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.reset_detarr">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_detarr">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset_detarr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the detector array structure.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_detarr&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_detarr&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">qp</span><span class="o">.</span><span class="n">qp_free_detarr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;tod&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;flag&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;tod&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;flag&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;weights&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QMap.reset"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.reset">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the internal data structures, and clear the data depo.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;depo&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;depo&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">depo</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_source</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_dest</span><span class="p">()</span>
@@ -903,7 +943,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_detarr</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="QMap.from_tod"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.from_tod">[docs]</a>    <span class="k">def</span> <span class="nf">from_tod</span><span class="p">(</span>
+
+<div class="viewcode-block" id="QMap.from_tod">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.from_tod">[docs]</a>
+    <span class="k">def</span> <span class="nf">from_tod</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">q_off</span><span class="p">,</span>
         <span class="n">tod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -914,9 +957,9 @@
         <span class="n">flag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">do_diff</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate signal and hits maps for given detectors.</span>
 
 <span class="sd">        Arguments</span>
@@ -973,12 +1016,12 @@
 
         <span class="c1"># check modes</span>
         <span class="n">return_vec</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">if</span> <span class="n">tod</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">tod</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tod</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">tod</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">return_vec</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">return_proj</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">count_hits</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">count_hits</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">return_vec</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Nothing to do&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Nothing to do&quot;</span><span class="p">)</span>
             <span class="n">return_proj</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="c1"># cache modes</span>
@@ -1004,15 +1047,18 @@
         <span class="c1"># return</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="p">()</span>
         <span class="k">if</span> <span class="n">return_vec</span><span class="p">:</span>
-            <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),)</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),)</span>
         <span class="k">if</span> <span class="n">return_proj</span><span class="p">:</span>
-            <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),)</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="QMap.to_tod"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.to_tod">[docs]</a>    <span class="k">def</span> <span class="nf">to_tod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_off</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mueller</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.to_tod">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.to_tod">[docs]</a>
+    <span class="k">def</span> <span class="nf">to_tod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_off</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mueller</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate signal TOD from source map for multiple channels.</span>
 
 <span class="sd">        Arguments</span>
@@ -1051,7 +1097,7 @@
         <span class="c1"># run</span>
         <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_map2tod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">qp</span><span class="o">.</span><span class="n">qp_get_error_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">))</span>
-        <span class="n">tod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;tod&#39;</span><span class="p">)</span>
+        <span class="n">tod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;tod&quot;</span><span class="p">)</span>
 
         <span class="c1"># clean up</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_detarr</span><span class="p">()</span>
@@ -1059,8 +1105,11 @@
         <span class="c1"># return</span>
         <span class="k">return</span> <span class="n">tod</span></div>
 
-<div class="viewcode-block" id="QMap.proj_cond"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.proj_cond">[docs]</a>    <span class="k">def</span> <span class="nf">proj_cond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.proj_cond">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.proj_cond">[docs]</a>
+    <span class="k">def</span> <span class="nf">proj_cond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Hits-normalized projection matrix condition number for</span>
 <span class="sd">        each pixel.</span>
 
@@ -1083,9 +1132,9 @@
 
         <span class="c1"># check inputs</span>
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span>
+            <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;missing proj&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing proj&quot;</span><span class="p">)</span>
         <span class="n">proj</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">nmap</span> <span class="o">=</span> <span class="n">check_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
         <span class="n">nproj</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
 
@@ -1111,7 +1160,10 @@
         <span class="n">cond</span><span class="p">[</span><span class="n">cond</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
         <span class="k">return</span> <span class="n">cond</span></div>
 
-<div class="viewcode-block" id="QMap.solve_map"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.solve_map">[docs]</a>    <span class="k">def</span> <span class="nf">solve_map</span><span class="p">(</span>
+
+<div class="viewcode-block" id="QMap.solve_map">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.solve_map">[docs]</a>
+    <span class="k">def</span> <span class="nf">solve_map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1123,9 +1175,9 @@
         <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">cond</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">cond_thresh</span><span class="o">=</span><span class="mf">1e6</span><span class="p">,</span>
-        <span class="n">method</span><span class="o">=</span><span class="s1">&#39;exact&#39;</span><span class="p">,</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;exact&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Solve for a map, given the binned map and the projection matrix</span>
 <span class="sd">        for each pixel.</span>
 
@@ -1181,27 +1233,27 @@
 
         <span class="c1"># check if we&#39;re dealing with a partial map</span>
         <span class="k">if</span> <span class="n">partial</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">vec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;dest_pixels&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">vec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;dest_pixels&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">:</span>
                 <span class="n">partial</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">partial</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="c1"># ensure properly shaped arrays</span>
         <span class="k">if</span> <span class="n">vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">]</span>
+            <span class="n">vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;vec&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">vec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">vec</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;missing vec&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing vec&quot;</span><span class="p">)</span>
         <span class="n">vec</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span>
+            <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;missing proj&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing proj&quot;</span><span class="p">)</span>
         <span class="n">pcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_proj</span> <span class="k">else</span> <span class="n">copy</span>
         <span class="n">proj</span><span class="p">,</span> <span class="n">pnside</span><span class="p">,</span> <span class="n">nmap</span> <span class="o">=</span> <span class="n">check_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">pcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pnside</span> <span class="o">!=</span> <span class="n">nside</span> <span class="ow">or</span> <span class="n">nmap</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vec</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;vec and proj have incompatible shapes&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;vec and proj have incompatible shapes&quot;</span><span class="p">)</span>
         <span class="n">nproj</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
 
         <span class="c1"># deal with mask</span>
@@ -1211,7 +1263,7 @@
             <span class="n">mcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_mask</span> <span class="k">else</span> <span class="n">copy</span>
             <span class="n">mask</span><span class="p">,</span> <span class="n">mnside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">mcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">mnside</span> <span class="o">!=</span> <span class="n">nside</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;mask has incompatible shape&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mask has incompatible shape&quot;</span><span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
         <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
 
@@ -1274,8 +1326,11 @@
             <span class="k">return</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="QMap.solve_map_cho"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.solve_map_cho">[docs]</a>    <span class="k">def</span> <span class="nf">solve_map_cho</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="QMap.solve_map_cho">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.solve_map_cho">[docs]</a>
+    <span class="k">def</span> <span class="nf">solve_map_cho</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Solve for a map, given the binned map and the projection matrix</span>
 <span class="sd">        for each pixel, using Cholesky decomposition.  This method</span>
 <span class="sd">        uses the scipy.linalg.cho_factor and scipy.linalg.cho_solve</span>
@@ -1326,10 +1381,13 @@
 <span class="sd">        mask : array_like</span>
 <span class="sd">            1-d array, True for valid pixels, if `return_mask` is True</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;cho&#39;</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;method&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cho&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">solve_map</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QMap.unsolve_map"><a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.unsolve_map">[docs]</a>    <span class="k">def</span> <span class="nf">unsolve_map</span><span class="p">(</span>
+
+<div class="viewcode-block" id="QMap.unsolve_map">
+<a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.unsolve_map">[docs]</a>
+    <span class="k">def</span> <span class="nf">unsolve_map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">map_in</span><span class="p">,</span>
         <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1340,7 +1398,7 @@
         <span class="n">partial</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Invert the solved map to recover the binned vec array.</span>
 
 <span class="sd">        Arguments</span>
@@ -1383,20 +1441,20 @@
 
         <span class="c1"># check if we&#39;re dealing with a partial map</span>
         <span class="k">if</span> <span class="n">partial</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">partial</span> <span class="o">=</span> <span class="s1">&#39;dest_pixels&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span>
+            <span class="n">partial</span> <span class="o">=</span> <span class="s2">&quot;dest_pixels&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span>
 
         <span class="c1"># ensure properly shaped arrays</span>
         <span class="n">map_in</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">map_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s1">&#39;proj&#39;</span><span class="p">]</span>
+            <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">&quot;proj&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;missing proj&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing proj&quot;</span><span class="p">)</span>
         <span class="n">pcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_proj</span> <span class="k">else</span> <span class="n">copy</span>
         <span class="n">proj</span><span class="p">,</span> <span class="n">pnside</span><span class="p">,</span> <span class="n">nmap</span> <span class="o">=</span> <span class="n">check_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">pcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pnside</span> <span class="o">!=</span> <span class="n">nside</span> <span class="ow">or</span> <span class="n">nmap</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_in</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;map_in and proj have incompatible shapes&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;map_in and proj have incompatible shapes&quot;</span><span class="p">)</span>
         <span class="n">nproj</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
 
         <span class="c1"># deal with mask</span>
@@ -1406,7 +1464,7 @@
             <span class="n">mcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_mask</span> <span class="k">else</span> <span class="n">copy</span>
             <span class="n">mask</span><span class="p">,</span> <span class="n">mnside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">mcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">mnside</span> <span class="o">!=</span> <span class="n">nside</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;mask has incompatible shape&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mask has incompatible shape&quot;</span><span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
         <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
 
@@ -1421,17 +1479,34 @@
             <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nmap</span><span class="p">,</span> <span class="n">nmap</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
             <span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">nmap</span><span class="p">)</span>
             <span class="n">idx</span><span class="p">[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span><span class="n">ctri</span><span class="p">,</span> <span class="n">rtri</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nproj</span><span class="p">)</span>
-            <span class="n">map_in</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij...,j...-&gt;i...&#39;</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">map_in</span><span class="p">)</span>
+            <span class="n">map_in</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ij...,j...-&gt;i...&quot;</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">map_in</span><span class="p">)</span>
             <span class="n">map_in</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill</span>
 
         <span class="c1"># return</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="n">map_in</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="n">proj</span><span class="p">,)</span> <span class="o">*</span> <span class="n">return_proj</span> <span class="o">+</span> <span class="p">(</span><span class="n">mask</span><span class="p">,)</span> <span class="o">*</span> <span class="n">return_mask</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">ret</span></div></div>
+        <span class="k">return</span> <span class="n">ret</span></div>
+</div>
+
 </pre></div>
 
+            <div class="clearer"></div>
           </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -1445,14 +1520,15 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 0.0.post1.dev1+g7ae5d4b documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="../qpoint.html" >qpoint</a> &#187;</li> 
+          <li class="nav-item nav-item-2"><a href="../qpoint.html" >qpoint</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">qpoint.qmap_class</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017-2022, Alexandra Rahlin.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2017-2024, Alexandra Rahlin.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
     </div>
   </body>
 </html>

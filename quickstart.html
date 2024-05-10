@@ -1,17 +1,16 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <title>Getting Started &#8212; qpoint 1.12.4 documentation</title>
-    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Getting Started &#8212; qpoint 0.0.post1.dev1+g7ae5d4b documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css?v=87629129" />
+    <script src="_static/documentation_options.js?v=bb379b02"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="API Reference" href="api.html" />
@@ -32,66 +31,29 @@
         <li class="right" >
           <a href="index.html" title="QPoint Documentation"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 0.0.post1.dev1+g7ae5d4b documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Getting Started</a></li> 
       </ul>
-    </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Getting Started</a><ul>
-<li><a class="reference internal" href="#dependencies">Dependencies</a></li>
-<li><a class="reference internal" href="#installation">Installation</a></li>
-<li><a class="reference internal" href="#examples">Examples</a></li>
-<li><a class="reference internal" href="#algorithms">Algorithms</a></li>
-</ul>
-</li>
-</ul>
-
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">QPoint Documentation</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="api.html"
-                        title="next chapter">API Reference</a></p>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/quickstart.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>$('#searchbox').show(0);</script>
-        </div>
-      </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="getting-started">
-<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="dependencies">
-<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading">¶</a></h2>
 <p>The following Python package dependencies should be installed on your system.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code> (required)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">healpy</span></code> (optional, for handling healpix maps)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> (optional, for updating internal IERS-A tables)</p></li>
 </ul>
-</div>
-<div class="section" id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
 <p>To use the latest version of QPoint, install via <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install qpoint
 </pre></div>
@@ -105,9 +67,9 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python setup.py install --user
 </pre></div>
 </div>
-</div>
-<div class="section" id="examples">
-<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h2>
 <p>Several example scripts are provided in the <a class="reference external" href="https://github.com/arahlin/qpoint/blob/master/examples/">examples/</a> directory.</p>
 <p>The script <a class="reference external" href="https://github.com/arahlin/qpoint/blob/master/examples/example_point.py">example_point.py</a>
 shows some typical usage of the <a class="reference internal" href="api.html#qpoint.qpoint_class.QPoint" title="qpoint.qpoint_class.QPoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">QPoint</span></code></a> class,
@@ -117,9 +79,9 @@ coordinates, and to compute offset detector pointing from a boresight location.<
 some typical usage of the <a class="reference internal" href="api.html#qpoint.qmap_class.QMap" title="qpoint.qmap_class.QMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">QMap</span></code></a> class, e.g. to
 simulate detector timestreams with offset pointing from an input HEALpix sky
 realization, and to bin individual detector timestreams into a HEALpix map.</p>
-</div>
-<div class="section" id="algorithms">
-<h2>Algorithms<a class="headerlink" href="#algorithms" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="algorithms">
+<h2>Algorithms<a class="headerlink" href="#algorithms" title="Link to this heading">¶</a></h2>
 <p><a class="reference external" href="./qpoint.pdf">This document</a> describes the quaternion-based algorithm used
 for computing equatorial right ascension and declination from the local
 coordinates of the (potentially moving) observing platform, including the
@@ -131,11 +93,56 @@ boresight, using the same quaternion formalism.</p>
 time-ordered data onto a <a class="reference external" href="https://healpix.sourceforce.io">HEALPix</a> spherical
 coordinate grid to make sky maps of Stokes parameters, typically used by
 telescopes designed for observing the cosmic microwave background (e.g. <a class="reference external" href="https://spider.princeton.edu">SPIDER</a>).</p>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Getting Started</a><ul>
+<li><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#algorithms">Algorithms</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">QPoint Documentation</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="api.html"
+                          title="next chapter">API Reference</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/quickstart.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -155,12 +162,13 @@ telescopes designed for observing the cosmic microwave background (e.g. <a class
         <li class="right" >
           <a href="index.html" title="QPoint Documentation"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 0.0.post1.dev1+g7ae5d4b documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Getting Started</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017-2022, Alexandra Rahlin.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2017-2024, Alexandra Rahlin.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
     </div>
   </body>
 </html>
