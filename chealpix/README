@@ -1,3 +1,0 @@
-This directory contains a complete and unedited copy of the HEALPix C library.
-
-The original makefile has been renamed to `Makefile.orig`, and a new `qpoint`-compatible `Makefile` has been included.

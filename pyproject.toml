@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "extension-helpers", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qpoint"
+authors = [
+    {name="Alexandra Rahlin", email="arahlin@users.noreply.github.com"},
+]
+description = "A lightweight quaternion-based library for efficient telscope pointing"
+readme = "README.md"
+requires-python = ">=3.8"
+urls = {source = "https://github.com/arahlin/qpoint"}
+license = {file = "LICENSE"}
+dynamic = ["version"]
+dependencies = ["numpy>1.10.0", "scipy", "astropy"]
