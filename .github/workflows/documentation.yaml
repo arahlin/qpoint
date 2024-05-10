@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout github repo
       uses: actions/checkout@v4
+    - name: Fetch all history for all tags and branches
+      run: git fetch --prune --unshallow
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
