@@ -3,6 +3,7 @@
 [![](https://badge.fury.io/py/qpoint.svg)](https://badge.fury.io/py/qpoint)
 [![](https://github.com/arahlin/qpoint/actions/workflows/documentation.yaml/badge.svg)](https://github.com/arahlin/qpoint/actions/workflows/documentation.yaml)
 [![](https://github.com/arahlin/qpoint/actions/workflows/release.yaml/badge.svg)](https://github.com/arahlin/qpoint/actions/workflows/release.yaml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/arahlin/qpoint/master.svg)](https://results.pre-commit.ci/latest/github/arahlin/qpoint/master)
 
 A lightweight quaternion-based library for telescope pointing.  This library is
 forked from the `libactpol` pointing library, originally written by M. Nolta.
