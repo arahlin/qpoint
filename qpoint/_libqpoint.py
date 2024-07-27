@@ -1197,7 +1197,7 @@ def check_input(
     istat = check_flags(arg)
     arg = np.require(arg, dtype, list("AC" + "W" * output))
     ostat = check_flags(arg)
-    if istat == ostat and inplace is False:
+    if (output is True or istat == ostat) and inplace is False:
         return arg.copy()
     return arg
 
