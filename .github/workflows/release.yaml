@@ -25,7 +25,7 @@ jobs:
         CIBW_ARCHS_MACOS: all
     - uses: actions/upload-artifact@v4
       with:
-        name: qpoint-wheels
+        name: qpoint-wheels-${{ matrix.os }}
         path: ./wheelhouse/*.whl
 
   sdist:
