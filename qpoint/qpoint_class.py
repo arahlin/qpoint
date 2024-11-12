@@ -1323,6 +1323,64 @@ class QPoint(object):
         if n == 1:
             return ra[0], dec[0], pa[0]
         return ra, dec, pa
+    
+    def omega2azelpa(self, init_az, init_el, init_roll, 
+                     omega_x, omega_y, omega_z, 
+                     delta_t, fast_rot=False,
+                     **kwargs):
+        """
+        Compute azimuth, elevation, and roll from angular velocity data.
+
+        Parameters
+        ----------
+        init_az : float
+            Initial azimuth in degrees.
+        init_el : float
+            Initial elevation in degrees.
+        init_roll : float
+            Initial roll (boresight rotation) in degrees.
+        omega_x, omega_y, omega_z : np.ndarray
+            Angular velocity components in the AZ/EL/ROLL frame.
+        delta_t : float
+            Time interval between samples.
+        fast_rot : bool, optional
+            If True, uses fast quaternion rotation (default: False).
+
+        Returns
+        -------
+        azimuth, elevation, roll : np.ndarray
+            Arrays of azimuth, elevation, and roll values for each sample.
+        """
+        # self.set(**kwargs)
+
+        omega_x = check_input("omega_x", omega_x, dtype=np.double)
+        omega_y = check_input("omega_y", omega_y, dtype=np.double)
+        omega_z = check_input("omega_z", omega_z, dtype=np.double)
+
+        # omega_x, omega_y, omega_z = check_inputs(omega_x, omega_y, omega_z)
+
+        n_samples = omega_x.size
+
+        azimuth = check_output("azimuth", shape=(n_samples,), dtype=np.double)
+        elevation = check_output("elevation", shape=(n_samples,), dtype=np.double)
+        roll = check_output("roll", shape=(n_samples,), dtype=np.double)
+
+        # print(f"Addresses in Python - Azimuth: {azimuth.__array_interface__['data'][0]}, "
+            # f"Elevation: {elevation.__array_interface__['data'][0]}, "
+            # f"Roll: {roll.__array_interface__['data'][0]}")
+            
+        qp.qp_omega2azelpa(self._memory,
+            init_az, init_el, init_roll,
+            omega_x, omega_y, omega_z,
+            azimuth, elevation, roll,
+            delta_t, int(n_samples), int(fast_rot)
+        )
+
+        # print(f"Addresses in Python - Azimuth: {hex(id(azimuth))}, "
+            #   f"Elevation: {hex(id(elevation))}, "
+                # f"Roll: {hex(id(roll))}")
+
+        return azimuth, elevation, roll
 
     def quat2pixpa(self, quat, nside=256, **kwargs):
         """

@@ -1126,3 +1126,135 @@ void qp_azel2rasindec_hwp(qp_memory_t *mem,
                    az, el, 0, pitch, roll, lon, lat, ctime,
                    hwp, ra, sindec, sin2psi, cos2psi, n);
 }
+
+
+
+// #include <math.h>
+
+// void qp_quat_azelpsi(const quat_t q, double *az, double *el, double *psi) {
+//     // Normalize the quaternion
+//     double norm = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+//     double q0 = q[0] / norm;
+//     double q1 = q[1] / norm;
+//     double q2 = q[2] / norm;
+//     double q3 = q[3] / norm;
+
+//     // Extract elevation (el)
+//     double sin_el = 2.0 * (q0 * q2 - q1 * q3);
+//     double el_rad =  asin(sin_el) + M_PI_2;  // el = π/2 - asin(sin_el)
+
+//     // Compute cos(el) for use in az and psi calculations
+//     double cos_el = sqrt(1.0 - sin_el * sin_el);
+
+//     // Extract azimuth (az)
+//     double sin_az = (2.0 * (q0 * q1 + q2 * q3)) / cos_el;
+//     double cos_az = (q0 * q0 + q3 * q3 - q1 * q1 - q2 * q2) / cos_el;
+//     double az_rad = -atan2(sin_az, cos_az);  // az = -atan2(sin_az, cos_az)
+
+//     // Extract roll (psi)
+//     double sin_psi = (2.0 * (q0 * q3 + q1 * q2)) / cos_el;
+//     double cos_psi = (q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) / cos_el;
+//     double psi_rad = M_PI - atan2(sin_psi, cos_psi);  // psi = π - atan2(sin_psi, cos_psi)
+
+//     // Convert from radians to degrees
+//     *az = az_rad * (180.0 / M_PI);
+//     *el = el_rad * (180.0 / M_PI);
+//     *psi = psi_rad * (180.0 / M_PI);
+// }
+
+void 
+qp_quat_azelpsi(const quat_t q, double *az, double *el, double *psi) {
+    double x, y, z, w;
+    x = q[1];
+    y = q[2];
+    z = q[3];
+    w = q[0];
+
+    double sin_el_sq = x * x + y * y;   
+    double cos_el_sq = w * w + z * z;   
+
+    double s = atan(z / w);            
+    double d = atan2(x, y);          
+
+    *az = (s - d);               
+    *psi = (s + d);               
+
+    if (cos_el_sq != 0.0) {
+        *el = 2.0 * atan(sqrt(sin_el_sq / cos_el_sq));
+    } else {
+        *el = (sin_el_sq < 0.5) ? 0.0 : M_PI;
+    }
+    *el = M_PI_2 - *el;                 // el = π/2 - el
+    *psi = M_PI - *psi;                 // psi = π - psi
+
+    *az = -rad2deg(*az);
+    *el = rad2deg(*el);
+    *psi = rad2deg(*psi);
+
+    if (fabs(*az) < 1e-12) *az = 0.0;
+    if (fabs(*el) < 1e-12) *el = 0.0;
+    if (fabs(*psi) < 1e-12) *psi = 0.0;
+}
+
+// Test Quaternion_rot_vector_fast()
+// void print_vector(const char *label, const double v[3]) {
+//     printf("%s: [%f, %f, %f]\n", label, v[0], v[1], v[2]);
+// }
+
+//     double angle = M_PI / 4;  // 90 degrees in radians
+//     Quaternion q_rotation;
+//     double axis[3] = {0, 0, 1};  // Rotation around the Z-axis
+//     Quaternion_rot(q_rotation, angle, axis);
+//     // Define the vector to rotate (unit vector along X-axis)
+//     double vector[3] = {1, 0, 0};
+//     double rotated_vector[3];
+//     // Rotate the vector
+//     Quaternion_rot_vector_fast(q_rotation, vector, rotated_vector);
+//     // Print the original and rotated vectors
+//     print_vector("Original vector", vector);
+//     print_vector("Rotated vector", rotated_vector);
+
+// Compute attitude quaternion from angular velocity. 
+void 
+qp_omega2azelpa(qp_memory_t *mem, double init_az, double init_el, double init_roll,
+                double *omega_x, double *omega_y, double *omega_z,
+                double *azimuth, double *elevation, double *psi,
+                double dt, int n_samples, int fast_rot)
+{
+
+
+
+
+
+    // fprintf(stderr, "Addresses in C - Azimuth: %p, Elevation: %p, Psi: %p\n", (void*) azimuth, (void*) elevation, (void*) psi);
+    // fflush(stderr);
+    Quaternion attitude;
+    qp_azelpsi_quat(init_az, init_el, init_roll, 0.0, 0.0, attitude);
+    printf("Initial quaternion: [%f, %f, %f, %f]\n", attitude[0], attitude[1], attitude[2], attitude[3]);
+
+    for (int i = 0; i < n_samples; i++) {
+        apply_angular_velocity(attitude, omega_x[i], omega_y[i], omega_z[i], dt);
+
+        double omega[3] = {omega_x[i], omega_y[i], omega_z[i]};
+        double rotated_vec[3];
+
+        // Use fast or standard quaternion rotation based on fast_rot flag
+        if (fast_rot) {
+            Quaternion_rot_vector_fast(attitude, omega, rotated_vec);
+        } else {
+            Quaternion_rot_vector(attitude, omega, rotated_vec);
+        }
+
+
+        printf("Final quaternion: [%f, %f, %f, %f]\n", attitude[0], attitude[1], attitude[2], attitude[3]);
+
+        // Convert quaternion to Euler angles
+        double az_rad, el_rad, psi_rad;
+        qp_quat_azelpsi(attitude, &az_rad, &el_rad, &psi_rad);
+        // printf("Azimuth: %f, Elevation: %f, Psi: %f\n", az_rad, el_rad, psi_rad);
+        // Convert from radians to degrees
+        azimuth[i] = az_rad ;
+        elevation[i] = el_rad ;
+        psi[i] = psi_rad ;
+    }
+}
