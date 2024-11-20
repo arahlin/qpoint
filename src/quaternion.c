@@ -242,7 +242,6 @@ Quaternion_rot_vector_fast(Quaternion q, const double v[3], double v_rot[3])
 void 
 apply_angular_velocity(Quaternion attitude, double omega_x, double omega_y, double omega_z, double delta_t) 
 {
-    // Compute the magnitude of the angular velocity vector
     double omega_mag = sqrt(omega_x * omega_x + omega_y * omega_y + omega_z * omega_z);
     double angle = omega_mag * delta_t;
     
@@ -250,21 +249,19 @@ apply_angular_velocity(Quaternion attitude, double omega_x, double omega_y, doub
         return; // No change to attitude, so return early
     }
 
-    // Normalize the omega vector to get the rotation axis
     double axis[3] = {omega_x / omega_mag, omega_y / omega_mag, omega_z / omega_mag};
     // printf("Axis: [%f, %f, %f]\n", axis[0], axis[1], axis[2]);
     Quaternion q_delta;
     Quaternion_rot(q_delta, angle, axis);
     // printf("Quaternion delta: [%f, %f, %f, %f]\n", q_delta[0], q_delta[1], q_delta[2], q_delta[3]);
 
-    // Corrected: Right-multiply q_delta to attitude (attitude = attitude * q_delta)
     Quaternion temp;
     Quaternion_mul(temp, attitude, q_delta);
     attitude[0] = temp[0];
     attitude[1] = temp[1];
     attitude[2] = temp[2];
     attitude[3] = temp[3];
-    // Normalize the updated attitude quaternion to prevent drift
+
     double norm = Quaternion_norm(attitude);
     attitude[0] /= norm;
     attitude[1] /= norm;
