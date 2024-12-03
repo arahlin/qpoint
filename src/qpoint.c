@@ -1151,11 +1151,17 @@ qp_quat_azelpsi(const quat_t q, double *az, double *el, double *psi)
         *el = (sin_el_sq < 0.5) ? 0.0 : M_PI;
     }
     *el = M_PI_2 - *el;                 // el = π/2 - el
-    *psi = M_PI - *psi;                 // psi = π - psi
+    *psi = M_PI - *psi;                 // psi = π - psi              // psi = π - psi
 
     *az = -rad2deg(*az);
     *el = rad2deg(*el);
     *psi = rad2deg(*psi);
+
+    if (*psi > 180.0) {
+      *psi -= 360.0;
+    } else if (*psi < -180.0) {
+      *psi += 360.0;
+    }
 
     if (fabs(*az) < 1e-12) *az = 0.0;
     if (fabs(*el) < 1e-12) *el = 0.0;
