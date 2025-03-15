@@ -1203,13 +1203,15 @@ qp_omega2azelpa(qp_memory_t *mem, double init_az, double init_el, double init_ro
         double rotated_omega[3];
 
         // Rotate the gyro signal into the new frame of the instrument
-        if (fast_rot) {
-            Quaternion_rot_vector_fast(attitude, omega, rotated_omega);
-        } else {
-            Quaternion_rot_vector(attitude, omega, rotated_omega);
-        }
+        // if (fast_rot) {
+        //     Quaternion_rot_vector_fast(attitude, omega, rotated_omega);
+        // } else {
+        //     Quaternion_rot_vector(attitude, omega, rotated_omega);
+        // }
 
-        apply_angular_velocity(attitude, rotated_omega[2], rotated_omega[1], rotated_omega[0], dt);
+        // apply_angular_velocity(attitude, rotated_omega[2], rotated_omega[1], rotated_omega[0], dt);
+        apply_angular_velocity(attitude, omega[0], omega[1], omega[2], dt);
+        // apply_angular_velocity(attitude, rotated_omega[0], rotated_omega[1], rotated_omega[2], dt);
 
         double az_rad, el_rad, psi_rad;
         qp_quat_azelpsi(attitude, &az_rad, &el_rad, &psi_rad);
