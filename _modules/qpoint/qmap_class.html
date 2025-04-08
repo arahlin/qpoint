@@ -4,10 +4,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>qpoint.qmap_class &#8212; qpoint 1.12.4.post1.dev21+g511aa81 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <title>qpoint.qmap_class &#8212; qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinxdoc.css?v=34905f61" />
-    <script src="../../_static/documentation_options.js?v=747c9ff6"></script>
+    <script src="../../_static/documentation_options.js?v=1dcc4edb"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -22,7 +22,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev21+g511aa81 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" accesskey="U">qpoint</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">qpoint.qmap_class</a></li> 
@@ -35,25 +35,25 @@
           <div class="body" role="main">
             
   <h1>Source code for qpoint.qmap_class</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">.qpoint_class</span> <span class="kn">import</span> <span class="n">QPoint</span>
-<span class="kn">import</span> <span class="nn">ctypes</span> <span class="k">as</span> <span class="nn">ct</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.qpoint_class</span><span class="w"> </span><span class="kn">import</span> <span class="n">QPoint</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ctypes</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ct</span>
 
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_libqpoint</span> <span class="k">as</span> <span class="n">lib</span>
-<span class="kn">from</span> <span class="nn">._libqpoint</span> <span class="kn">import</span> <span class="n">libqp</span> <span class="k">as</span> <span class="n">qp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_libqpoint</span> <span class="k">as</span> <span class="n">lib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._libqpoint</span><span class="w"> </span><span class="kn">import</span> <span class="n">libqp</span> <span class="k">as</span> <span class="n">qp</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;QMap&quot;</span><span class="p">,</span> <span class="s2">&quot;check_map&quot;</span><span class="p">,</span> <span class="s2">&quot;check_proj&quot;</span><span class="p">]</span>
 
 
 <span class="c1"># healpix bookkeeping</span>
-<span class="k">def</span> <span class="nf">nside2npix</span><span class="p">(</span><span class="n">nside</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">nside2npix</span><span class="p">(</span><span class="n">nside</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert healpix resolution (nside) to the number of healpix pixels in a full-sky map.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="mi">12</span> <span class="o">*</span> <span class="n">nside</span> <span class="o">*</span> <span class="n">nside</span>
 
 
-<span class="k">def</span> <span class="nf">npix2nside</span><span class="p">(</span><span class="n">npix</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">npix2nside</span><span class="p">(</span><span class="n">npix</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert the number of healpix pixels in a full-sky map to healpix resolution (nside).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -67,7 +67,7 @@
 
 <div class="viewcode-block" id="check_map">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.check_map">[docs]</a>
-<span class="k">def</span> <span class="nf">check_map</span><span class="p">(</span><span class="n">map_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_map</span><span class="p">(</span><span class="n">map_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a properly transposed and memory-aligned map and its nside.</span>
 
@@ -107,7 +107,7 @@
 
 <div class="viewcode-block" id="check_proj">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.check_proj">[docs]</a>
-<span class="k">def</span> <span class="nf">check_proj</span><span class="p">(</span><span class="n">proj_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_proj</span><span class="p">(</span><span class="n">proj_in</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a properly transposed and memory-aligned projection map,</span>
 <span class="sd">    its nside, and the map dimension.</span>
@@ -146,7 +146,7 @@
 
 <div class="viewcode-block" id="QMap">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap">[docs]</a>
-<span class="k">class</span> <span class="nc">QMap</span><span class="p">(</span><span class="n">QPoint</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QMap</span><span class="p">(</span><span class="n">QPoint</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Quaternion-based mapmaker that generates per-channel pointing</span>
 <span class="sd">    on-the-fly.</span>
@@ -154,7 +154,7 @@
 
 <div class="viewcode-block" id="QMap.__init__">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">nside</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -225,7 +225,7 @@
 
 <div class="viewcode-block" id="QMap.source_is_init">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_init">[docs]</a>
-    <span class="k">def</span> <span class="nf">source_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the source map is initialized, otherwise False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -238,7 +238,7 @@
 
 <div class="viewcode-block" id="QMap.init_source">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_source">[docs]</a>
-    <span class="k">def</span> <span class="nf">init_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_source</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">source_map</span><span class="p">,</span>
         <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -376,7 +376,7 @@
 
 <div class="viewcode-block" id="QMap.reset_source">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_source">[docs]</a>
-    <span class="k">def</span> <span class="nf">reset_source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the source map structure.  Must be reinitialized to</span>
 <span class="sd">        produce more timestreams.</span>
@@ -391,7 +391,7 @@
 
 <div class="viewcode-block" id="QMap.source_is_pol">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_pol">[docs]</a>
-    <span class="k">def</span> <span class="nf">source_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the source map is polarized, otherwise False.</span>
 <span class="sd">        Raise an error if source map is not initialized.</span>
@@ -406,7 +406,7 @@
 
 <div class="viewcode-block" id="QMap.source_is_vpol">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.source_is_vpol">[docs]</a>
-    <span class="k">def</span> <span class="nf">source_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the source map contains V polarization,</span>
 <span class="sd">        otherwise False.</span>
@@ -420,7 +420,7 @@
 
 <div class="viewcode-block" id="QMap.dest_is_init">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_init">[docs]</a>
-    <span class="k">def</span> <span class="nf">dest_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dest_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the dest map is initialized, otherwise False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -433,7 +433,7 @@
 
 <div class="viewcode-block" id="QMap.init_dest">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_dest">[docs]</a>
-    <span class="k">def</span> <span class="nf">init_dest</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_dest</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">nside</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -659,7 +659,7 @@
 
 <div class="viewcode-block" id="QMap.reset_dest">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_dest">[docs]</a>
-    <span class="k">def</span> <span class="nf">reset_dest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_dest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the destination map structure.</span>
 <span class="sd">        Must be reinitialized to continue mapmaking.</span>
@@ -675,7 +675,7 @@
 
 <div class="viewcode-block" id="QMap.dest_is_pol">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_pol">[docs]</a>
-    <span class="k">def</span> <span class="nf">dest_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dest_is_pol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the destination map is polarized, otherwise False.</span>
 <span class="sd">        Raise an error if destination map is not initialized.</span>
@@ -692,7 +692,7 @@
 
 <div class="viewcode-block" id="QMap.dest_is_vpol">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.dest_is_vpol">[docs]</a>
-    <span class="k">def</span> <span class="nf">dest_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dest_is_vpol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the destination map contains V polarization,</span>
 <span class="sd">        otherwise False.</span>
@@ -708,7 +708,7 @@
 
 <div class="viewcode-block" id="QMap.point_is_init">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.point_is_init">[docs]</a>
-    <span class="k">def</span> <span class="nf">point_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">point_is_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return True if the point map is initialized, otherwise False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -721,7 +721,7 @@
 
 <div class="viewcode-block" id="QMap.init_point">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_point">[docs]</a>
-    <span class="k">def</span> <span class="nf">init_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_bore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q_hwp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_bore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ctime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">q_hwp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize or update the boresight pointing data structure.</span>
 
@@ -782,7 +782,7 @@
 
 <div class="viewcode-block" id="QMap.reset_point">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_point">[docs]</a>
-    <span class="k">def</span> <span class="nf">reset_point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the pointing data structure.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -796,7 +796,7 @@
 
 <div class="viewcode-block" id="QMap.init_detarr">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.init_detarr">[docs]</a>
-    <span class="k">def</span> <span class="nf">init_detarr</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_detarr</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">q_off</span><span class="p">,</span>
         <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -917,7 +917,7 @@
 
 <div class="viewcode-block" id="QMap.reset_detarr">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset_detarr">[docs]</a>
-    <span class="k">def</span> <span class="nf">reset_detarr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_detarr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the detector array structure.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -931,7 +931,7 @@
 
 <div class="viewcode-block" id="QMap.reset">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.reset">[docs]</a>
-    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset the internal data structures, and clear the data depo.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -946,7 +946,7 @@
 
 <div class="viewcode-block" id="QMap.from_tod">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.from_tod">[docs]</a>
-    <span class="k">def</span> <span class="nf">from_tod</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_tod</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">q_off</span><span class="p">,</span>
         <span class="n">tod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1057,7 +1057,7 @@
 
 <div class="viewcode-block" id="QMap.to_tod">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.to_tod">[docs]</a>
-    <span class="k">def</span> <span class="nf">to_tod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_off</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mueller</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_tod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_off</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mueller</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate signal TOD from source map for multiple channels.</span>
 
@@ -1108,7 +1108,7 @@
 
 <div class="viewcode-block" id="QMap.proj_cond">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.proj_cond">[docs]</a>
-    <span class="k">def</span> <span class="nf">proj_cond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">proj_cond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Hits-normalized projection matrix condition number for</span>
 <span class="sd">        each pixel.</span>
@@ -1163,7 +1163,7 @@
 
 <div class="viewcode-block" id="QMap.solve_map">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.solve_map">[docs]</a>
-    <span class="k">def</span> <span class="nf">solve_map</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">solve_map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1304,7 +1304,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unrecognized method </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">))</span>
 
         <span class="c1"># slow method, loop over pixels</span>
-        <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cho_factor</span><span class="p">,</span> <span class="n">cho_solve</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">cho_factor</span><span class="p">,</span> <span class="n">cho_solve</span>
 
         <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">vec</span><span class="o">.</span><span class="n">T</span><span class="p">)):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
@@ -1329,7 +1329,7 @@
 
 <div class="viewcode-block" id="QMap.solve_map_cho">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.solve_map_cho">[docs]</a>
-    <span class="k">def</span> <span class="nf">solve_map_cho</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">solve_map_cho</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Solve for a map, given the binned map and the projection matrix</span>
 <span class="sd">        for each pixel, using Cholesky decomposition.  This method</span>
@@ -1387,7 +1387,7 @@
 
 <div class="viewcode-block" id="QMap.unsolve_map">
 <a class="viewcode-back" href="../../api.html#qpoint.qmap_class.QMap.unsolve_map">[docs]</a>
-    <span class="k">def</span> <span class="nf">unsolve_map</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unsolve_map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">map_in</span><span class="p">,</span>
         <span class="n">proj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1520,7 +1520,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev21+g511aa81 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" >qpoint</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">qpoint.qmap_class</a></li> 
@@ -1528,7 +1528,7 @@
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2017-2024, Alexandra Rahlin.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>

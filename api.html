@@ -5,10 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API Reference &#8212; qpoint 1.12.4.post1.dev21+g511aa81 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <title>API Reference &#8212; qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/sphinxdoc.css?v=34905f61" />
-    <script src="_static/documentation_options.js?v=747c9ff6"></script>
+    <script src="_static/documentation_options.js?v=1dcc4edb"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -27,7 +27,7 @@
         <li class="right" >
           <a href="quickstart.html" title="Getting Started"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4.post1.dev21+g511aa81 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>  
@@ -44,7 +44,7 @@
 <p>The base class for computing boresight and offset astronomical pointing.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="qpoint.qpoint_class.QPoint">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qpoint.qpoint_class.</span></span><span class="sig-name descname"><span class="pre">QPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">update_iers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qpoint.qpoint_class.</span></span><span class="sig-name descname"><span class="pre">QPoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">update_iers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="qpoint.qpoint_class.QPoint.__init__">
@@ -953,7 +953,7 @@ found.</p>
 <p>The class for projecting time-ordered data onto maps and vice-versa.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="qpoint.qmap_class.QMap">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qpoint.qmap_class.</span></span><span class="sig-name descname"><span class="pre">QMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nside</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vpol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_pol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_vpol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_bore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_hwp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qmap_class.html#QMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qmap_class.QMap" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">qpoint.qmap_class.</span></span><span class="sig-name descname"><span class="pre">QMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nside</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vpol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_pol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_vpol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_bore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_hwp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qmap_class.html#QMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qmap_class.QMap" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#qpoint.qpoint_class.QPoint" title="qpoint.qpoint_class.QPoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">QPoint</span></code></a></p>
 <p>Quaternion-based mapmaker that generates per-channel pointing
 on-the-fly.</p>
@@ -1738,13 +1738,13 @@ storing any parameters.  Useful for testing, numpy-vectorized.</p>
         <li class="right" >
           <a href="quickstart.html" title="Getting Started"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4.post1.dev21+g511aa81 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">API Reference</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2017-2024, Alexandra Rahlin.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>

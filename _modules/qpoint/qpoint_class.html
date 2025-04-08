@@ -4,10 +4,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>qpoint.qpoint_class &#8212; qpoint 1.12.4.post1.dev21+g511aa81 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <title>qpoint.qpoint_class &#8212; qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinxdoc.css?v=34905f61" />
-    <script src="../../_static/documentation_options.js?v=747c9ff6"></script>
+    <script src="../../_static/documentation_options.js?v=1dcc4edb"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -22,7 +22,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev21+g511aa81 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" accesskey="U">qpoint</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">qpoint.qpoint_class</a></li> 
@@ -35,21 +35,21 @@
           <div class="body" role="main">
             
   <h1>Source code for qpoint.qpoint_class</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_libqpoint</span> <span class="k">as</span> <span class="n">lib</span>
-<span class="kn">from</span> <span class="nn">._libqpoint</span> <span class="kn">import</span> <span class="n">libqp</span> <span class="k">as</span> <span class="n">qp</span>
-<span class="kn">from</span> <span class="nn">._libqpoint</span> <span class="kn">import</span> <span class="n">check_input</span><span class="p">,</span> <span class="n">check_inputs</span><span class="p">,</span> <span class="n">check_output</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_libqpoint</span> <span class="k">as</span> <span class="n">lib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._libqpoint</span><span class="w"> </span><span class="kn">import</span> <span class="n">libqp</span> <span class="k">as</span> <span class="n">qp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._libqpoint</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_input</span><span class="p">,</span> <span class="n">check_inputs</span><span class="p">,</span> <span class="n">check_output</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;QPoint&quot;</span><span class="p">,</span> <span class="s2">&quot;check_input&quot;</span><span class="p">,</span> <span class="s2">&quot;check_inputs&quot;</span><span class="p">,</span> <span class="s2">&quot;check_output&quot;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="QPoint">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint">[docs]</a>
-<span class="k">class</span> <span class="nc">QPoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QPoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <div class="viewcode-block" id="QPoint.__init__">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_iers</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_iers</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize a `QPoint` memory instance for keeping track of pointing</span>
 <span class="sd">        corrections over time.</span>
@@ -81,20 +81,20 @@
 
 <div class="viewcode-block" id="QPoint.print_memory">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.print_memory">[docs]</a>
-    <span class="k">def</span> <span class="nf">print_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">print_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Print current memory state in C.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">qp</span><span class="o">.</span><span class="n">qp_print_memory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Free memory before deleting the object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">qp</span><span class="o">.</span><span class="n">qp_free_memory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set a single parameter to the given value.  See :meth:`set` for a list</span>
 <span class="sd">        of parameter names.</span>
@@ -104,7 +104,7 @@
         <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_funcs</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;check_set&quot;</span><span class="p">](</span><span class="n">val</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_all_funcs</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;set&quot;</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the value for a single parameter.  See :meth:`set` for a list of</span>
 <span class="sd">        parameter names.</span>
@@ -116,7 +116,7 @@
 
 <div class="viewcode-block" id="QPoint.set">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.set">[docs]</a>
-    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set computation options.</span>
 
@@ -199,7 +199,7 @@
 
 <div class="viewcode-block" id="QPoint.get">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.get">[docs]</a>
-    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns a dictionary of the requested state parameters.  If no</span>
 <span class="sd">        parameters are supplied, then all are returned.  If a single parameter</span>
@@ -231,7 +231,7 @@
 
 <div class="viewcode-block" id="QPoint.reset_rates">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.reset_rates">[docs]</a>
-    <span class="k">def</span> <span class="nf">reset_rates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_rates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset update counters for each state.  Useful to force an updated</span>
 <span class="sd">        correction term at the beginning of each chunk.</span>
@@ -241,7 +241,7 @@
 
 <div class="viewcode-block" id="QPoint.reset_inv_rates">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.reset_inv_rates">[docs]</a>
-    <span class="k">def</span> <span class="nf">reset_inv_rates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset_inv_rates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset update counters for each inverse state.  Useful to force an updated</span>
 <span class="sd">        correction term at the beginning of each chunk.</span>
@@ -251,7 +251,7 @@
 
 <div class="viewcode-block" id="QPoint.refraction">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.refraction">[docs]</a>
-    <span class="k">def</span> <span class="nf">refraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;refraction(q, **kwargs)</span>
 <span class="sd">        refraction(delta)</span>
 
@@ -314,7 +314,7 @@
         <span class="n">q</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 
-            <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">):</span>
                 <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">])</span>
                 <span class="k">return</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_update_ref</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
 
@@ -330,7 +330,7 @@
 
 <div class="viewcode-block" id="QPoint.gmst">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.gmst">[docs]</a>
-    <span class="k">def</span> <span class="nf">gmst</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gmst</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return Greenwich mean sidereal time for given ctimes.</span>
 <span class="sd">        Vectorized.</span>
@@ -366,7 +366,7 @@
 
 <div class="viewcode-block" id="QPoint.lmst">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.lmst">[docs]</a>
-    <span class="k">def</span> <span class="nf">lmst</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lmst</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return local mean sidereal time for given ctimes and longitudes.</span>
 <span class="sd">        Vectorized, input arguments must be broadcastable to the same shape.</span>
@@ -404,7 +404,7 @@
 
 <div class="viewcode-block" id="QPoint.dipole">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.dipole">[docs]</a>
-    <span class="k">def</span> <span class="nf">dipole</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dipole</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return dipole amplitude in the given equatorial direction.</span>
 <span class="sd">        Vectorized, input arguments must be broadcastable to the same shape.</span>
@@ -444,7 +444,7 @@
 
 <div class="viewcode-block" id="QPoint.bore2dipole">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.bore2dipole">[docs]</a>
-    <span class="k">def</span> <span class="nf">bore2dipole</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_off</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">q_bore</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bore2dipole</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_off</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">q_bore</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate dipole timestream for given offset and boresight pointing.</span>
 
@@ -488,7 +488,7 @@
 
 <div class="viewcode-block" id="QPoint.det_offset">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.det_offset">[docs]</a>
-    <span class="k">def</span> <span class="nf">det_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta_az</span><span class="p">,</span> <span class="n">delta_el</span><span class="p">,</span> <span class="n">delta_psi</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">det_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta_az</span><span class="p">,</span> <span class="n">delta_el</span><span class="p">,</span> <span class="n">delta_psi</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return quaternion corresponding to the requested detector centroid</span>
 <span class="sd">        offset from boresight.  Vectorized, input arguments must be</span>
@@ -522,7 +522,7 @@
 
 <div class="viewcode-block" id="QPoint.bore_offset">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.bore_offset">[docs]</a>
-    <span class="k">def</span> <span class="nf">bore_offset</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bore_offset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">q_bore</span><span class="p">,</span> <span class="n">ang1</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ang2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ang3</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -563,7 +563,7 @@
 
 <div class="viewcode-block" id="QPoint.hwp_quat">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.hwp_quat">[docs]</a>
-    <span class="k">def</span> <span class="nf">hwp_quat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hwp_quat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return quaternion corresponding to rotation by 2 * theta, where theta is</span>
 <span class="sd">        the physical waveplate angle. Vectorized.</span>
@@ -591,7 +591,7 @@
 
 <div class="viewcode-block" id="QPoint.azel2bore">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.azel2bore">[docs]</a>
-    <span class="k">def</span> <span class="nf">azel2bore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">roll</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">azel2bore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">roll</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Estimate the quaternion for the boresight orientation on the sky given</span>
 <span class="sd">        the attitude (az/el/pitch/roll), location on the earth (lon/lat) and</span>
@@ -646,7 +646,7 @@
 
 <div class="viewcode-block" id="QPoint.azelpsi2bore">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.azelpsi2bore">[docs]</a>
-    <span class="k">def</span> <span class="nf">azelpsi2bore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">roll</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">azelpsi2bore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">roll</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Estimate the quaternion for the boresight orientation on the sky given</span>
 <span class="sd">        the attitude (az/el/psi/pitch/roll), location on the earth (lon/lat) and</span>
@@ -708,7 +708,7 @@
 
 <div class="viewcode-block" id="QPoint.bore2radec">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.bore2radec">[docs]</a>
-    <span class="k">def</span> <span class="nf">bore2radec</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bore2radec</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">q_off</span><span class="p">,</span>
         <span class="n">ctime</span><span class="p">,</span>
@@ -848,7 +848,7 @@
 
 <div class="viewcode-block" id="QPoint.azel2radec">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.azel2radec">[docs]</a>
-    <span class="k">def</span> <span class="nf">azel2radec</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">azel2radec</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">delta_az</span><span class="p">,</span>
         <span class="n">delta_el</span><span class="p">,</span>
@@ -1068,7 +1068,7 @@
 
 <div class="viewcode-block" id="QPoint.azelpsi2radec">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.azelpsi2radec">[docs]</a>
-    <span class="k">def</span> <span class="nf">azelpsi2radec</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">azelpsi2radec</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">delta_az</span><span class="p">,</span>
         <span class="n">delta_el</span><span class="p">,</span>
@@ -1300,7 +1300,7 @@
 
 <div class="viewcode-block" id="QPoint.radec2azel">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.radec2azel">[docs]</a>
-    <span class="k">def</span> <span class="nf">radec2azel</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">radec2azel</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">el</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hpa</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1354,7 +1354,7 @@
 
 <div class="viewcode-block" id="QPoint.radecpa2quat">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.radecpa2quat">[docs]</a>
-    <span class="k">def</span> <span class="nf">radecpa2quat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">radecpa2quat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate quaternion for input ra/dec/pa. Vectorized, input arguments</span>
 <span class="sd">        must be broadcastable to the same shape.</span>
@@ -1392,7 +1392,7 @@
 
 <div class="viewcode-block" id="QPoint.quat2radecpa">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.quat2radecpa">[docs]</a>
-    <span class="k">def</span> <span class="nf">quat2radecpa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">quat2radecpa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate ra/dec/pa for input quaternion(s).</span>
 
@@ -1431,7 +1431,7 @@
 
 <div class="viewcode-block" id="QPoint.quat2pixpa">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.quat2pixpa">[docs]</a>
-    <span class="k">def</span> <span class="nf">quat2pixpa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">quat2pixpa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate ra/dec/pa for input quaternion(s).</span>
 
@@ -1467,7 +1467,7 @@
 
 <div class="viewcode-block" id="QPoint.radec2pix">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.radec2pix">[docs]</a>
-    <span class="k">def</span> <span class="nf">radec2pix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">radec2pix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate HEALpix pixel number for given ra/dec and nside.  Vectorized,</span>
 <span class="sd">        input arguments must be broadcastable to the same shape.</span>
@@ -1507,7 +1507,7 @@
 
 <div class="viewcode-block" id="QPoint.rotate_quat">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.rotate_quat">[docs]</a>
-    <span class="k">def</span> <span class="nf">rotate_quat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">coord</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotate_quat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">coord</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Rotate a quaternion from one coordinate system to another.</span>
 <span class="sd">        Supported coordinates:</span>
@@ -1555,7 +1555,7 @@
 
 <div class="viewcode-block" id="QPoint.rotate_coord">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.rotate_coord">[docs]</a>
-    <span class="k">def</span> <span class="nf">rotate_coord</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotate_coord</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ra</span><span class="p">,</span>
         <span class="n">dec</span><span class="p">,</span>
@@ -1645,7 +1645,7 @@
 
 <div class="viewcode-block" id="QPoint.radec2gal">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.radec2gal">[docs]</a>
-    <span class="k">def</span> <span class="nf">radec2gal</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">radec2gal</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">pa</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sin2psi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cos2psi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1683,7 +1683,7 @@
 
 <div class="viewcode-block" id="QPoint.gal2radec">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.gal2radec">[docs]</a>
-    <span class="k">def</span> <span class="nf">gal2radec</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gal2radec</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">pa</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sin2psi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cos2psi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1721,7 +1721,7 @@
 
 <div class="viewcode-block" id="QPoint.rotate_map">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.rotate_map">[docs]</a>
-    <span class="k">def</span> <span class="nf">rotate_map</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rotate_map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">map_in</span><span class="p">,</span> <span class="n">coord</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">],</span> <span class="n">map_out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interp_pix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1761,7 +1761,7 @@
         <span class="n">interp_orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;interp_pix&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">interp_pix</span><span class="o">=</span><span class="n">interp_pix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-        <span class="kn">from</span> <span class="nn">.qmap_class</span> <span class="kn">import</span> <span class="n">check_map</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.qmap_class</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_map</span>
 
         <span class="n">map_in</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">map_in</span><span class="p">)</span>
         <span class="n">map_out</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span>
@@ -1785,7 +1785,7 @@
 
 <div class="viewcode-block" id="QPoint.quat2pix">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.quat2pix">[docs]</a>
-    <span class="k">def</span> <span class="nf">quat2pix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">quat2pix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate HEALpix pixel number and optional polarization angle</span>
 <span class="sd">        for a given orientation.</span>
@@ -1833,7 +1833,7 @@
 
 <div class="viewcode-block" id="QPoint.bore2pix">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.bore2pix">[docs]</a>
-    <span class="k">def</span> <span class="nf">bore2pix</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bore2pix</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">q_off</span><span class="p">,</span>
         <span class="n">ctime</span><span class="p">,</span>
@@ -1941,7 +1941,7 @@
 
 <div class="viewcode-block" id="QPoint.get_interp_val">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.get_interp_val">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_interp_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_in</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">nest</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_interp_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">map_in</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">nest</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Interpolate map pixels to these coordinates.  Uses a C implementation</span>
 <span class="sd">        of the bilinear interpolation method `get_interpol()` as implemented</span>
@@ -1974,7 +1974,7 @@
         <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="n">check_inputs</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">)</span>
         <span class="n">n</span> <span class="o">=</span> <span class="n">ra</span><span class="o">.</span><span class="n">size</span>
 
-        <span class="kn">from</span> <span class="nn">.qmap_class</span> <span class="kn">import</span> <span class="n">check_map</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.qmap_class</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_map</span>
 
         <span class="n">map_in</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">map_in</span><span class="p">)</span>
 
@@ -1993,7 +1993,7 @@
 
 <div class="viewcode-block" id="QPoint.update_bulletin_a">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.update_bulletin_a">[docs]</a>
-    <span class="k">def</span> <span class="nf">update_bulletin_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_year</span><span class="o">=</span><span class="mi">2000</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_bulletin_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_year</span><span class="o">=</span><span class="mi">2000</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update the IERS Bulletin A database using astropy, and return the stored</span>
 <span class="sd">        entries.  Issues an ImportWarning if astropy version 1.2 or newer is not</span>
@@ -2015,7 +2015,7 @@
 <span class="sd">            Polar motion (wobble) corrections</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">astropy.utils.iers</span> <span class="kn">import</span> <span class="n">IERS_Auto</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">astropy.utils.iers</span><span class="w"> </span><span class="kn">import</span> <span class="n">IERS_Auto</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="n">warn</span><span class="p">(</span>
                 <span class="s2">&quot;Compatible Astropy not found.  Install astropy v1.2 or newer &quot;</span>
@@ -2051,7 +2051,7 @@
 
 <div class="viewcode-block" id="QPoint.load_bulletin_a">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.load_bulletin_a">[docs]</a>
-    <span class="k">def</span> <span class="nf">load_bulletin_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;mjd&quot;</span><span class="p">,</span> <span class="s2">&quot;dut1&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_bulletin_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;mjd&quot;</span><span class="p">,</span> <span class="s2">&quot;dut1&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load IERS Bulletin A from file and store in memory.  The file must be</span>
 <span class="sd">        readable using `numpy.loadtxt` with `unpack=True`, and is assumed to be</span>
@@ -2101,12 +2101,12 @@
 
 <div class="viewcode-block" id="QPoint.get_bulletin_a">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.get_bulletin_a">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_bulletin_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mjd</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_bulletin_a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mjd</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return dut1/x/y for given mjd. Numpy-vectorized.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">lib</span><span class="o">.</span><span class="n">qp_get_bulletin_a</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 
         <span class="n">fvec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span>
@@ -2148,7 +2148,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev21+g511aa81 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.12.4.post1.dev22+gf1f16e6 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" >qpoint</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">qpoint.qpoint_class</a></li> 
@@ -2156,7 +2156,7 @@
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2017-2024, Alexandra Rahlin.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>
