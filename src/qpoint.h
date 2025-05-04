@@ -606,6 +606,14 @@ extern "C" {
 			    double *ra, double *sindec, double *sin2psi,
 			    double *cos2psi, int n);
 
+  /* Calculate az/el/bs roll (psi) from a starting attitude value and gyro rates.
+  This function integrates gyro readings to get the new attitude. 
+  It uses Horizontal-frame quaternions internally. */
+  void qp_omega2azelpa(qp_memory_t *mem, double init_az, double init_el, double init_roll,
+                     double *omega_x, double *omega_y, double *omega_z,
+                     double *azimuth, double *elevation, double *psi,
+                     double dt, int n_samples, int fast_rot);
+
 #ifndef ENABLE_LITE
 
   /* *************************************************************************

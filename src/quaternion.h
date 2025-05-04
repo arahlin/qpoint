@@ -96,6 +96,9 @@ extern "C" {
   void Quaternion_r2_mul(double angle, Quaternion q);
   void Quaternion_r3_mul(double angle, Quaternion q);
 
+  void Quaternion_rot_vector(Quaternion q, const double v[3], double v_rot[3]);
+  void Quaternion_rot_vector_fast(Quaternion q, const double v[3], double v_rot[3]);
+
   // q = q * scale
   static inline void
   Quaternion_scale(Quaternion q, double scale)
@@ -167,6 +170,10 @@ extern "C" {
 
   void
   QuaternionSlerp_interpolate(const QuaternionSlerp *slerp, double t, Quaternion z);
+
+  void 
+  apply_angular_velocity(Quaternion attitude, double omega_x, double omega_y, double omega_z, double delta_t);
+
 
 #ifdef __cplusplus
 }
