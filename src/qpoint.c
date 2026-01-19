@@ -254,6 +254,8 @@ double qp_refraction(double el, double temp, double press, double hum,
                      double freq) {
   double A, B;
   eraRefco(press, temp, hum, C_MS * 1e-3 / freq, &A, &B);
+  if (el > 90)
+    el = 180 - el;
   double tz = tan(M_PI_2 - deg2rad(el));
   double ref = tz * (A + B * tz * tz);
   return rad2deg(ref);
