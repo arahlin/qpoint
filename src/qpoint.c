@@ -386,8 +386,10 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
   qp_apply_refraction(mem, ctime, q, 0);
 
   // right-apply boresight rotation (psi) to ensure this hits first
-  Quaternion_r3(q_step, -deg2rad(psi));
-  Quaternion_mul_right(q, q_step);
+  if (psi != 0) {
+    Quaternion_r3(q_step, -deg2rad(psi));
+    Quaternion_mul_right(q, q_step);
+  }
 
   // apply diurnal aberration
   // NB: same issue as refraction
