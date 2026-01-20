@@ -363,6 +363,13 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
   qp_print_quat("state init", q);
 #endif
 
+  // handle elevations that pass through zenith
+  if (el > 90) {
+    el = 180 - el;
+    az += 180;
+    psi -= 180; // account for flip over horizon
+  }
+
   // apply "boresight rotation" (taking into account actual BS rotation)
   qp_azelpsi_quat(az, el, psi, pitch, roll, q_step);
   Quaternion_mul_left(q_step, q);
