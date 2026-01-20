@@ -370,7 +370,7 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
     psi -= 180; // account for flip over horizon
   }
 
-  // apply "boresight rotation" (ignoring actual psi for now)
+  // apply "boresight rotation" (leaving psi for later because refraction must be inserted)
   qp_azelpsi_quat(az, el, 0, pitch, roll, q_step);
   Quaternion_mul_left(q_step, q);
 #ifdef DEBUG
