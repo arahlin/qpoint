@@ -14,3 +14,8 @@ urls = {source = "https://github.com/arahlin/qpoint"}
 license = "MIT"
 dynamic = ["version"]
 dependencies = ["numpy>1.10.0", "scipy", "astropy"]
+
+[tool.setuptools_scm]
+write_to = "qpoint/_version.py"
+version_scheme = "only-version"
+local_scheme = "no-local-version"
