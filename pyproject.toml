@@ -9,7 +9,7 @@ authors = [
 ]
 description = "A lightweight quaternion-based library for efficient telescope pointing"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 urls = {source = "https://github.com/arahlin/qpoint"}
 license = "MIT"
 dynamic = ["version"]
