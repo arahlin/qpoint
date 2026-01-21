@@ -254,6 +254,8 @@ double qp_refraction(double el, double temp, double press, double hum,
                      double freq) {
   double A, B;
   eraRefco(press, temp, hum, C_MS * 1e-3 / freq, &A, &B);
+  if (el > 90)
+    el = 180 - el;
   double tz = tan(M_PI_2 - deg2rad(el));
   double ref = tz * (A + B * tz * tz);
   return rad2deg(ref);
@@ -361,8 +363,15 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
   qp_print_quat("state init", q);
 #endif
 
-  // apply "boresight rotation" (taking into account actual BS rotation)
-  qp_azelpsi_quat(az, el, psi, pitch, roll, q_step);
+  // handle elevations that pass through zenith
+  if (el > 90) {
+    el = 180 - el;
+    az += 180;
+    psi -= 180; // account for flip over horizon
+  }
+
+  // apply "boresight rotation" (leaving psi for later because refraction must be inserted)
+  qp_azelpsi_quat(az, el, 0, pitch, roll, q_step);
   Quaternion_mul_left(q_step, q);
 #ifdef DEBUG
   qp_print_quat("azel", q_step);
@@ -373,7 +382,14 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
   // NB: per-detector refraction is not fully implemented!
   // can only be done properly using the azel2radec functions
   // otherwise, this is treated as a mean correction
+  // NB: this correction is right-applied, unlike all others below
   qp_apply_refraction(mem, ctime, q, 0);
+
+  // right-apply boresight rotation (psi) to ensure this hits first
+  if (psi != 0) {
+    Quaternion_r3(q_step, -deg2rad(psi));
+    Quaternion_mul_right(q, q_step);
+  }
 
   // apply diurnal aberration
   // NB: same issue as refraction
