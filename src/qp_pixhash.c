@@ -67,7 +67,7 @@ qp_pixhash_t * qp_init_pixhash(long *pix, size_t npix) {
 }
 
 qp_pixhash_t * qp_copy_pixhash(qp_pixhash_t *pixhash) {
-  qp_pixhash_t *new_hash = malloc(sizeof(new_hash));
+  qp_pixhash_t *new_hash = malloc(sizeof(*new_hash));
   qp_pix_bucket_t *bucket, *new_bucket;
 
   new_hash->count = pixhash->count;
