@@ -1,8 +1,9 @@
 name: Release
 
 on:
+  workflow_dispatch:
   release:
-    types: [ released ]
+    types: [ published ]
 
 jobs:
   wheels:
@@ -13,17 +14,17 @@ jobs:
 
     steps:
     - name: Checkout github repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
          fetch-depth: 0
          fetch-tags: true
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.17.0
+      uses: pypa/cibuildwheel@v3.3.0
       env:
-        CIBW_SKIP: cp36-* cp37-* *-musllinux_*
+        CIBW_SKIP: *-musllinux_*
         CIBW_ARCHS_LINUX: x86_64
         CIBW_ARCHS_MACOS: all
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: qpoint-wheels-${{ matrix.os }}
         path: ./wheelhouse/*.whl
@@ -33,7 +34,7 @@ jobs:
 
     steps:
     - name: Checkout github repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Setup python
       uses: actions/setup-python@v3
     - name: Install dependencies
@@ -42,7 +43,7 @@ jobs:
     - name: Build sdist
       run: |
         python -m build --sdist
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: qpoint-sdist
         path: dist/*.tar.gz
@@ -50,14 +51,15 @@ jobs:
   upload:
     needs: [wheels, sdist]
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    if: github.event_name == 'release' && github.event.action == 'published'
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v6
       with:
         pattern: qpoint-*
         path: dist
         merge-multiple: true
     - name: Upload to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_PASSWORD }}
