@@ -205,3 +205,69 @@ QuaternionSlerp_interpolate(const QuaternionSlerp *slerp, double t, Quaternion q
     q[i] = s0*slerp->q0[i] + s1*slerp->q1[i];
 }
 
+
+// Standard vector rotation using quaternions. 32 multiplications.
+void 
+Quaternion_rot_vector(Quaternion q, const double v[3], double v_rot[3]) 
+{
+    Quaternion vector_quat = {0, v[0], v[1], v[2]};
+    Quaternion temp, rotated_quat;
+
+    Quaternion_mul(temp, q, vector_quat);
+    Quaternion_conj(q);
+    Quaternion_mul(rotated_quat, temp, q);
+    Quaternion_conj(q); // Restore original quaternion
+
+    v_rot[0] = rotated_quat[1];
+    v_rot[1] = rotated_quat[2];
+    v_rot[2] = rotated_quat[3];
+}
+
+/* Vector rotation using quaternions with fewer operations. 15 multiplcations.
+this computes v' = v + q_0 x t + (q_v  x t)
+where t = 2 x (q_v x v_v) */
+void 
+Quaternion_rot_vector_fast(Quaternion q, const double v[3], double v_rot[3])
+{
+    double t[3];
+    t[0] = 2.0 * (q[1] * v[2] - q[3] * v[1]);
+    t[1] = 2.0 * (q[2] * v[0] - q[1] * v[2]);
+    t[2] = 2.0 * (q[3] * v[0] - q[2] * v[1]);
+    v_rot[0] = v[0] + q[0] * t[0] + (q[2] * t[2] - q[3] * t[1]);
+    v_rot[1] = v[1] + q[0] * t[1] + (q[3] * t[0] - q[1] * t[2]);
+    v_rot[2] = v[2] + q[0] * t[2] + (q[1] * t[1] - q[2] * t[0]);
+}
+
+
+void 
+apply_angular_velocity(Quaternion attitude, double omega_x, double omega_y, double omega_z, double delta_t) 
+{
+    double omega_mag = sqrt(omega_x * omega_x + omega_y * omega_y + omega_z * omega_z);
+    double angle = omega_mag * delta_t;
+    
+    if (omega_mag == 0.0 || angle == 0.0) {
+        return; // No change to attitude, so return early
+    }
+
+    double axis[3] = {omega_x / omega_mag, omega_y / omega_mag, omega_z / omega_mag};
+    // printf("Axis: [%f, %f, %f]\n", axis[0], axis[1], axis[2]);
+    Quaternion q_delta;
+    Quaternion_rot(q_delta, angle, axis);
+    // printf("Quaternion delta: [%f, %f, %f, %f]\n", q_delta[0], q_delta[1], q_delta[2], q_delta[3]);
+
+    Quaternion temp;
+    Quaternion_mul(temp, attitude, q_delta);
+    attitude[0] = temp[0];
+    attitude[1] = temp[1];
+    attitude[2] = temp[2];
+    attitude[3] = temp[3];
+
+    double norm = Quaternion_norm(attitude);
+    attitude[0] /= norm;
+    attitude[1] /= norm;
+    attitude[2] /= norm;
+    attitude[3] /= norm;
+    // printf("Updated quaternion: [%f, %f, %f, %f]\n", attitude[0], attitude[1], attitude[2], attitude[3]);
+}
+
+
