@@ -1142,3 +1142,98 @@ void qp_azel2rasindec_hwp(qp_memory_t *mem,
                    az, el, 0, pitch, roll, lon, lat, ctime,
                    hwp, ra, sindec, sin2psi, cos2psi, n);
 }
+
+void 
+qp_quat_azelpsi(const quat_t q, double *az, double *el, double *psi) 
+{
+    double x, y, z, w;
+    x = q[1];
+    y = q[2];
+    z = q[3];
+    w = q[0];
+
+    double sin_el_sq = x * x + y * y;   
+    double cos_el_sq = w * w + z * z;   
+
+    double s = atan2(z, w);            
+    double d = atan2(x, y);          
+
+    *az = (s - d);               
+    *psi = (s + d);               
+
+    if (cos_el_sq > 1e-12) {
+        *el = 2.0 * atan(sqrt(sin_el_sq / cos_el_sq));
+    } else {
+        *el = (sin_el_sq < 0.5) ? 0.0 : M_PI;
+    }
+    *el = M_PI_2 - *el;                 // el = π/2 - el
+    *psi = M_PI - *psi;                 // psi = π - psi              // psi = π - psi
+
+    *az = -rad2deg(*az);
+    *el = rad2deg(*el);
+    *psi = rad2deg(*psi);
+
+    if (*psi > 180.0) {
+      *psi -= 360.0;
+    } else if (*psi < -180.0) {
+      *psi += 360.0;
+    }
+
+    if (fabs(*az) < 1e-12) *az = 0.0;
+    if (fabs(*el) < 1e-12) *el = 0.0;
+    if (fabs(*psi) < 1e-12) *psi = 0.0;
+}
+
+// Test Quaternion_rot_vector_fast()
+// void print_vector(const char *label, const double v[3]) {
+//     printf("%s: [%f, %f, %f]\n", label, v[0], v[1], v[2]);
+// }
+
+//     double angle = M_PI / 4;  // 90 degrees in radians
+//     Quaternion q_rotation;
+//     double axis[3] = {0, 0, 1};  // Rotation around the Z-axis
+//     Quaternion_rot(q_rotation, angle, axis);
+//     // Define the vector to rotate (unit vector along X-axis)
+//     double vector[3] = {1, 0, 0};
+//     double rotated_vector[3];
+//     // Rotate the vector
+//     Quaternion_rot_vector_fast(q_rotation, vector, rotated_vector);
+//     // Print the original and rotated vectors
+//     print_vector("Original vector", vector);
+//     print_vector("Rotated vector", rotated_vector);
+
+
+// Compute attitude quaternion from angular velocity. 
+void 
+qp_omega2azelpa(qp_memory_t *mem, double init_az, double init_el, double init_roll,
+                double *omega_x, double *omega_y, double *omega_z,
+                double *azimuth, double *elevation, double *psi,
+                double dt, int n_samples, int fast_rot)
+{
+    Quaternion attitude;
+    qp_azelpsi_quat(init_az, init_el, init_roll, 0.0, 0.0, attitude);
+    // printf("Initial quaternion: [%f, %f, %f, %f]\n", attitude[0], attitude[1], attitude[2], attitude[3]);
+
+    for (int i = 0; i < n_samples; i++) {
+        double omega[3] = {omega_x[i], omega_y[i], omega_z[i]};
+        double rotated_omega[3];
+
+        // Rotate the gyro signal into the new frame of the instrument
+        // if (fast_rot) {
+        //     Quaternion_rot_vector_fast(attitude, omega, rotated_omega);
+        // } else {
+        //     Quaternion_rot_vector(attitude, omega, rotated_omega);
+        // }
+
+        // apply_angular_velocity(attitude, rotated_omega[2], rotated_omega[1], rotated_omega[0], dt);
+        apply_angular_velocity(attitude, omega[0], omega[1], omega[2], dt);
+        // apply_angular_velocity(attitude, rotated_omega[0], rotated_omega[1], rotated_omega[2], dt);
+
+        double az_rad, el_rad, psi_rad;
+        qp_quat_azelpsi(attitude, &az_rad, &el_rad, &psi_rad);
+
+        azimuth[i] = az_rad;
+        elevation[i] = el_rad;
+        psi[i] = psi_rad;
+    }
+}
