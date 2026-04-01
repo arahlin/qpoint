@@ -37,6 +37,24 @@ QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
 QP_DO_NEVER = ct.c_int.in_dll(libqp, "QP_DO_NEVER").value
 
 
+class qp_struct_t(ct.Structure):
+    """
+    ctypes.Structure subclass with automatic numpy array conversion
+    on attribute assignment.
+    """
+
+    def __setattr__(self, attr, value):
+        if not hasattr(self, "_fields_dict_"):
+            super().__setattr__("_fields_dict_", dict(self._fields_))
+        if attr in self._fields_dict_ and isinstance(value, np.ndarray):
+            atype = self._fields_dict_[attr]
+            if issubclass(atype, ct._Pointer):
+                value = value.ctypes.data_as(atype)
+            else:
+                value = np.ctypeslib.as_ctypes(value)
+        return super().__setattr__(attr, value)
+
+
 class qp_state_t(ct.Structure):
     _fields_ = [("update_rate", ct.c_double), ("ctime_last", ct.c_double)]
 
@@ -131,7 +149,7 @@ QP_ARR_MALLOC_1D = 8
 QP_ARR_MALLOC_2D = 16
 
 
-class qp_det_t(ct.Structure):
+class qp_det_t(qp_struct_t):
     _fields_ = [
         ("init", ct.c_int),
         ("q_off", ct.c_double * 4),
@@ -164,7 +182,7 @@ class qp_detarr_t(ct.Structure):
 qp_detarr_t_p = ct.POINTER(qp_detarr_t)
 
 
-class qp_point_t(ct.Structure):
+class qp_point_t(qp_struct_t):
     _fields_ = [
         ("init", ct.c_int),
         ("n", ct.c_size_t),
@@ -205,7 +223,7 @@ QP_PROJ_VPOL = 3
 proj_modes = {1: QP_PROJ_TEMP, 6: QP_PROJ_POL, 10: QP_PROJ_VPOL}
 
 
-class qp_map_t(ct.Structure):
+class qp_map_t(qp_struct_t):
     _fields_ = [
         ("init", ct.c_int),
         ("partial", ct.c_int),
@@ -237,10 +255,6 @@ def pointer_2d(d):
     return (
         d.__array_interface__["data"][0] + np.arange(d.shape[0]) * d.strides[0]
     ).astype(np.uintp)
-
-
-def as_ctypes(d):
-    return np.ctypeslib.as_ctypes(d)
 
 
 def setargs(fname, arg=None, res=None):

@@ -260,7 +260,7 @@ class QMap(QPoint):
                 source_map, _ = check_map(source_map, partial=True)
                 source.num_vec = len(source_map)
                 source.vec_mode = lib.get_vec_mode(source_map, pol, vpol)
-                source.vec1d = lib.as_ctypes(source_map.ravel())
+                source.vec1d = source_map.ravel()
                 self.depo["source_map"] = source_map
                 if qp.qp_reshape_map(self._source):
                     raise RuntimeError("Error reshaping source map")
@@ -301,7 +301,7 @@ class QMap(QPoint):
         source.pixhash = None
         source.num_vec = len(source_map)
         source.vec_mode = lib.get_vec_mode(smap, pol, vpol)
-        source.vec1d = lib.as_ctypes(smap.ravel())
+        source.vec1d = smap.ravel()
         source.vec1d_init = lib.QP_ARR_INIT_PTR
         source.vec = None
         source.vec_init = 0
@@ -437,7 +437,7 @@ class QMap(QPoint):
                     vec, _ = check_map(vec, copy=copy, partial=True)
                     dest.num_vec = len(vec)
                     dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
-                    dest.vec1d = lib.as_ctypes(vec.ravel())
+                    dest.vec1d = vec.ravel()
                     self.depo["vec"] = vec
                     ret += (vec.squeeze(),)
 
@@ -452,7 +452,7 @@ class QMap(QPoint):
                     proj, _ = check_map(proj, copy=copy, partial=True)
                     dest.num_proj = len(proj)
                     dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
-                    dest.proj1d = lib.as_ctypes(proj.ravel())
+                    dest.proj1d = proj.ravel()
                     self.depo["proj"] = proj
                     ret += (proj.squeeze(),)
 
@@ -561,13 +561,13 @@ class QMap(QPoint):
         if vec is not False:
             dest.num_vec = len(vec)
             dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
-            dest.vec1d = lib.as_ctypes(vec.ravel())
+            dest.vec1d = vec.ravel()
             dest.vec1d_init = lib.QP_ARR_INIT_PTR
             ret += (vec.squeeze(),)
         if proj is not False:
             dest.num_proj = len(proj)
             dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
-            dest.proj1d = lib.as_ctypes(proj.ravel())
+            dest.proj1d = proj.ravel()
             dest.proj1d_init = lib.QP_ARR_INIT_PTR
             ret += (proj.squeeze(),)
         dest.vec = None
@@ -669,7 +669,7 @@ class QMap(QPoint):
             n = q_bore.size // 4
             point.n = n
             self.depo["q_bore"] = q_bore
-            point.q_bore = lib.as_ctypes(q_bore)
+            point.q_bore = q_bore
             point.q_bore_init = lib.QP_ARR_INIT_PTR
             point.init = lib.QP_STRUCT_INIT
 
@@ -685,7 +685,7 @@ class QMap(QPoint):
             ctime = lib.check_input("ctime", ctime, shape=(n,))
             self.depo["ctime"] = ctime
             point.ctime_init = lib.QP_ARR_INIT_PTR
-            point.ctime = lib.as_ctypes(ctime)
+            point.ctime = ctime
 
         if q_hwp is False:
             point.q_hwp_init = 0
@@ -694,7 +694,7 @@ class QMap(QPoint):
             q_hwp = lib.check_input("q_hwp", q_hwp, shape=(n, 4), quat=True)
             self.depo["q_hwp"] = q_hwp
             point.q_hwp_init = lib.QP_ARR_INIT_PTR
-            point.q_hwp = lib.as_ctypes(q_hwp)
+            point.q_hwp = q_hwp
 
     def reset_point(self):
         """
@@ -792,26 +792,26 @@ class QMap(QPoint):
         dets = (lib.qp_det_t * n)()
         for idx, (q, w, g, m) in enumerate(zip(q_off, weight, gain, mueller)):
             dets[idx].init = lib.QP_STRUCT_INIT
-            dets[idx].q_off = lib.as_ctypes(q)
+            dets[idx].q_off = q
             dets[idx].weight = w
             dets[idx].gain = g
-            dets[idx].mueller = lib.as_ctypes(m)
+            dets[idx].mueller = m
             if tod is not None:
                 dets[idx].n = ns
                 dets[idx].tod_init = lib.QP_ARR_INIT_PTR
-                dets[idx].tod = lib.as_ctypes(tod[idx])
+                dets[idx].tod = tod[idx]
             else:
                 dets[idx].tod_init = 0
             if flag is not None:
                 dets[idx].n = ns
                 dets[idx].flag_init = lib.QP_ARR_INIT_PTR
-                dets[idx].flag = lib.as_ctypes(flag[idx])
+                dets[idx].flag = flag[idx]
             else:
                 dets[idx].flag_init = 0
             if weights is not None:
                 dets[idx].n = ns
                 dets[idx].weights_init = lib.QP_ARR_INIT_PTR
-                dets[idx].weights = lib.as_ctypes(weights[idx])
+                dets[idx].weights = weights[idx]
 
         detarr = lib.qp_detarr_t()
         detarr.n = n
