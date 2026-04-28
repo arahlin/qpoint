@@ -37,24 +37,6 @@ QP_DO_ONCE = ct.c_int.in_dll(libqp, "QP_DO_ONCE").value
 QP_DO_NEVER = ct.c_int.in_dll(libqp, "QP_DO_NEVER").value
 
 
-class qp_struct_t(ct.Structure):
-    """
-    ctypes.Structure subclass with automatic numpy array conversion
-    on attribute assignment.
-    """
-
-    def __setattr__(self, attr, value):
-        if not hasattr(self, "_fields_dict_"):
-            super().__setattr__("_fields_dict_", dict(self._fields_))
-        if attr in self._fields_dict_ and isinstance(value, np.ndarray):
-            atype = self._fields_dict_[attr]
-            if issubclass(atype, ct._Pointer):
-                value = value.ctypes.data_as(atype)
-            else:
-                value = np.ctypeslib.as_ctypes(value)
-        return super().__setattr__(attr, value)
-
-
 class qp_state_t(ct.Structure):
     _fields_ = [("update_rate", ct.c_double), ("ctime_last", ct.c_double)]
 
@@ -149,6 +131,34 @@ QP_ARR_MALLOC_1D = 8
 QP_ARR_MALLOC_2D = 16
 
 
+class qp_struct_t(ct.Structure):
+    """
+    ctypes.Structure subclass with automatic numpy array conversion
+    on attribute assignment.
+    """
+
+    def __setattr__(self, attr, value):
+        if not hasattr(self, "_fields_dict_"):
+            super().__setattr__("_fields_dict_", dict(self._fields_))
+        if attr in self._fields_dict_:
+            iattr = f"{attr}_init"
+            ivalue = 0
+            if isinstance(value, ct.Array):
+                ivalue = QP_ARR_INIT_PTR
+            elif isinstance(value, np.ndarray):
+                ivalue = QP_ARR_INIT_PTR
+                atype = self._fields_dict_[attr]
+                if issubclass(atype, ct._Pointer):
+                    value = value.ctypes.data_as(atype)
+                else:
+                    value = np.ctypeslib.as_ctypes(value)
+            if iattr in self._fields_dict_:
+                super().__setattr__(iattr, ivalue)
+            if "init" in self._fields_dict_:
+                super().__setattr__("init", QP_STRUCT_INIT)
+        return super().__setattr__(attr, value)
+
+
 class qp_det_t(qp_struct_t):
     _fields_ = [
         ("init", ct.c_int),
@@ -169,7 +179,7 @@ class qp_det_t(qp_struct_t):
 qp_det_t_p = ct.POINTER(qp_det_t)
 
 
-class qp_detarr_t(ct.Structure):
+class qp_detarr_t(qp_struct_t):
     _fields_ = [
         ("init", ct.c_int),
         ("n", ct.c_size_t),

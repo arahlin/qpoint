@@ -295,23 +295,16 @@ class QMap(QPoint):
         source.partial = partial
         source.nside = nside
         source.npix = npix
-        source.pixinfo_init = 0
         source.pixinfo = None
-        source.pixhash_init = 0
         source.pixhash = None
         source.num_vec = len(source_map)
         source.vec_mode = lib.get_vec_mode(smap, pol, vpol)
         source.vec1d = smap.ravel()
-        source.vec1d_init = lib.QP_ARR_INIT_PTR
         source.vec = None
-        source.vec_init = 0
         source.num_proj = 0
         source.proj_mode = 0
         source.proj = None
-        source.proj_init = 0
         source.proj1d = None
-        source.proj1d_init = 0
-        source.init = lib.QP_STRUCT_INIT
 
         if partial:
             if qp.qp_init_map_pixhash(self._source, pixels, npix):
@@ -554,27 +547,20 @@ class QMap(QPoint):
         dest.nside = nside
         dest.npix = npix
         dest.partial = partial
-        dest.pixinfo_init = 0
         dest.pixinfo = None
-        dest.pixhash_init = 0
         dest.pixhash = None
         if vec is not False:
             dest.num_vec = len(vec)
             dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
             dest.vec1d = vec.ravel()
-            dest.vec1d_init = lib.QP_ARR_INIT_PTR
             ret += (vec.squeeze(),)
         if proj is not False:
             dest.num_proj = len(proj)
             dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
             dest.proj1d = proj.ravel()
-            dest.proj1d_init = lib.QP_ARR_INIT_PTR
             ret += (proj.squeeze(),)
         dest.vec = None
-        dest.vec_init = 0
         dest.proj = None
-        dest.proj_init = 0
-        dest.init = lib.QP_STRUCT_INIT
 
         if partial:
             if qp.qp_init_map_pixhash(self._dest, pixels, npix):
@@ -670,8 +656,6 @@ class QMap(QPoint):
             point.n = n
             self.depo["q_bore"] = q_bore
             point.q_bore = q_bore
-            point.q_bore_init = lib.QP_ARR_INIT_PTR
-            point.init = lib.QP_STRUCT_INIT
 
         if not point.init:
             raise RuntimeError("point not initialized")
@@ -679,21 +663,17 @@ class QMap(QPoint):
         n = point.n
 
         if ctime is False:
-            point.ctime_init = 0
             point.ctime = None
         elif ctime is not None:
             ctime = lib.check_input("ctime", ctime, shape=(n,))
             self.depo["ctime"] = ctime
-            point.ctime_init = lib.QP_ARR_INIT_PTR
             point.ctime = ctime
 
         if q_hwp is False:
-            point.q_hwp_init = 0
             point.q_hwp = None
         elif q_hwp is not None:
             q_hwp = lib.check_input("q_hwp", q_hwp, shape=(n, 4), quat=True)
             self.depo["q_hwp"] = q_hwp
-            point.q_hwp_init = lib.QP_ARR_INIT_PTR
             point.q_hwp = q_hwp
 
     def reset_point(self):
@@ -791,32 +771,28 @@ class QMap(QPoint):
         # populate array
         dets = (lib.qp_det_t * n)()
         for idx, (q, w, g, m) in enumerate(zip(q_off, weight, gain, mueller)):
-            dets[idx].init = lib.QP_STRUCT_INIT
             dets[idx].q_off = q
             dets[idx].weight = w
             dets[idx].gain = g
             dets[idx].mueller = m
             if tod is not None:
                 dets[idx].n = ns
-                dets[idx].tod_init = lib.QP_ARR_INIT_PTR
                 dets[idx].tod = tod[idx]
             else:
-                dets[idx].tod_init = 0
+                dets[idx].tod = None
             if flag is not None:
                 dets[idx].n = ns
-                dets[idx].flag_init = lib.QP_ARR_INIT_PTR
                 dets[idx].flag = flag[idx]
             else:
-                dets[idx].flag_init = 0
+                dets[idx].flag = None
             if weights is not None:
                 dets[idx].n = ns
-                dets[idx].weights_init = lib.QP_ARR_INIT_PTR
                 dets[idx].weights = weights[idx]
+            else:
+                dets[idx].weights = None
 
         detarr = lib.qp_detarr_t()
         detarr.n = n
-        detarr.init = lib.QP_STRUCT_INIT
-        detarr.arr_init = lib.QP_ARR_INIT_PTR
         detarr.arr = dets
         detarr.diff = 0
 
