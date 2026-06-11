@@ -341,7 +341,7 @@ extern "C" {
   void qp_azelpsi_quat(double az, double el, double psi, double pitch, double roll, quat_t q);
 
   /* Calculate gondola orientation coordinates, accounting for FPU boresight rotation */
-  void qp_quat_azelpsi(const quat_t q, double az, double el, double psi);
+  void qp_quat_azelpsi(const quat_t q, double *az, double *el, double *psi);
 
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
