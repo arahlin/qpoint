@@ -542,6 +542,23 @@ setargs(
     ),
 )
 setargs(
+    "qp_omega2azelpsi",
+    arg=(
+        qp_memory_t_p,  # params
+        ct.c_double,  # init_az
+        ct.c_double,  # init_el
+        ct.c_double,  # init_psi
+        arr,  # omega_x
+        arr,  # omega_y
+        arr,  # omega_z
+        warr,  # azimuth (output)
+        warr,  # elevation (output)
+        warr,  # psi (output)
+        ct.c_double,  # delta_t
+        ct.c_int,  # n_samples
+    ),
+)
+setargs(
     "qp_azel2bore",
     arg=(
         qp_memory_t_p,  # params
