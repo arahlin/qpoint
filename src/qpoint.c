@@ -1142,3 +1142,78 @@ void qp_azel2rasindec_hwp(qp_memory_t *mem,
                    az, el, 0, pitch, roll, lon, lat, ctime,
                    hwp, ra, sindec, sin2psi, cos2psi, n);
 }
+
+void
+qp_quat_azelpsi(const quat_t q, double *az, double *el, double *psi)
+{
+  double x, y, z, w;
+  x = q[1];
+  y = q[2];
+  z = q[3];
+  w = q[0];
+
+  double sin_el_sq = x * x + y * y;
+  double cos_el_sq = w * w + z * z;
+
+  double s = atan2(z, w);
+  double d = atan2(x, y);
+
+  *az = (s - d);
+  *psi = (s + d);
+
+  if (cos_el_sq > 1e-12)
+    *el = 2.0 * atan(sqrt(sin_el_sq / cos_el_sq));
+  else
+    *el = (sin_el_sq < 0.5) ? 0.0 : M_PI;
+
+  *el = M_PI_2 - *el;
+  *psi = M_PI - *psi;
+
+  *az = -rad2deg(*az);
+  *el = rad2deg(*el);
+  *psi = rad2deg(*psi);
+
+  if (*psi > 180.0)
+    *psi -= 360.0;
+  else if (*psi < -180.0)
+    *psi += 360.0;
+
+  if (fabs(*az) < 1e-12)
+    *az = 0.0;
+  if (fabs(*el) < 1e-12)
+    *el = 0.0;
+  if (fabs(*psi) < 1e-12)
+    *psi = 0.0;
+}
+
+// Compute attitude quaternion from angular velocity.
+void
+qp_omega2azelpsi(qp_memory_t *mem, double init_az, double init_el, double init_psi,
+		 double *omega_x, double *omega_y, double *omega_z,
+		 double *azimuth, double *elevation, double *psi,
+		 double dt, int n_samples)
+{
+  quat_t attitude;
+  qp_azelpsi_quat(init_az, init_el, init_psi, 0.0, 0.0, attitude);
+
+  for (int i = 0; i < n_samples; i++) {
+    vec3_t omega = {omega_x[i], omega_y[i], omega_z[i]};
+    double mag = vec3_norm(omega);
+
+    if (fabs(mag) > 1e-12) {
+      double angle = mag * dt;
+      vec3_t axis = {omega[0] / mag, omega[1] / mag, omega[2] / mag};
+      quat_t q_delta;
+      Quaternion_rot(q_delta, angle, axis);
+      Quaternion_mul_right(attitude, q_delta);
+      Quaternion_unit(attitude);
+    }
+
+    double az_rad, el_rad, psi_rad;
+    qp_quat_azelpsi(attitude, &az_rad, &el_rad, &psi_rad);
+
+    azimuth[i] = az_rad;
+    elevation[i] = el_rad;
+    psi[i] = psi_rad;
+  }
+}

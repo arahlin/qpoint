@@ -1324,6 +1324,67 @@ class QPoint(object):
             return ra[0], dec[0], pa[0]
         return ra, dec, pa
 
+    def omega2azelpsi(
+        self,
+        init_az,
+        init_el,
+        init_psi,
+        omega_x,
+        omega_y,
+        omega_z,
+        delta_t,
+        **kwargs,
+    ):
+        """
+        Compute azimuth, elevation, and roll from angular velocity data.
+
+        Parameters
+        ----------
+        init_az : float
+            Initial azimuth in degrees.
+        init_el : float
+            Initial elevation in degrees.
+        init_psi: float
+            Initial psi (boresight rotation) in degrees.
+        omega_x, omega_y, omega_z : np.ndarray
+            Angular velocity components in the AZ/EL/PSI frame.
+        delta_t : float
+            Time interval between samples.
+
+        Returns
+        -------
+        azimuth, elevation, psi : np.ndarray
+            Arrays of azimuth, elevation, and psi values for each sample.
+        """
+        self.set(**kwargs)
+
+        omega_x = check_input("omega_x", omega_x, dtype=np.double)
+        omega_y = check_input("omega_y", omega_y, dtype=np.double)
+        omega_z = check_input("omega_z", omega_z, dtype=np.double)
+
+        n_samples = omega_x.size
+
+        azimuth = check_output("azimuth", shape=(n_samples,), dtype=np.double)
+        elevation = check_output("elevation", shape=(n_samples,), dtype=np.double)
+        psi = check_output("psi", shape=(n_samples,), dtype=np.double)
+
+        qp.qp_omega2azelpsi(
+            self._memory,
+            init_az,
+            init_el,
+            init_psi,
+            omega_x,
+            omega_y,
+            omega_z,
+            azimuth,
+            elevation,
+            psi,
+            delta_t,
+            int(n_samples),
+        )
+
+        return azimuth, elevation, psi
+
     def quat2pixpa(self, quat, nside=256, **kwargs):
         """
         Calculate ra/dec/pa for input quaternion(s).
