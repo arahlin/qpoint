@@ -540,6 +540,28 @@ each of [‘mjd’, ‘dut1’, ‘x’, ‘y’].</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="qpoint.qpoint_class.QPoint.omega2azelpsi">
+<span class="sig-name descname"><span class="pre">omega2azelpsi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">init_az</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_psi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega_z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_t</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.omega2azelpsi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.omega2azelpsi" title="Link to this definition">¶</a></dt>
+<dd><p>Compute azimuth, elevation, and roll from angular velocity data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>init_az</strong> (<em>float</em>) – Initial azimuth in degrees.</p></li>
+<li><p><strong>init_el</strong> (<em>float</em>) – Initial elevation in degrees.</p></li>
+<li><p><strong>init_psi</strong> (<em>float</em>) – Initial psi (boresight rotation) in degrees.</p></li>
+<li><p><strong>omega_x</strong> (<em>np.ndarray</em>) – Angular velocity components in the AZ/EL/PSI frame.</p></li>
+<li><p><strong>omega_y</strong> (<em>np.ndarray</em>) – Angular velocity components in the AZ/EL/PSI frame.</p></li>
+<li><p><strong>omega_z</strong> (<em>np.ndarray</em>) – Angular velocity components in the AZ/EL/PSI frame.</p></li>
+<li><p><strong>delta_t</strong> (<em>float</em>) – Time interval between samples.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>azimuth, elevation, psi</strong> (<em>np.ndarray</em>) – Arrays of azimuth, elevation, and psi values for each sample.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="qpoint.qpoint_class.QPoint.print_memory">
 <span class="sig-name descname"><span class="pre">print_memory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.print_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.print_memory" title="Link to this definition">¶</a></dt>
 <dd><p>Print current memory state in C.</p>
@@ -1635,6 +1657,7 @@ storing any parameters.  Useful for testing, numpy-vectorized.</p>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.hwp_quat"><code class="docutils literal notranslate"><span class="pre">QPoint.hwp_quat()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.lmst"><code class="docutils literal notranslate"><span class="pre">QPoint.lmst()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.load_bulletin_a"><code class="docutils literal notranslate"><span class="pre">QPoint.load_bulletin_a()</span></code></a></li>
+<li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.omega2azelpsi"><code class="docutils literal notranslate"><span class="pre">QPoint.omega2azelpsi()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.print_memory"><code class="docutils literal notranslate"><span class="pre">QPoint.print_memory()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.quat2pix"><code class="docutils literal notranslate"><span class="pre">QPoint.quat2pix()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.quat2pixpa"><code class="docutils literal notranslate"><span class="pre">QPoint.quat2pixpa()</span></code></a></li>

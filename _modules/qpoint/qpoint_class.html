@@ -1429,6 +1429,70 @@
         <span class="k">return</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">pa</span></div>
 
 
+<div class="viewcode-block" id="QPoint.omega2azelpsi">
+<a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.omega2azelpsi">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">omega2azelpsi</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">init_az</span><span class="p">,</span>
+        <span class="n">init_el</span><span class="p">,</span>
+        <span class="n">init_psi</span><span class="p">,</span>
+        <span class="n">omega_x</span><span class="p">,</span>
+        <span class="n">omega_y</span><span class="p">,</span>
+        <span class="n">omega_z</span><span class="p">,</span>
+        <span class="n">delta_t</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute azimuth, elevation, and roll from angular velocity data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        init_az : float</span>
+<span class="sd">            Initial azimuth in degrees.</span>
+<span class="sd">        init_el : float</span>
+<span class="sd">            Initial elevation in degrees.</span>
+<span class="sd">        init_psi: float</span>
+<span class="sd">            Initial psi (boresight rotation) in degrees.</span>
+<span class="sd">        omega_x, omega_y, omega_z : np.ndarray</span>
+<span class="sd">            Angular velocity components in the AZ/EL/PSI frame.</span>
+<span class="sd">        delta_t : float</span>
+<span class="sd">            Time interval between samples.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        azimuth, elevation, psi : np.ndarray</span>
+<span class="sd">            Arrays of azimuth, elevation, and psi values for each sample.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">omega_x</span> <span class="o">=</span> <span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;omega_x&quot;</span><span class="p">,</span> <span class="n">omega_x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+        <span class="n">omega_y</span> <span class="o">=</span> <span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;omega_y&quot;</span><span class="p">,</span> <span class="n">omega_y</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+        <span class="n">omega_z</span> <span class="o">=</span> <span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;omega_z&quot;</span><span class="p">,</span> <span class="n">omega_z</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+
+        <span class="n">n_samples</span> <span class="o">=</span> <span class="n">omega_x</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="n">azimuth</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="s2">&quot;azimuth&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+        <span class="n">elevation</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="s2">&quot;elevation&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+        <span class="n">psi</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="s2">&quot;psi&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+
+        <span class="n">qp</span><span class="o">.</span><span class="n">qp_omega2azelpsi</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span>
+            <span class="n">init_az</span><span class="p">,</span>
+            <span class="n">init_el</span><span class="p">,</span>
+            <span class="n">init_psi</span><span class="p">,</span>
+            <span class="n">omega_x</span><span class="p">,</span>
+            <span class="n">omega_y</span><span class="p">,</span>
+            <span class="n">omega_z</span><span class="p">,</span>
+            <span class="n">azimuth</span><span class="p">,</span>
+            <span class="n">elevation</span><span class="p">,</span>
+            <span class="n">psi</span><span class="p">,</span>
+            <span class="n">delta_t</span><span class="p">,</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">n_samples</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">azimuth</span><span class="p">,</span> <span class="n">elevation</span><span class="p">,</span> <span class="n">psi</span></div>
+
+
 <div class="viewcode-block" id="QPoint.quat2pixpa">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.quat2pixpa">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">quat2pixpa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quat</span><span class="p">,</span> <span class="n">nside</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>

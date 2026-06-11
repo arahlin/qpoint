@@ -579,6 +579,23 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
+    <span class="s2">&quot;qp_omega2azelpsi&quot;</span><span class="p">,</span>
+    <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
+        <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>  <span class="c1"># init_az</span>
+        <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>  <span class="c1"># init_el</span>
+        <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>  <span class="c1"># init_psi</span>
+        <span class="n">arr</span><span class="p">,</span>  <span class="c1"># omega_x</span>
+        <span class="n">arr</span><span class="p">,</span>  <span class="c1"># omega_y</span>
+        <span class="n">arr</span><span class="p">,</span>  <span class="c1"># omega_z</span>
+        <span class="n">warr</span><span class="p">,</span>  <span class="c1"># azimuth (output)</span>
+        <span class="n">warr</span><span class="p">,</span>  <span class="c1"># elevation (output)</span>
+        <span class="n">warr</span><span class="p">,</span>  <span class="c1"># psi (output)</span>
+        <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>  <span class="c1"># delta_t</span>
+        <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>  <span class="c1"># n_samples</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span>
     <span class="s2">&quot;qp_azel2bore&quot;</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
