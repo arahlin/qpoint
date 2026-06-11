@@ -340,6 +340,9 @@ extern "C" {
   /* Calculate gondola orientation quaternion, accounting for FPU boresight rotation */
   void qp_azelpsi_quat(double az, double el, double psi, double pitch, double roll, quat_t q);
 
+  /* Calculate gondola orientation coordinates, accounting for FPU boresight rotation */
+  void qp_quat_azelpsi(const quat_t q, double az, double el, double psi);
+
   /* Calculate longitude/latitude quaternion */
   void qp_lonlat_quat(double lon, double lat, quat_t q);
 
@@ -607,12 +610,12 @@ extern "C" {
 			    double *cos2psi, int n);
 
   /* Calculate az/el/bs roll (psi) from a starting attitude value and gyro rates.
-  This function integrates gyro readings to get the new attitude. 
-  It uses Horizontal-frame quaternions internally. */
-  void qp_omega2azelpa(qp_memory_t *mem, double init_az, double init_el, double init_roll,
+     This function integrates gyro readings to get the new attitude.
+     It uses horizon-frame quaternions internally. */
+  void qp_omega2azelpa(qp_memory_t *mem, double init_az, double init_el, double init_psi,
                      double *omega_x, double *omega_y, double *omega_z,
                      double *azimuth, double *elevation, double *psi,
-                     double dt, int n_samples, int fast_rot);
+                     double dt, int n_samples);
 
 #ifndef ENABLE_LITE
 
