@@ -1,5 +1,4 @@
-"""A lightweight quaternion-based library for efficient telescope pointing.
-"""
+"""A lightweight quaternion-based library for efficient telescope pointing."""
 
 from ._version import __version__
 

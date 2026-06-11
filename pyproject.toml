@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "extension-helpers>=1.1.1", "setuptools-scm[toml]>7.0"]
+requires = ["setuptools>=77", "extension-helpers>=1.1.1", "setuptools-scm[toml]>7.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,8 +9,13 @@ authors = [
 ]
 description = "A lightweight quaternion-based library for efficient telescope pointing"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 urls = {source = "https://github.com/arahlin/qpoint"}
-license = {file = "LICENSE"}
+license = "MIT"
 dynamic = ["version"]
 dependencies = ["numpy>1.10.0", "scipy", "astropy"]
+
+[tool.setuptools_scm]
+write_to = "qpoint/_version.py"
+version_scheme = "only-version"
+local_scheme = "no-local-version"

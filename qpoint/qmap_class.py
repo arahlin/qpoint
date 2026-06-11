@@ -1183,9 +1183,11 @@ class QMap(QPoint):
             mask &= cond < cond_thresh
             vec[:, ~mask] = 0
             proj[..., ~mask] = np.eye(nmap)[rtri, ctri][:, None]
+            # numpy 2 requires b (ie vec) to have shape (..., M, K) not (..., M).
+            # Use K = 1 with np.newaxis.
             vec[:] = np.linalg.solve(
-                proj[idx].transpose(2, 0, 1), vec.transpose()
-            ).transpose()
+                proj[idx].transpose(2, 0, 1), vec.transpose()[..., np.newaxis]
+            )[..., 0].transpose()
             vec[:, ~mask] = fill
             proj[:, ~mask] = 0
             ret = (vec,) + return_proj * (proj,) + return_mask * (mask,)

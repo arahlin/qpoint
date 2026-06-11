@@ -27,8 +27,4 @@ add_openmp_flags_if_available(ext_qp)
 setup(
     ext_modules=[ext_qp],
     packages=find_packages(),
-    use_scm_version={
-        "version_scheme": "no-guess-dev",
-        "write_to": "qpoint/_version.py",
-    },
 )
