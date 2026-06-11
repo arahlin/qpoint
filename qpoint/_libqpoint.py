@@ -542,7 +542,7 @@ setargs(
     ),
 )
 setargs(
-    "qp_omega2azelpa",
+    "qp_omega2azelpsi",
     arg=(
         qp_memory_t_p,  # params
         ct.c_double,  # init_az

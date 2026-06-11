@@ -1324,7 +1324,7 @@ class QPoint(object):
             return ra[0], dec[0], pa[0]
         return ra, dec, pa
 
-    def omega2azelpa(
+    def omega2azelpsi(
         self,
         init_az,
         init_el,
@@ -1368,7 +1368,7 @@ class QPoint(object):
         elevation = check_output("elevation", shape=(n_samples,), dtype=np.double)
         psi = check_output("psi", shape=(n_samples,), dtype=np.double)
 
-        qp.qp_omega2azelpa(
+        qp.qp_omega2azelpsi(
             self._memory,
             init_az,
             init_el,

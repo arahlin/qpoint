@@ -1188,10 +1188,10 @@ qp_quat_azelpsi(const quat_t q, double *az, double *el, double *psi)
 
 // Compute attitude quaternion from angular velocity.
 void
-qp_omega2azelpa(qp_memory_t *mem, double init_az, double init_el, double init_psi,
-                double *omega_x, double *omega_y, double *omega_z,
-                double *azimuth, double *elevation, double *psi,
-                double dt, int n_samples)
+qp_omega2azelpsi(qp_memory_t *mem, double init_az, double init_el, double init_psi,
+		 double *omega_x, double *omega_y, double *omega_z,
+		 double *azimuth, double *elevation, double *psi,
+		 double dt, int n_samples)
 {
   quat_t attitude;
   qp_azelpsi_quat(init_az, init_el, init_psi, 0.0, 0.0, attitude);
