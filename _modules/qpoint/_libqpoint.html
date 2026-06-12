@@ -168,7 +168,41 @@
 <span class="n">QP_ARR_MALLOC_2D</span> <span class="o">=</span> <span class="mi">16</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">qp_det_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">qp_struct_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ctypes.Structure subclass with automatic numpy array conversion</span>
+<span class="sd">    on attribute assignment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s2">&quot;init&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">QP_STRUCT_INIT</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_fields_dict_&quot;</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="s2">&quot;_fields_dict_&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields_</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields_dict_</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="n">iattr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">_init&quot;</span>
+        <span class="n">ivalue</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
+            <span class="n">ivalue</span> <span class="o">=</span> <span class="n">QP_ARR_INIT_PTR</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">ivalue</span> <span class="o">=</span> <span class="n">QP_ARR_INIT_PTR</span>
+            <span class="n">atype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields_dict_</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">atype</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">_Pointer</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">ctypes</span><span class="o">.</span><span class="n">data_as</span><span class="p">(</span><span class="n">atype</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">rvalue</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">iattr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields_dict_</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">iattr</span><span class="p">,</span> <span class="n">ivalue</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rvalue</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">qp_det_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;q_off&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
@@ -188,7 +222,7 @@
 <span class="n">qp_det_t_p</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">qp_det_t</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">qp_detarr_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">qp_detarr_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
@@ -201,7 +235,7 @@
 <span class="n">qp_detarr_t_p</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">qp_detarr_t</span><span class="p">)</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">qp_point_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">qp_point_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
@@ -242,7 +276,7 @@
 <span class="n">proj_modes</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="n">QP_PROJ_TEMP</span><span class="p">,</span> <span class="mi">6</span><span class="p">:</span> <span class="n">QP_PROJ_POL</span><span class="p">,</span> <span class="mi">10</span><span class="p">:</span> <span class="n">QP_PROJ_VPOL</span><span class="p">}</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">qp_map_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">qp_map_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;partial&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
@@ -274,10 +308,6 @@
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">d</span><span class="o">.</span><span class="n">__array_interface__</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">d</span><span class="o">.</span><span class="n">strides</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uintp</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">as_ctypes</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">setargs</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
