@@ -181,7 +181,9 @@ class QMap(QPoint):
         """
         if not hasattr(self, "_source"):
             return False
-        return self._source.contents.init
+        if not self._source.contents.init:
+            return False
+        return True
 
     def init_source(
         self,
@@ -353,7 +355,9 @@ class QMap(QPoint):
         """
         if not hasattr(self, "_dest"):
             return False
-        return self._dest.contents.init
+        if not self._dest.contents.init:
+            return False
+        return True
 
     def init_dest(
         self,
@@ -618,7 +622,9 @@ class QMap(QPoint):
         """
         if not hasattr(self, "_point"):
             return False
-        return self._point.contents.init
+        if not self._point.contents.init:
+            return False
+        return True
 
     def init_point(self, q_bore=None, ctime=None, q_hwp=None):
         """

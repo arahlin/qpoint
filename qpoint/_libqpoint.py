@@ -138,7 +138,7 @@ class qp_struct_t(ct.Structure):
     """
 
     def __setattr__(self, attr, value):
-        if attr == "_init":
+        if attr == "init":
             return super().__setattr__(attr, QP_STRUCT_INIT if value else 0)
 
         if not hasattr(self, "_fields_dict_"):
@@ -165,7 +165,7 @@ class qp_struct_t(ct.Structure):
 
 class qp_det_t(qp_struct_t):
     _fields_ = [
-        ("_init", ct.c_int),
+        ("init", ct.c_int),
         ("q_off", ct.c_double * 4),
         ("weight", ct.c_double),
         ("gain", ct.c_double),
@@ -185,7 +185,7 @@ qp_det_t_p = ct.POINTER(qp_det_t)
 
 class qp_detarr_t(qp_struct_t):
     _fields_ = [
-        ("_init", ct.c_int),
+        ("init", ct.c_int),
         ("n", ct.c_size_t),
         ("arr_init", ct.c_int),
         ("diff", ct.c_size_t),
@@ -198,7 +198,7 @@ qp_detarr_t_p = ct.POINTER(qp_detarr_t)
 
 class qp_point_t(qp_struct_t):
     _fields_ = [
-        ("_init", ct.c_int),
+        ("init", ct.c_int),
         ("n", ct.c_size_t),
         ("q_bore_init", ct.c_int),
         ("q_bore", ct.POINTER(ct.c_double * 4)),
@@ -239,7 +239,7 @@ proj_modes = {1: QP_PROJ_TEMP, 6: QP_PROJ_POL, 10: QP_PROJ_VPOL}
 
 class qp_map_t(qp_struct_t):
     _fields_ = [
-        ("_init", ct.c_int),
+        ("init", ct.c_int),
         ("partial", ct.c_int),
         ("nside", ct.c_size_t),
         ("npix", ct.c_size_t),
