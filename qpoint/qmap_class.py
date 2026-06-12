@@ -181,9 +181,7 @@ class QMap(QPoint):
         """
         if not hasattr(self, "_source"):
             return False
-        if not self._source.contents.init:
-            return False
-        return True
+        return self._source.contents.init
 
     def init_source(
         self,
@@ -305,6 +303,7 @@ class QMap(QPoint):
         source.proj_mode = 0
         source.proj = None
         source.proj1d = None
+        source.init = True
 
         if partial:
             if qp.qp_init_map_pixhash(self._source, pixels, npix):
@@ -354,9 +353,7 @@ class QMap(QPoint):
         """
         if not hasattr(self, "_dest"):
             return False
-        if not self._dest.contents.init:
-            return False
-        return True
+        return self._dest.contents.init
 
     def init_dest(
         self,
@@ -561,6 +558,7 @@ class QMap(QPoint):
             ret += (proj.squeeze(),)
         dest.vec = None
         dest.proj = None
+        dest.init = True
 
         if partial:
             if qp.qp_init_map_pixhash(self._dest, pixels, npix):
@@ -620,9 +618,7 @@ class QMap(QPoint):
         """
         if not hasattr(self, "_point"):
             return False
-        if not self._point.contents.init:
-            return False
-        return True
+        return self._point.contents.init
 
     def init_point(self, q_bore=None, ctime=None, q_hwp=None):
         """
@@ -656,6 +652,7 @@ class QMap(QPoint):
             point.n = n
             self.depo["q_bore"] = q_bore
             point.q_bore = q_bore
+            point.init = True
 
         if not point.init:
             raise RuntimeError("point not initialized")
@@ -790,11 +787,13 @@ class QMap(QPoint):
                 dets[idx].weights = weights[idx]
             else:
                 dets[idx].weights = None
+            dets[idx].init = True
 
         detarr = lib.qp_detarr_t()
         detarr.n = n
         detarr.arr = dets
         detarr.diff = 0
+        detarr.init = True
 
         if do_diff:
             detarr.diff = 1
