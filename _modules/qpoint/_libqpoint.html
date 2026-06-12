@@ -4,10 +4,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>qpoint._libqpoint &#8212; qpoint 1.13.0 documentation</title>
+    <title>qpoint._libqpoint &#8212; qpoint 1.14.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinxdoc.css?v=34905f61" />
-    <script src="../../_static/documentation_options.js?v=8f5b6f32"></script>
+    <script src="../../_static/documentation_options.js?v=01009efc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -22,7 +22,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.13.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.14.0 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" accesskey="U">qpoint</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">qpoint._libqpoint</a></li> 
@@ -846,62 +846,17 @@
 <span class="c1"># **********************************************************************</span>
 
 <span class="c1"># initialize detectors</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_init_det&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">quat_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="n">mueller_t</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">qp_det_t_p</span>
-<span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_default_det&quot;</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">qp_det_t_p</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_det_tod&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_det_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_det_tod_from_array&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_det_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_det_flag&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_det_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_det_flag_from_array&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_det_t_p</span><span class="p">,</span> <span class="n">arrf</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_det&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_det_t_p</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_init_detarr&quot;</span><span class="p">,</span>
-    <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">quat_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">mueller_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-    <span class="n">res</span><span class="o">=</span><span class="n">qp_detarr_t_p</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_detarr_tod&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_init_detarr_tod_from_array_1d&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
-<span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_detarr_flag&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_init_detarr_flag_from_array_1d&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
-<span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_detarr&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_detarr_t_p</span><span class="p">)</span>
 
 <span class="c1"># initialize pointing</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_point&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">qp_point_t_p</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_init_point_from_arrays&quot;</span><span class="p">,</span>
-    <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">quat_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-    <span class="n">res</span><span class="o">=</span><span class="n">qp_point_t_p</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_point&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_point_t_p</span><span class="p">)</span>
 
 <span class="c1"># initialize maps</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_init_map&quot;</span><span class="p">,</span>
-    <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">qp_vec_mode</span><span class="p">,</span> <span class="n">qp_proj_mode</span><span class="p">),</span>
-    <span class="n">res</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_init_map_from_arrays_1d&quot;</span><span class="p">,</span>
-    <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">,</span> <span class="n">qp_vec_mode</span><span class="p">,</span> <span class="n">qp_proj_mode</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-    <span class="n">res</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_map_from_map&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_map&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_reshape_map&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_map_pixhash&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">larr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
 
 <span class="c1"># tod -&gt; map</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_add_map&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">qp_map_t_p</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_tod2map1&quot;</span><span class="p">,</span>
-    <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">qp_det_t_p</span><span class="p">,</span> <span class="n">qp_point_t_p</span><span class="p">,</span> <span class="n">qp_map_t_p</span><span class="p">),</span>
-    <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
     <span class="s2">&quot;qp_tod2map&quot;</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">qp_point_t_p</span><span class="p">,</span> <span class="n">qp_map_t_p</span><span class="p">),</span>
@@ -909,11 +864,6 @@
 <span class="p">)</span>
 
 <span class="c1"># map -&gt; tod</span>
-<span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_map2tod1&quot;</span><span class="p">,</span>
-    <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">qp_det_t_p</span><span class="p">,</span> <span class="n">qp_point_t_p</span><span class="p">,</span> <span class="n">qp_map_t_p</span><span class="p">),</span>
-    <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
     <span class="s2">&quot;qp_map2tod&quot;</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">qp_point_t_p</span><span class="p">,</span> <span class="n">qp_map_t_p</span><span class="p">),</span>
@@ -1408,7 +1358,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.13.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">qpoint 1.14.0 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
           <li class="nav-item nav-item-2"><a href="../qpoint.html" >qpoint</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">qpoint._libqpoint</a></li> 
