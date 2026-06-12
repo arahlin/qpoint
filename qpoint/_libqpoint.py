@@ -809,62 +809,17 @@ def get_proj_mode(proj_in=None, pol=True, vpol=False):
 # **********************************************************************
 
 # initialize detectors
-setargs(
-    "qp_init_det", arg=(quat_t, ct.c_double, ct.c_double, mueller_t), res=qp_det_t_p
-)
-setargs("qp_default_det", res=qp_det_t_p)
-setargs("qp_init_det_tod", arg=(qp_det_t_p, ct.c_size_t))
-setargs("qp_init_det_tod_from_array", arg=(qp_det_t_p, arr, ct.c_size_t, ct.c_int))
-setargs("qp_init_det_flag", arg=(qp_det_t_p, ct.c_size_t))
-setargs("qp_init_det_flag_from_array", arg=(qp_det_t_p, arrf, ct.c_size_t, ct.c_int))
-setargs("qp_free_det", arg=qp_det_t_p)
-setargs(
-    "qp_init_detarr",
-    arg=(quat_t_p, arr, arr, mueller_t_p, ct.c_size_t),
-    res=qp_detarr_t_p,
-)
-setargs("qp_init_detarr_tod", arg=(qp_detarr_t_p, ct.c_size_t))
-setargs(
-    "qp_init_detarr_tod_from_array_1d", arg=(qp_detarr_t_p, arr, ct.c_size_t, ct.c_int)
-)
-setargs("qp_init_detarr_flag", arg=(qp_detarr_t_p, ct.c_size_t))
-setargs(
-    "qp_init_detarr_flag_from_array_1d", arg=(qp_detarr_t_p, arr, ct.c_size_t, ct.c_int)
-)
 setargs("qp_free_detarr", arg=qp_detarr_t_p)
 
 # initialize pointing
-setargs("qp_init_point", arg=(ct.c_size_t, ct.c_int, ct.c_int), res=qp_point_t_p)
-setargs(
-    "qp_init_point_from_arrays",
-    arg=(quat_t_p, arr, quat_t_p, ct.c_size_t, ct.c_int),
-    res=qp_point_t_p,
-)
 setargs("qp_free_point", arg=qp_point_t_p)
 
 # initialize maps
-setargs(
-    "qp_init_map",
-    arg=(ct.c_size_t, ct.c_size_t, qp_vec_mode, qp_proj_mode),
-    res=qp_map_t_p,
-)
-setargs(
-    "qp_init_map_from_arrays_1d",
-    arg=(arr, arr, ct.c_size_t, ct.c_size_t, qp_vec_mode, qp_proj_mode, ct.c_int),
-    res=qp_map_t_p,
-)
-setargs("qp_init_map_from_map", arg=(qp_map_t_p, ct.c_int, ct.c_int), res=qp_map_t_p)
 setargs("qp_free_map", arg=qp_map_t_p)
 setargs("qp_reshape_map", arg=qp_map_t_p, res=ct.c_int)
 setargs("qp_init_map_pixhash", arg=(qp_map_t_p, larr, ct.c_size_t), res=ct.c_int)
 
 # tod -> map
-setargs("qp_add_map", arg=(qp_map_t_p, qp_map_t_p), res=ct.c_int)
-setargs(
-    "qp_tod2map1",
-    arg=(qp_memory_t_p, qp_det_t_p, qp_point_t_p, qp_map_t_p),
-    res=ct.c_int,
-)
 setargs(
     "qp_tod2map",
     arg=(qp_memory_t_p, qp_detarr_t_p, qp_point_t_p, qp_map_t_p),
@@ -872,11 +827,6 @@ setargs(
 )
 
 # map -> tod
-setargs(
-    "qp_map2tod1",
-    arg=(qp_memory_t_p, qp_det_t_p, qp_point_t_p, qp_map_t_p),
-    res=ct.c_int,
-)
 setargs(
     "qp_map2tod",
     arg=(qp_memory_t_p, qp_detarr_t_p, qp_point_t_p, qp_map_t_p),
