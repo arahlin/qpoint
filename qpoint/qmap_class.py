@@ -917,15 +917,16 @@ class QMap(QPoint):
             dest.proj_mode = 0
 
         # run
-        if qp.qp_tod2map(self._memory, self._detarr, self._point, self._dest):
-            raise RuntimeError(qp.qp_get_error_string(self._memory))
+        try:
+            if qp.qp_tod2map(self._memory, self._detarr, self._point, self._dest):
+                raise RuntimeError(qp.qp_get_error_string(self._memory))
+        finally:
+            # reset modes
+            dest.vec_mode = vec_mode
+            dest.proj_mode = proj_mode
 
-        # reset modes
-        dest.vec_mode = vec_mode
-        dest.proj_mode = proj_mode
-
-        # clean up
-        self.reset_detarr()
+            # clean up
+            self.reset_detarr()
 
         # return
         ret = ()
@@ -975,12 +976,13 @@ class QMap(QPoint):
         )
 
         # run
-        if qp.qp_map2tod(self._memory, self._detarr, self._point, self._source):
-            raise RuntimeError(qp.qp_get_error_string(self._memory))
-        tod = self.depo.pop("tod")
-
-        # clean up
-        self.reset_detarr()
+        try:
+            if qp.qp_map2tod(self._memory, self._detarr, self._point, self._source):
+                raise RuntimeError(qp.qp_get_error_string(self._memory))
+            tod = self.depo.pop("tod")
+        finally:
+            # clean up
+            self.reset_detarr()
 
         # return
         return tod
