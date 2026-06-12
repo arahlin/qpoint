@@ -1015,15 +1015,16 @@
             <span class="n">dest</span><span class="o">.</span><span class="n">proj_mode</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="c1"># run</span>
-        <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_tod2map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">qp</span><span class="o">.</span><span class="n">qp_get_error_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_tod2map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dest</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">qp</span><span class="o">.</span><span class="n">qp_get_error_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">))</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># reset modes</span>
+            <span class="n">dest</span><span class="o">.</span><span class="n">vec_mode</span> <span class="o">=</span> <span class="n">vec_mode</span>
+            <span class="n">dest</span><span class="o">.</span><span class="n">proj_mode</span> <span class="o">=</span> <span class="n">proj_mode</span>
 
-        <span class="c1"># reset modes</span>
-        <span class="n">dest</span><span class="o">.</span><span class="n">vec_mode</span> <span class="o">=</span> <span class="n">vec_mode</span>
-        <span class="n">dest</span><span class="o">.</span><span class="n">proj_mode</span> <span class="o">=</span> <span class="n">proj_mode</span>
-
-        <span class="c1"># clean up</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">reset_detarr</span><span class="p">()</span>
+            <span class="c1"># clean up</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_detarr</span><span class="p">()</span>
 
         <span class="c1"># return</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="p">()</span>
@@ -1076,12 +1077,13 @@
         <span class="p">)</span>
 
         <span class="c1"># run</span>
-        <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_map2tod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">qp</span><span class="o">.</span><span class="n">qp_get_error_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">))</span>
-        <span class="n">tod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;tod&quot;</span><span class="p">)</span>
-
-        <span class="c1"># clean up</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">reset_detarr</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">qp</span><span class="o">.</span><span class="n">qp_map2tod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detarr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">qp</span><span class="o">.</span><span class="n">qp_get_error_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">))</span>
+            <span class="n">tod</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;tod&quot;</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># clean up</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_detarr</span><span class="p">()</span>
 
         <span class="c1"># return</span>
         <span class="k">return</span> <span class="n">tod</span></div>
