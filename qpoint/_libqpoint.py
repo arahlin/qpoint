@@ -139,7 +139,9 @@ class qp_struct_t(ct.Structure):
 
     def __setattr__(self, attr, value):
         if attr == "init":
-            return super().__setattr__(attr, QP_STRUCT_INIT if value else 0)
+            if isinstance(value, bool):
+                value = QP_STRUCT_INIT if value else 0
+            return super().__setattr__(attr, value)
 
         if not hasattr(self, "_fields_dict_"):
             super().__setattr__("_fields_dict_", dict(self._fields_))
