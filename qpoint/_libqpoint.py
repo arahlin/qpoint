@@ -263,6 +263,81 @@ class qp_map_t(qp_struct_t):
         ("proj", ct.POINTER(ct.POINTER(ct.c_double))),
     ]
 
+    def setup(self, vec=None, proj=None, pol=None, vpol=None, pixels=None, nside=None):
+        """
+        Store vec and proj maps and polarization properties
+        """
+        self.vec = None
+        if vec is False:
+            self.num_vec = 0
+            self.vec_mode = 0
+            self.vec1d = None
+        elif vec is not None:
+            self.num_vec = len(vec)
+            self.vec_mode = get_vec_mode(vec, pol, vpol)
+            self.vec1d = vec.ravel()
+
+        self.proj = None
+        if proj is False:
+            self.num_proj = 0
+            self.proj_mode = 0
+            self.proj1d = None
+        elif proj is not None:
+            self.num_proj = len(proj)
+            self.proj_mode = get_proj_mode(proj, pol, vpol)
+            self.proj1d = proj.ravel()
+
+        if vec is not None or proj is not None:
+            if libqp.qp_reshape_map(ct.byref(self)):
+                raise RuntimeError("Error reshaping map")
+
+        if pixels is not None or nside is not None:
+            self.partial = pixels is not None
+            self.pixinfo = None
+            self.pixhash = None
+
+            if self.partial:
+                self.npix = len(pixels)
+                if nside is None:
+                    raise ValueError("nside required for partial maps")
+                self.nside = nside
+            else:
+                self.npix = len(vec[0])
+                self.nside = npix2nside(npix)
+
+            if self.partial:
+                if libqp.qp_init_map_pixhash(ct.byref(self), pixels, self.npix):
+                    raise RuntimeError("Error initializing pixhash")
+
+        self.init = True
+
+    @property
+    def is_pol(self):
+        """
+        Return True if map is polarized (linearly or circularly).
+        """
+        if self.vec_mode:
+            return self.vec_mode in [
+                QP_VEC_POL,
+                QP_VEC_VPOL,
+                QP_VEC_D1_POL,
+                QP_VEC_D2_POL,
+            ]
+        if self.proj_mode:
+            return self.proj_mode in [QP_PROL_POL, QP_PROL_VPOL]
+        return False
+
+    @property
+    def is_vpol(self):
+        """
+        Return True if map is circularly polarized.
+        """
+        if self.vec_mode:
+            return self.vec_mode == QP_VEC_VPOL
+        if self.proj_mode:
+            return self.proj_mode == QP_PROJ_VPOL
+        return False
+
 
 qp_map_t_p = ct.POINTER(qp_map_t)
 
