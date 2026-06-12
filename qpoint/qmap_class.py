@@ -258,31 +258,18 @@ class QMap(QPoint):
                 ):
                     raise ValueError("source_map shape mismatch")
                 source_map, _ = check_map(source_map, partial=True)
-                source.num_vec = len(source_map)
-                source.vec_mode = lib.get_vec_mode(source_map, pol, vpol)
-                source.vec1d = source_map.ravel()
+                source.setup(vec=source_map, pol=pol, vpol=vpol)
                 self.depo["source_map"] = source_map
-                if qp.qp_reshape_map(self._source):
-                    raise RuntimeError("Error reshaping source map")
                 return
 
             else:
                 raise RuntimeError("source already initialized")
 
-        if pixels is None:
-            partial = False
-        else:
-            partial = True
-            if nside is None:
-                raise ValueError("nside required for partial maps")
-
         # check map shape and create pointer
+        partial = pixels is not None
         smap, snside = check_map(source_map, partial=partial)
         if not partial:
             nside = snside
-            npix = nside2npix(nside)
-        else:
-            npix = len(pixels)
 
         # store map
         self.depo["source_map"] = smap
@@ -291,28 +278,9 @@ class QMap(QPoint):
             self.depo["source_pixels"] = pixels
 
         # initialize
-        source = self._source.contents
-        source.partial = partial
-        source.nside = nside
-        source.npix = npix
-        source.pixinfo = None
-        source.pixhash = None
-        source.num_vec = len(source_map)
-        source.vec_mode = lib.get_vec_mode(smap, pol, vpol)
-        source.vec1d = smap.ravel()
-        source.vec = None
-        source.num_proj = 0
-        source.proj_mode = 0
-        source.proj = None
-        source.proj1d = None
-        source.init = True
-
-        if partial:
-            if qp.qp_init_map_pixhash(self._source, pixels, npix):
-                raise RuntimeError("Error initializing source pixhash")
-
-        if qp.qp_reshape_map(self._source):
-            raise RuntimeError("Error reshaping source map")
+        self._source.contents.setup(
+            vec=smap, proj=False, pol=pol, vpol=vpol, pixels=pixels, nside=nside
+        )
 
     def reset_source(self):
         """
@@ -334,9 +302,7 @@ class QMap(QPoint):
         if not self.source_is_init():
             raise RuntimeError("source map not initialized")
 
-        if self._source.contents.vec_mode in [2, 3, 5, 7]:
-            return True
-        return False
+        return self._source.contents.is_pol
 
     def source_is_vpol(self):
         """
@@ -347,7 +313,7 @@ class QMap(QPoint):
         if not self.source_is_init():
             raise RuntimeError("source map not initialized")
 
-        return self._source.contents.vec_mode == 3
+        return self._source.contents.is_vpol
 
     def dest_is_init(self):
         """
@@ -429,9 +395,7 @@ class QMap(QPoint):
                     if vec.squeeze().shape[-1] != self.depo["vec"].squeeze().shape[-1]:
                         raise ValueError("vec shape mismatch")
                     vec, _ = check_map(vec, copy=copy, partial=True)
-                    dest.num_vec = len(vec)
-                    dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
-                    dest.vec1d = vec.ravel()
+                    dest.setup(vec=vec, pol=pol, vpol=vpol)
                     self.depo["vec"] = vec
                     ret += (vec.squeeze(),)
 
@@ -444,14 +408,9 @@ class QMap(QPoint):
                     ):
                         raise ValueError("proj shape mismatch")
                     proj, _ = check_map(proj, copy=copy, partial=True)
-                    dest.num_proj = len(proj)
-                    dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
-                    dest.proj1d = proj.ravel()
+                    dest.setup(proj=proj, pol=pol, vpol=vpol)
                     self.depo["proj"] = proj
                     ret += (proj.squeeze(),)
-
-                if qp.qp_reshape_map(self._dest):
-                    raise RuntimeError("Error reshaping dest map")
 
                 if len(ret) == 1:
                     return ret[0]
@@ -544,32 +503,13 @@ class QMap(QPoint):
 
         # initialize
         ret = ()
-        dest = self._dest.contents
-        dest.nside = nside
-        dest.npix = npix
-        dest.partial = partial
-        dest.pixinfo = None
-        dest.pixhash = None
+        self._dest.contents.setup(
+            vec=vec, proj=proj, pol=pol, vpol=vpol, pixels=pixels, nside=nside
+        )
         if vec is not False:
-            dest.num_vec = len(vec)
-            dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
-            dest.vec1d = vec.ravel()
             ret += (vec.squeeze(),)
         if proj is not False:
-            dest.num_proj = len(proj)
-            dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
-            dest.proj1d = proj.ravel()
             ret += (proj.squeeze(),)
-        dest.vec = None
-        dest.proj = None
-        dest.init = True
-
-        if partial:
-            if qp.qp_init_map_pixhash(self._dest, pixels, npix):
-                raise RuntimeError("Error initializing dest pixhash")
-
-        if qp.qp_reshape_map(self._dest):
-            raise RuntimeError("Error reshaping dest map")
 
         # return
         if len(ret) == 1:
@@ -597,11 +537,7 @@ class QMap(QPoint):
         if not self.dest_is_init():
             raise RuntimeError("dest map not initialized")
 
-        if 2 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
-            return True
-        if 3 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
-            return True
-        return False
+        return self._dest.contents.is_pol
 
     def dest_is_vpol(self):
         """
@@ -612,9 +548,7 @@ class QMap(QPoint):
         if not self.dest_is_init():
             raise RuntimeError("dest map not initialized")
 
-        if 3 in [self._dest.contents.vec_mode, self._dest.contents.proj_mode]:
-            return True
-        return False
+        return self._dest.contents.is_vpol
 
     def point_is_init(self):
         """
