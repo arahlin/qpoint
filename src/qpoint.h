@@ -869,6 +869,7 @@ extern "C" {
                                      qp_proj_mode proj_mode, int copy);
   qp_map_t * qp_init_map_from_map(qp_map_t *map, int blank, int copy);
   void qp_free_map(qp_map_t *map);
+  int qp_reshape_map(qp_map_t *map);
 
   /* tod -> map */
   int qp_add_map(qp_memory_t *mem, qp_map_t *map, qp_map_t *maploc);
