@@ -1253,6 +1253,51 @@ class QPoint(object):
 
         return az, el, hpa
 
+    def bore2azel(self, q_bore, lon, lat, ctime, az=None, el=None, pa=None, **kwargs):
+        """
+        Estimate the horizon coordinates for a given set of boresight quaternions,
+        location on the earth (lon/lat) and UTC time.
+
+        Arguments
+        ---------
+        q_bore : array_like
+            Nx4 array of boresight quaternions (as output by :meth:`azel2bore`).
+        lon : array_like
+            Observer longitude in degrees.
+        lat : array_like
+            Observer latitude in degrees.
+        ctime : array_like
+            Unix time in seconds UTC
+
+        Returns
+        -------
+        az : array_like
+            Azimuth in degrees
+        el : array_like
+            Elevation in degrees
+        pa : array_like
+            Position angle in horizon coordinates
+
+        Notes
+        -----
+        Any keywords accepted by the :meth:`set` method can also be passed here,
+        and will be processed prior to calculation.
+        """
+
+        self.set(**kwargs)
+
+        q_bore = check_input("q_bore", np.atleast_2d(q_bore), quat=True)
+        n = q_bore.size // 4
+        lon, lat, ctime = check_inputs(lon, lat, ctime)
+
+        az = check_output("az", az, shape=lon.shape, dtype=np.double)
+        el = check_output("el", el, shape=lon.shape, dtype=np.double)
+        pa = check_output("pa", pa, shape=lon.shape, dtype=np.double)
+
+        qp.qp_bore2azel(self._memory, q_bore, lon, lat, ctime, az, el, pa, n)
+
+        return az, el, pa
+
     def radecpa2quat(self, ra, dec, pa, **kwargs):
         """
         Calculate quaternion for input ra/dec/pa. Vectorized, input arguments

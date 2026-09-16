@@ -619,6 +619,20 @@ setargs(
         ct.c_int,
     ),
 )
+setargs(
+    "qp_bore2azel",
+    arg=(
+        qp_memory_t_p,  # params
+        quat_t_p,  # q_bore
+        arr,
+        arr,
+        arr,  # lon/lat/ctime
+        warr,
+        warr,
+        warr,  # az/el/pa
+        ct.c_int,
+    ),
+)
 
 setargs("qp_det_offsetn", arg=(arr, arr, arr, wquat_t_p, ct.c_int))
 setargs(

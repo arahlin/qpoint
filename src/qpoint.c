@@ -201,16 +201,6 @@ void qp_lonlat_quat(double lon, double lat, quat_t q) {
   Quaternion_r3_mul(deg2rad(lon), q);
 }
 
-void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q) {
-  Quaternion_r3(q, M_PI);
-  Quaternion_r2_mul(M_PI_2 - deg2rad(el), q);
-  Quaternion_r3_mul(-deg2rad(az), q);
-  if (pitch != 0)
-    Quaternion_r2_mul(-deg2rad(pitch), q);
-  if (roll != 0)
-    Quaternion_r1_mul(-deg2rad(roll), q);
-}
-
 void qp_azelpsi_quat(double az, double el, double psi, double pitch, double roll, quat_t q) {
   Quaternion_r3(q, M_PI - deg2rad(psi));
   Quaternion_r2_mul(M_PI_2 - deg2rad(el), q);
@@ -602,6 +592,13 @@ void qp_quat2azel(qp_memory_t *mem, quat_t q_in, double lon, double lat, double 
   // convert to angles
   qp_quat2radecpa(mem, q, az, el, pa);
   *az *= -1;
+}
+
+void qp_bore2azel(qp_memory_t *mem, quat_t *q, double *lon, double *lat,
+		  double *ctime, double *az, double *el, double *pa, int n) {
+  for (int i = 0; i < n; i++)
+    qp_quat2azel(mem, q[i], lon[i], lat[i], ctime[i], az + i, el + i,
+		 (pa == NULL) ? NULL : (pa + i));
 }
 
 void qp_hwp_quat(double ang, quat_t q) {

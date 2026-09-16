@@ -334,9 +334,6 @@ extern "C" {
   /* Calcuate wobble correction quaternion */
   void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q);
 
-  /* Calculate gondola orientation quaternion */
-  void qp_azel_quat(double az, double el, double pitch, double roll, quat_t q);
-
   /* Calculate gondola orientation quaternion, accounting for FPU boresight rotation */
   void qp_azelpsi_quat(double az, double el, double psi, double pitch, double roll, quat_t q);
 
