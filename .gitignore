@@ -8,3 +8,6 @@ local
 qpoint/_version.py
 *.nfs*
 *.egg-info
+__pycache__/
+*.py[cod]
+.pytest_cache/
