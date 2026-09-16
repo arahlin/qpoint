@@ -910,7 +910,7 @@ class QPoint(object):
             hwp = check_input("hwp", hwp, shape=az.shape)
 
             if return_pa:
-                qp.qp_azel2radec_hwp(
+                qp.qp_azel2radecpa_hwp(
                     self._memory,
                     delta_az,
                     delta_el,
@@ -1136,7 +1136,7 @@ class QPoint(object):
             hwp = check_input("hwp", hwp, shape=az.shape)
 
             if return_pa:
-                qp.qp_azelpsi2radec_hwp(
+                qp.qp_azelpsi2radecpa_hwp(
                     self._memory,
                     delta_az,
                     delta_el,
