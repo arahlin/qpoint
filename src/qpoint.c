@@ -927,7 +927,8 @@ void qp_azelpsi2radec(qp_memory_t *mem,
 
   for (int i=0; i<n; i++) {
     Quaternion_copy(q_det, q_off);
-    qp_azelpsi2quat(mem, az[i], el[i], psi[i], (pitch == NULL) ? 0 : pitch[i],
+    qp_azelpsi2quat(mem, az[i], el[i], (psi == NULL) ? 0 : psi[i],
+                 (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
                  q_det);
     qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
@@ -962,7 +963,8 @@ void qp_azelpsi2radecpa(qp_memory_t *mem,
 
   for (int i=0; i<n; i++) {
     Quaternion_copy(q_det, q_off);
-    qp_azelpsi2quat(mem, az[i], el[i], psi[i], (pitch == NULL) ? 0 : pitch[i],
+    qp_azelpsi2quat(mem, az[i], el[i], (psi == NULL) ? 0 : psi[i],
+                 (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
                  q_det);
     qp_quat2radecpa(mem, q_det, &ra[i], &dec[i], &pa[i]);
@@ -1012,7 +1014,8 @@ void qp_azelpsi2radec_hwp(qp_memory_t *mem,
     Quaternion_copy(q_det, q_off);
     qp_hwp_quat(hwp[i], q_hwp);
     Quaternion_mul_right(q_det, q_hwp);
-    qp_azelpsi2quat(mem, az[i], el[i], psi[i], (pitch == NULL) ? 0 : pitch[i],
+    qp_azelpsi2quat(mem, az[i], el[i], (psi == NULL) ? 0 : psi[i],
+                 (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
                  q_det);
     qp_quat2radec(mem, q_det, &ra[i], &dec[i], &sin2psi[i], &cos2psi[i]);
@@ -1049,7 +1052,8 @@ void qp_azelpsi2radecpa_hwp(qp_memory_t *mem,
     Quaternion_copy(q_det, q_off);
     qp_hwp_quat(hwp[i], q_hwp);
     Quaternion_mul_right(q_det, q_hwp);
-    qp_azelpsi2quat(mem, az[i], el[i], psi[i], (pitch == NULL) ? 0 : pitch[i],
+    qp_azelpsi2quat(mem, az[i], el[i], (psi == NULL) ? 0 : psi[i],
+                 (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
                  q_det);
     qp_quat2radecpa(mem, q_det, &ra[i], &dec[i], &pa[i]);
@@ -1084,7 +1088,8 @@ void qp_azelpsi2rasindec(qp_memory_t *mem,
 
   for (int i=0; i<n; i++) {
     Quaternion_copy(q_det, q_off);
-    qp_azelpsi2quat(mem, az[i], el[i], psi[i], (pitch == NULL) ? 0 : pitch[i],
+    qp_azelpsi2quat(mem, az[i], el[i], (psi == NULL) ? 0 : psi[i],
+                 (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
                  q_det);
     qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
@@ -1122,7 +1127,8 @@ void qp_azelpsi2rasindec_hwp(qp_memory_t *mem,
     Quaternion_copy(q_det, q_off);
     qp_hwp_quat(hwp[i], q_hwp);
     Quaternion_mul_right(q_det, q_hwp);
-    qp_azelpsi2quat(mem, az[i], el[i], psi[i], (pitch == NULL) ? 0 : pitch[i],
+    qp_azelpsi2quat(mem, az[i], el[i], (psi == NULL) ? 0 : psi[i],
+                 (pitch == NULL) ? 0 : pitch[i],
                  (roll == NULL) ? 0 : roll[i], lon[i], lat[i], ctime[i],
                  q_det);
     qp_quat2rasindec(mem, q_det, &ra[i], &sindec[i], &sin2psi[i], &cos2psi[i]);
