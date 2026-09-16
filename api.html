@@ -211,6 +211,34 @@ and will be processed prior to calculation.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="qpoint.qpoint_class.QPoint.bore2azel">
+<span class="sig-name descname"><span class="pre">bore2azel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q_bore</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">az</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">el</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.bore2azel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.bore2azel" title="Link to this definition">¶</a></dt>
+<dd><p>Estimate the horizon coordinates for a given set of boresight quaternions,
+location on the earth (lon/lat) and UTC time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>q_bore</strong> (<em>array_like</em>) – Nx4 array of boresight quaternions (as output by <a class="reference internal" href="#qpoint.qpoint_class.QPoint.azel2bore" title="qpoint.qpoint_class.QPoint.azel2bore"><code class="xref py py-meth docutils literal notranslate"><span class="pre">azel2bore()</span></code></a>).</p></li>
+<li><p><strong>lon</strong> (<em>array_like</em>) – Observer longitude in degrees.</p></li>
+<li><p><strong>lat</strong> (<em>array_like</em>) – Observer latitude in degrees.</p></li>
+<li><p><strong>ctime</strong> (<em>array_like</em>) – Unix time in seconds UTC</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>az</strong> (<em>array_like</em>) – Azimuth in degrees</p></li>
+<li><p><strong>el</strong> (<em>array_like</em>) – Elevation in degrees</p></li>
+<li><p><strong>pa</strong> (<em>array_like</em>) – Position angle in horizon coordinates</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Any keywords accepted by the <a class="reference internal" href="#qpoint.qpoint_class.QPoint.set" title="qpoint.qpoint_class.QPoint.set"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set()</span></code></a> method can also be passed here,
+and will be processed prior to calculation.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="qpoint.qpoint_class.QPoint.bore2dipole">
 <span class="sig-name descname"><span class="pre">bore2dipole</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q_off</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_bore</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.bore2dipole"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.bore2dipole" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate dipole timestream for given offset and boresight pointing.</p>
@@ -1643,6 +1671,7 @@ storing any parameters.  Useful for testing, numpy-vectorized.</p>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.azel2radec"><code class="docutils literal notranslate"><span class="pre">QPoint.azel2radec()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.azelpsi2bore"><code class="docutils literal notranslate"><span class="pre">QPoint.azelpsi2bore()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.azelpsi2radec"><code class="docutils literal notranslate"><span class="pre">QPoint.azelpsi2radec()</span></code></a></li>
+<li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.bore2azel"><code class="docutils literal notranslate"><span class="pre">QPoint.bore2azel()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.bore2dipole"><code class="docutils literal notranslate"><span class="pre">QPoint.bore2dipole()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.bore2pix"><code class="docutils literal notranslate"><span class="pre">QPoint.bore2pix()</span></code></a></li>
 <li><a class="reference internal" href="#qpoint.qpoint_class.QPoint.bore2radec"><code class="docutils literal notranslate"><span class="pre">QPoint.bore2radec()</span></code></a></li>

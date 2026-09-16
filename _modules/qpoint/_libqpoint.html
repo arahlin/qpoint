@@ -656,6 +656,20 @@
         <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
     <span class="p">),</span>
 <span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span>
+    <span class="s2">"qp_bore2azel"</span><span class="p">,</span>
+    <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
+        <span class="n">quat_t_p</span><span class="p">,</span>  <span class="c1"># q_bore</span>
+        <span class="n">arr</span><span class="p">,</span>
+        <span class="n">arr</span><span class="p">,</span>
+        <span class="n">arr</span><span class="p">,</span>  <span class="c1"># lon/lat/ctime</span>
+        <span class="n">warr</span><span class="p">,</span>
+        <span class="n">warr</span><span class="p">,</span>
+        <span class="n">warr</span><span class="p">,</span>  <span class="c1"># az/el/pa</span>
+        <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
 
 <span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_det_offsetn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
 <span class="n">setargs</span><span class="p">(</span>

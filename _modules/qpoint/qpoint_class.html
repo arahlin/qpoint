@@ -1352,6 +1352,54 @@
         <span class="k">return</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">hpa</span></div>
 
 
+<div class="viewcode-block" id="QPoint.bore2azel">
+<a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.bore2azel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bore2azel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_bore</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">el</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pa</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Estimate the horizon coordinates for a given set of boresight quaternions,</span>
+<span class="sd">        location on the earth (lon/lat) and UTC time.</span>
+
+<span class="sd">        Arguments</span>
+<span class="sd">        ---------</span>
+<span class="sd">        q_bore : array_like</span>
+<span class="sd">            Nx4 array of boresight quaternions (as output by :meth:`azel2bore`).</span>
+<span class="sd">        lon : array_like</span>
+<span class="sd">            Observer longitude in degrees.</span>
+<span class="sd">        lat : array_like</span>
+<span class="sd">            Observer latitude in degrees.</span>
+<span class="sd">        ctime : array_like</span>
+<span class="sd">            Unix time in seconds UTC</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        az : array_like</span>
+<span class="sd">            Azimuth in degrees</span>
+<span class="sd">        el : array_like</span>
+<span class="sd">            Elevation in degrees</span>
+<span class="sd">        pa : array_like</span>
+<span class="sd">            Position angle in horizon coordinates</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Any keywords accepted by the :meth:`set` method can also be passed here,</span>
+<span class="sd">        and will be processed prior to calculation.</span>
+<span class="sd">        """</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">q_bore</span> <span class="o">=</span> <span class="n">check_input</span><span class="p">(</span><span class="s2">"q_bore"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">q_bore</span><span class="p">),</span> <span class="n">quat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">q_bore</span><span class="o">.</span><span class="n">size</span> <span class="o">//</span> <span class="mi">4</span>
+        <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span> <span class="o">=</span> <span class="n">check_inputs</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">)</span>
+
+        <span class="n">az</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="s2">"az"</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">lon</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+        <span class="n">el</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="s2">"el"</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">lon</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+        <span class="n">pa</span> <span class="o">=</span> <span class="n">check_output</span><span class="p">(</span><span class="s2">"pa"</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">lon</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+
+        <span class="n">qp</span><span class="o">.</span><span class="n">qp_bore2azel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_memory</span><span class="p">,</span> <span class="n">q_bore</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">ctime</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">az</span><span class="p">,</span> <span class="n">el</span><span class="p">,</span> <span class="n">pa</span></div>
+
+
 <div class="viewcode-block" id="QPoint.radecpa2quat">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.QPoint.radecpa2quat">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">radecpa2quat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">pa</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
