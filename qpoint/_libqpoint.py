@@ -14,18 +14,11 @@ NDP = np.ctypeslib.ndpointer
 
 quat_t = NDP(np.double, ndim=1, shape=(4,), flags=["A", "C"])
 quat_t_p = NDP(np.double, ndim=2, flags=["A", "C"])
-mueller_t = NDP(np.double, ndim=1, shape=(4,), flags=["A", "C"])
-mueller_t_p = NDP(np.double, ndim=2, flags=["A", "C"])
-vec3_t = NDP(np.double, ndim=1, shape=(3,), flags=["A", "C"])
-vec3_t_p = NDP(np.double, ndim=2, flags=["A", "C"])
 
 wquat_t = NDP(np.double, ndim=1, shape=(4,), flags=["A", "C", "W"])
 wquat_t_p = NDP(np.double, ndim=2, flags=["A", "C", "W"])
-wvec3_t = NDP(np.double, ndim=1, shape=(3,), flags=["A", "C", "W"])
-wvec3_t_p = NDP(np.double, ndim=2, flags=["A", "C", "W"])
 
 arr = NDP(np.double, ndim=1, flags=["A", "C"])
-arrf = NDP(np.uint8, ndim=1, flags=["A", "C"])
 warr = NDP(np.double, ndim=1, flags=["A", "C", "W"])
 warri = NDP(int, ndim=1, flags=["A", "C", "W"])
 
@@ -125,10 +118,7 @@ class qp_memory_t(ct.Structure):
 qp_memory_t_p = ct.POINTER(qp_memory_t)
 
 QP_STRUCT_INIT = 1
-QP_STRUCT_MALLOC = 2
 QP_ARR_INIT_PTR = 4
-QP_ARR_MALLOC_1D = 8
-QP_ARR_MALLOC_2D = 16
 
 
 class qp_struct_t(ct.Structure):
@@ -292,7 +282,6 @@ setargs("qp_print_memory", arg=qp_memory_t_p)
 setargs("qp_reset_rates", arg=qp_memory_t_p)
 setargs("qp_reset_inv_rates", arg=qp_memory_t_p)
 
-setargs("qp_get_error_code", arg=qp_memory_t_p, res=ct.c_int)
 setargs("qp_get_error_string", arg=qp_memory_t_p, res=ct.c_char_p)
 
 setargs(
@@ -1050,7 +1039,7 @@ def check_get_num_threads(nt):
 def check_set_thread_num(tn):
     if tn is None:
         return 0
-    return int(nt)
+    return int(tn)
 
 
 def check_get_thread_num(tn):
