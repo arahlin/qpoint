@@ -41,7 +41,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 
-<span class="n">libqp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">load_library</span><span class="p">(</span><span class="s2">&quot;libqpoint&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">libqp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">load_library</span><span class="p">(</span><span class="s2">"libqpoint"</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
 
 <span class="c1"># **********************************************************************</span>
 <span class="c1"># Types</span>
@@ -49,113 +49,113 @@
 
 <span class="n">NDP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span>
 
-<span class="n">quat_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">quat_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">mueller_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">mueller_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">vec3_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">vec3_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
+<span class="n">quat_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">quat_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">mueller_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">mueller_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">vec3_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">vec3_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
 
-<span class="n">wquat_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">])</span>
-<span class="n">wquat_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">])</span>
-<span class="n">wvec3_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">])</span>
-<span class="n">wvec3_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">])</span>
+<span class="n">wquat_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">])</span>
+<span class="n">wquat_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">])</span>
+<span class="n">wvec3_t</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">])</span>
+<span class="n">wvec3_t_p</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">])</span>
 
-<span class="n">arr</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">arrf</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">warr</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">])</span>
-<span class="n">warri</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">])</span>
+<span class="n">arr</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">arrf</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">warr</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">])</span>
+<span class="n">warri</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">])</span>
 
-<span class="n">arr2</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uintp</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
-<span class="n">larr</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">])</span>
+<span class="n">arr2</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uintp</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
+<span class="n">larr</span> <span class="o">=</span> <span class="n">NDP</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">])</span>
 
-<span class="n">QP_DO_ALWAYS</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="o">.</span><span class="n">in_dll</span><span class="p">(</span><span class="n">libqp</span><span class="p">,</span> <span class="s2">&quot;QP_DO_ALWAYS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
-<span class="n">QP_DO_ONCE</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="o">.</span><span class="n">in_dll</span><span class="p">(</span><span class="n">libqp</span><span class="p">,</span> <span class="s2">&quot;QP_DO_ONCE&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
-<span class="n">QP_DO_NEVER</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="o">.</span><span class="n">in_dll</span><span class="p">(</span><span class="n">libqp</span><span class="p">,</span> <span class="s2">&quot;QP_DO_NEVER&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+<span class="n">QP_DO_ALWAYS</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="o">.</span><span class="n">in_dll</span><span class="p">(</span><span class="n">libqp</span><span class="p">,</span> <span class="s2">"QP_DO_ALWAYS"</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+<span class="n">QP_DO_ONCE</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="o">.</span><span class="n">in_dll</span><span class="p">(</span><span class="n">libqp</span><span class="p">,</span> <span class="s2">"QP_DO_ONCE"</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+<span class="n">QP_DO_NEVER</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="o">.</span><span class="n">in_dll</span><span class="p">(</span><span class="n">libqp</span><span class="p">,</span> <span class="s2">"QP_DO_NEVER"</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_state_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
-    <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;update_rate&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;ctime_last&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)]</span>
+    <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"update_rate"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span> <span class="p">(</span><span class="s2">"ctime_last"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_weather_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;humidity&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;frequency&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"temperature"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"pressure"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"humidity"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"frequency"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
     <span class="p">]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_bulletina_entry_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_float</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_float</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;dut1&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_float</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_float</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"y"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_float</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"dut1"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_float</span><span class="p">),</span>
     <span class="p">]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_bulletina_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;entries&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">qp_bulletina_entry_t</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s2">&quot;mjd_min&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;mjd_max&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"entries"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">qp_bulletina_entry_t</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"mjd_min"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"mjd_max"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
     <span class="p">]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_memory_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_daber&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_lonlat&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_wobble&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_dut1&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_erot&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_npb&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_aaber&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_ref&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_daber_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_lonlat_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_wobble_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_dut1_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_erot_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_npb_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_aaber_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;state_ref_inv&quot;</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;weather&quot;</span><span class="p">,</span> <span class="n">qp_weather_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;ref_delta&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_ref&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_ref_inv&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;dut1&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_lonlat&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_lonlat_inv&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_wobble&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_wobble_inv&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_npb&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_npb_inv&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_erot&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_erot_inv&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_gal&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_gal_inv&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;gal_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;v_dipole&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;dipole_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;beta_earth&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;beta_rot&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;bulletinA&quot;</span><span class="p">,</span> <span class="n">qp_bulletina_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;accuracy&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;mean_aber&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;fast_aber&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;fast_math&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;polconv&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;pix_order&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;interp_pix&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;fast_pix&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;error_missing&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;nan_missing&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;interp_missing&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;num_threads&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;thread_num&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_daber"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_lonlat"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_wobble"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_dut1"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_erot"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_npb"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_aaber"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_ref"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_daber_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_lonlat_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_wobble_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_dut1_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_erot_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_npb_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_aaber_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"state_ref_inv"</span><span class="p">,</span> <span class="n">qp_state_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"weather"</span><span class="p">,</span> <span class="n">qp_weather_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"ref_delta"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_ref"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_ref_inv"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"dut1"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_lonlat"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_lonlat_inv"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_wobble"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_wobble_inv"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_npb"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_npb_inv"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_erot"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_erot_inv"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_gal"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_gal_inv"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"gal_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"v_dipole"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"dipole_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"beta_earth"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"beta_rot"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"bulletinA"</span><span class="p">,</span> <span class="n">qp_bulletina_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"accuracy"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"mean_aber"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"fast_aber"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"fast_math"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"polconv"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"pix_order"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"interp_pix"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"fast_pix"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"error_missing"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"nan_missing"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"interp_missing"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"num_threads"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"thread_num"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
     <span class="p">]</span>
 
 
@@ -169,23 +169,23 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_struct_t</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    ctypes.Structure subclass with automatic numpy array conversion</span>
 <span class="sd">    on attribute assignment.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s2">&quot;init&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s2">"init"</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">QP_STRUCT_INIT</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="mi">0</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_fields_dict_&quot;</span><span class="p">):</span>
-            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="s2">&quot;_fields_dict_&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields_</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_fields_dict_"</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="s2">"_fields_dict_"</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields_</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fields_dict_</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-        <span class="n">iattr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">_init&quot;</span>
+        <span class="n">iattr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">_init"</span>
         <span class="n">ivalue</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
             <span class="n">ivalue</span> <span class="o">=</span> <span class="n">QP_ARR_INIT_PTR</span>
@@ -204,18 +204,18 @@
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_det_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_off&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;gain&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;mueller&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;tod_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;tod&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s2">&quot;flag_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;flag&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_uint8</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s2">&quot;weights_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;weights&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_off"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"weight"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"gain"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"mueller"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"n"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"tod_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"tod"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"flag_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"flag"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_uint8</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"weights_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"weights"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
     <span class="p">]</span>
 
 
@@ -224,11 +224,11 @@
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_detarr_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;arr_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;diff&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;arr&quot;</span><span class="p">,</span> <span class="n">qp_det_t_p</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"n"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"arr_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"diff"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"arr"</span><span class="p">,</span> <span class="n">qp_det_t_p</span><span class="p">),</span>
     <span class="p">]</span>
 
 
@@ -237,14 +237,14 @@
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_point_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_bore_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_bore&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s2">&quot;ctime_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;ctime&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s2">&quot;q_hwp_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;q_hwp&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"n"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_bore_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_bore"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"ctime_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"ctime"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"q_hwp_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"q_hwp"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)),</span>
     <span class="p">]</span>
 
 
@@ -278,26 +278,26 @@
 
 <span class="k">class</span><span class="w"> </span><span class="nc">qp_map_t</span><span class="p">(</span><span class="n">qp_struct_t</span><span class="p">):</span>
     <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;partial&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;nside&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;npix&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;pixinfo_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;pixinfo&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;pixhash_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;pixhash&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;num_vec&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;vec_mode&quot;</span><span class="p">,</span> <span class="n">qp_vec_mode</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;vec1d_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;vec1d&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s2">&quot;vec_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;vec&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s2">&quot;num_proj&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;proj_mode&quot;</span><span class="p">,</span> <span class="n">qp_proj_mode</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;proj1d_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;proj1d&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s2">&quot;proj_init&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
-        <span class="p">(</span><span class="s2">&quot;proj&quot;</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s2">"init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"partial"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"nside"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"npix"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"pixinfo_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"pixinfo"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"pixhash_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"pixhash"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"num_vec"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"vec_mode"</span><span class="p">,</span> <span class="n">qp_vec_mode</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"vec1d_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"vec1d"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"vec_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"vec"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s2">"num_proj"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"proj_mode"</span><span class="p">,</span> <span class="n">qp_proj_mode</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"proj1d_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"proj1d"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s2">"proj_init"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"proj"</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">))),</span>
     <span class="p">]</span>
 
 
@@ -306,7 +306,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">pointer_2d</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="n">d</span><span class="o">.</span><span class="n">__array_interface__</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">d</span><span class="o">.</span><span class="n">strides</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">__array_interface__</span><span class="p">[</span><span class="s2">"data"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">d</span><span class="o">.</span><span class="n">strides</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uintp</span><span class="p">)</span>
 
 
@@ -322,18 +322,18 @@
 <span class="c1"># Functions</span>
 <span class="c1"># **********************************************************************</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_memory&quot;</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_memory&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_print_memory&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_init_memory"</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_free_memory"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_print_memory"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_reset_rates&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_reset_inv_rates&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_reset_rates"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_reset_inv_rates"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">)</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_get_error_code&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_get_error_string&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_char_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_get_error_code"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_get_error_string"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_char_p</span><span class="p">)</span>
 
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azel2radec&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azel2radec"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -354,7 +354,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azelpsi2radec&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azelpsi2radec"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -376,7 +376,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azel2radecpa&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azel2radecpa"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -396,7 +396,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azelpsi2radecpa&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azelpsi2radecpa"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -417,7 +417,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_radec2azel&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_radec2azel"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">arr</span><span class="p">,</span>
@@ -433,7 +433,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azel2radec_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azel2radec_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -455,7 +455,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azelpsi2radec_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azelpsi2radec_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -478,7 +478,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azel2radecpa_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azel2radecpa_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -499,7 +499,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azelpsi2radecpa_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azelpsi2radecpa_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -521,7 +521,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azel2rasindec&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azel2rasindec"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -542,7 +542,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azelpsi2rasindec&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azelpsi2rasindec"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -564,7 +564,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azel2rasindec_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azel2rasindec_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -586,7 +586,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azelpsi2rasindec_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azelpsi2rasindec_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -609,7 +609,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_omega2azelpsi&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_omega2azelpsi"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>  <span class="c1"># init_az</span>
@@ -626,7 +626,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azel2bore&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azel2bore"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">arr</span><span class="p">,</span>
@@ -641,7 +641,7 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_azelpsi2bore&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_azelpsi2bore"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>  <span class="c1"># params</span>
         <span class="n">arr</span><span class="p">,</span>
@@ -657,22 +657,22 @@
     <span class="p">),</span>
 <span class="p">)</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_det_offsetn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_det_offsetn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore_offset&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+    <span class="s2">"qp_bore_offset"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
 <span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_hwp_quatn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_gmstn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_lmstn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_dipolen&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_bore2dipole&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_hwp_quatn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_gmstn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_lmstn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_dipolen"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_bore2dipole"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
 
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2radec&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2radec"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2radec_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2radec_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>
         <span class="n">quat_t</span><span class="p">,</span>
@@ -687,11 +687,11 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2rasindec&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2rasindec"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2rasindec_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2rasindec_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>
         <span class="n">quat_t</span><span class="p">,</span>
@@ -706,42 +706,42 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2radecpa&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2radecpa"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2radecpa_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2radecpa_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
 <span class="p">)</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_radecpa2quatn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_quat2radecpan&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_radecpa2quatn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_quat2radecpan"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_radec2pixn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_radec2pixn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_radec2gal_quatn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_gal2radec_quatn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_radec2gal_quatn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_gal2radec_quatn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">wquat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_radec2galn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_gal2radecn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_radecpa2galn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_gal2radecpan&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_radec2galn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_gal2radecn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_radecpa2galn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_gal2radecpan"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">))</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_rotate_map&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">arr2</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_char</span><span class="p">,</span> <span class="n">arr2</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_char</span><span class="p">)</span>
+    <span class="s2">"qp_rotate_map"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">arr2</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_char</span><span class="p">,</span> <span class="n">arr2</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_char</span><span class="p">)</span>
 <span class="p">)</span>
 
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_quat2pixn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+    <span class="s2">"qp_quat2pixn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_quat2pixpan&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+    <span class="s2">"qp_quat2pixpan"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2pix&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2pix"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2pix_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2pix_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>
         <span class="n">quat_t</span><span class="p">,</span>
@@ -756,11 +756,11 @@
     <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2pixpa&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2pixpa"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">quat_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">warri</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">),</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_bore2pixpa_hwp&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_bore2pixpa_hwp"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>
         <span class="n">quat_t</span><span class="p">,</span>
@@ -775,16 +775,16 @@
 <span class="p">)</span>
 
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_get_interp_valn&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+    <span class="s2">"qp_get_interp_valn"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">warr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
 <span class="p">)</span>
 
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_set_iers_bulletin_a&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_set_iers_bulletin_a"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">),</span>
     <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_get_iers_bulletin_a&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_get_iers_bulletin_a"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span>
         <span class="n">qp_memory_t_p</span><span class="p">,</span>
         <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>
@@ -805,8 +805,8 @@
     <span class="k">return</span> <span class="n">dut1</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">value</span>
 
 
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_refraction&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,)</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_update_ref&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_refraction"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">,)</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_update_ref"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">quat_t</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_vec_mode</span><span class="p">(</span><span class="n">map_in</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pol</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">vpol</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -818,7 +818,7 @@
         <span class="k">return</span> <span class="n">QP_VEC_VPOL</span> <span class="k">if</span> <span class="n">vpol</span> <span class="k">else</span> <span class="n">QP_VEC_POL</span> <span class="k">if</span> <span class="n">pol</span> <span class="k">else</span> <span class="n">QP_VEC_TEMP</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_in</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vec_modes</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unrecognized map&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unrecognized map"</span><span class="p">)</span>
     <span class="n">mode</span> <span class="o">=</span> <span class="n">vec_modes</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">[</span><span class="nb">bool</span><span class="p">(</span><span class="n">pol</span><span class="p">)]</span>
@@ -834,7 +834,7 @@
         <span class="k">return</span> <span class="n">QP_PROJ_VPOL</span> <span class="k">if</span> <span class="n">vpol</span> <span class="k">else</span> <span class="n">QP_PROJ_POL</span> <span class="k">if</span> <span class="n">pol</span> <span class="k">else</span> <span class="n">QP_PROJ_TEMP</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_in</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">proj_modes</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unrecognized proj&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unrecognized proj"</span><span class="p">)</span>
     <span class="n">mode</span> <span class="o">=</span> <span class="n">proj_modes</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">[</span><span class="nb">bool</span><span class="p">(</span><span class="n">pol</span><span class="p">)]</span>
@@ -846,26 +846,26 @@
 <span class="c1"># **********************************************************************</span>
 
 <span class="c1"># initialize detectors</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_detarr&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_detarr_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_free_detarr"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_detarr_t_p</span><span class="p">)</span>
 
 <span class="c1"># initialize pointing</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_point&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_point_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_free_point"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_point_t_p</span><span class="p">)</span>
 
 <span class="c1"># initialize maps</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_free_map&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_reshape_map&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
-<span class="n">setargs</span><span class="p">(</span><span class="s2">&quot;qp_init_map_pixhash&quot;</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">larr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_free_map"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_reshape_map"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+<span class="n">setargs</span><span class="p">(</span><span class="s2">"qp_init_map_pixhash"</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_map_t_p</span><span class="p">,</span> <span class="n">larr</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">),</span> <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
 
 <span class="c1"># tod -&gt; map</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_tod2map&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_tod2map"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">qp_point_t_p</span><span class="p">,</span> <span class="n">qp_map_t_p</span><span class="p">),</span>
     <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="c1"># map -&gt; tod</span>
 <span class="n">setargs</span><span class="p">(</span>
-    <span class="s2">&quot;qp_map2tod&quot;</span><span class="p">,</span>
+    <span class="s2">"qp_map2tod"</span><span class="p">,</span>
     <span class="n">arg</span><span class="o">=</span><span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">qp_detarr_t_p</span><span class="p">,</span> <span class="n">qp_point_t_p</span><span class="p">,</span> <span class="n">qp_map_t_p</span><span class="p">),</span>
     <span class="n">res</span><span class="o">=</span><span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
 <span class="p">)</span>
@@ -877,13 +877,13 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">check_set_float</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;val must be a scalar value&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"val must be a scalar value"</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">check_set_int</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;val must be a scalar value&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"val must be a scalar value"</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
 
 
@@ -892,95 +892,95 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">set_rfunc</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_set_rate_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">state</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_set_rate_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">state</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">reset_rfunc</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_reset_rate_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">state</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_reset_rate_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">state</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_rfunc</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_get_rate_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">state</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_get_rate_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">state</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">check_set_state</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="n">rdict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;always&quot;</span><span class="p">:</span> <span class="n">QP_DO_ALWAYS</span><span class="p">,</span> <span class="s2">&quot;once&quot;</span><span class="p">:</span> <span class="n">QP_DO_ONCE</span><span class="p">,</span> <span class="s2">&quot;never&quot;</span><span class="p">:</span> <span class="n">QP_DO_NEVER</span><span class="p">}</span>
+    <span class="n">rdict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"always"</span><span class="p">:</span> <span class="n">QP_DO_ALWAYS</span><span class="p">,</span> <span class="s2">"once"</span><span class="p">:</span> <span class="n">QP_DO_ONCE</span><span class="p">,</span> <span class="s2">"never"</span><span class="p">:</span> <span class="n">QP_DO_NEVER</span><span class="p">}</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">rdict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">check_set_float</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">check_get_state</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="n">rdict</span> <span class="o">=</span> <span class="p">{</span><span class="n">QP_DO_ALWAYS</span><span class="p">:</span> <span class="s2">&quot;always&quot;</span><span class="p">,</span> <span class="n">QP_DO_ONCE</span><span class="p">:</span> <span class="s2">&quot;once&quot;</span><span class="p">,</span> <span class="n">QP_DO_NEVER</span><span class="p">:</span> <span class="s2">&quot;never&quot;</span><span class="p">}</span>
+    <span class="n">rdict</span> <span class="o">=</span> <span class="p">{</span><span class="n">QP_DO_ALWAYS</span><span class="p">:</span> <span class="s2">"always"</span><span class="p">,</span> <span class="n">QP_DO_ONCE</span><span class="p">:</span> <span class="s2">"once"</span><span class="p">,</span> <span class="n">QP_DO_NEVER</span><span class="p">:</span> <span class="s2">"never"</span><span class="p">}</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">rdict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">state</span>
 
 
-<span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;lonlat&quot;</span><span class="p">,</span> <span class="s2">&quot;npb&quot;</span><span class="p">,</span> <span class="s2">&quot;erot&quot;</span><span class="p">,</span> <span class="s2">&quot;daber&quot;</span><span class="p">,</span> <span class="s2">&quot;aaber&quot;</span><span class="p">,</span> <span class="s2">&quot;wobble&quot;</span><span class="p">,</span> <span class="s2">&quot;dut1&quot;</span><span class="p">,</span> <span class="s2">&quot;ref&quot;</span><span class="p">]</span>
-<span class="n">inv_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s2">&quot;_inv&quot;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]</span>
+<span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"lonlat"</span><span class="p">,</span> <span class="s2">"npb"</span><span class="p">,</span> <span class="s2">"erot"</span><span class="p">,</span> <span class="s2">"daber"</span><span class="p">,</span> <span class="s2">"aaber"</span><span class="p">,</span> <span class="s2">"wobble"</span><span class="p">,</span> <span class="s2">"dut1"</span><span class="p">,</span> <span class="s2">"ref"</span><span class="p">]</span>
+<span class="n">inv_states</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s2">"_inv"</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">states</span><span class="p">]</span>
 <span class="n">state_funcs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">states</span> <span class="o">+</span> <span class="n">inv_states</span><span class="p">:</span>
-    <span class="n">k</span> <span class="o">=</span> <span class="s2">&quot;rate_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">s</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="s2">"rate_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">s</span>
     <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">&quot;set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_rfunc</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">&quot;reset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reset_rfunc</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">&quot;get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_rfunc</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">&quot;check_set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_set_state</span>
-    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">&quot;check_get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_get_state</span>
+    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">"set"</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_rfunc</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">"reset"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reset_rfunc</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">"get"</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_rfunc</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">"check_set"</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_set_state</span>
+    <span class="n">state_funcs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">"check_get"</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_get_state</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">set_wfunc</span><span class="p">(</span><span class="n">par</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_set_weather_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_set_weather_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_wfunc</span><span class="p">(</span><span class="n">par</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_get_weather_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_get_weather_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
-<span class="n">weather_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;humidity&quot;</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">]</span>
+<span class="n">weather_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"temperature"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"humidity"</span><span class="p">,</span> <span class="s2">"frequency"</span><span class="p">]</span>
 <span class="n">weather_funcs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weather_params</span><span class="p">:</span>
     <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">&quot;set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_wfunc</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
-    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">&quot;get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_wfunc</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
-    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">&quot;check_set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_set_float</span>
-    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">&quot;check_get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_pass</span>
+    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">"set"</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_wfunc</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">"get"</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_wfunc</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">"check_set"</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_set_float</span>
+    <span class="n">weather_funcs</span><span class="p">[</span><span class="n">w</span><span class="p">][</span><span class="s2">"check_get"</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_pass</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">set_ofunc</span><span class="p">(</span><span class="n">option</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_set_opt_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">option</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_set_opt_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">option</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_ofunc</span><span class="p">(</span><span class="n">option</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_get_opt_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">option</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_get_opt_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">option</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_int</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
 <span class="n">opts</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;accuracy&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;low&quot;</span><span class="p">},</span>
-    <span class="s2">&quot;polconv&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;cosmo&quot;</span><span class="p">,</span> <span class="s2">&quot;healpix&quot;</span><span class="p">],</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;iau&quot;</span><span class="p">},</span>
-    <span class="s2">&quot;pix_order&quot;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;ring&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;nest&quot;</span><span class="p">,</span> <span class="s2">&quot;nested&quot;</span><span class="p">]},</span>
+    <span class="s2">"accuracy"</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">"high"</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">"low"</span><span class="p">},</span>
+    <span class="s2">"polconv"</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="s2">"cosmo"</span><span class="p">,</span> <span class="s2">"healpix"</span><span class="p">],</span> <span class="mi">1</span><span class="p">:</span> <span class="s2">"iau"</span><span class="p">},</span>
+    <span class="s2">"pix_order"</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s2">"ring"</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="s2">"nest"</span><span class="p">,</span> <span class="s2">"nested"</span><span class="p">]},</span>
 <span class="p">}</span>
-<span class="n">defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;accuracy&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;polconv&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;pix_order&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+<span class="n">defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"accuracy"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"polconv"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"pix_order"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">check_set_dict</span><span class="p">(</span><span class="n">opt</span><span class="p">):</span>
@@ -1012,19 +1012,19 @@
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
                     <span class="k">return</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">return</span> <span class="n">v</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unrecognized value </span><span class="si">{}</span><span class="s2"> for option </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">opt</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"unrecognized value </span><span class="si">{}</span><span class="s2"> for option </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">opt</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">func</span>
 
 
-<span class="n">check_set_accuracy</span> <span class="o">=</span> <span class="n">check_set_dict</span><span class="p">(</span><span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
-<span class="n">check_get_accuracy</span> <span class="o">=</span> <span class="n">check_get_dict</span><span class="p">(</span><span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+<span class="n">check_set_accuracy</span> <span class="o">=</span> <span class="n">check_set_dict</span><span class="p">(</span><span class="s2">"accuracy"</span><span class="p">)</span>
+<span class="n">check_get_accuracy</span> <span class="o">=</span> <span class="n">check_get_dict</span><span class="p">(</span><span class="s2">"accuracy"</span><span class="p">)</span>
 
-<span class="n">check_set_polconv</span> <span class="o">=</span> <span class="n">check_set_dict</span><span class="p">(</span><span class="s2">&quot;polconv&quot;</span><span class="p">)</span>
-<span class="n">check_get_polconv</span> <span class="o">=</span> <span class="n">check_get_dict</span><span class="p">(</span><span class="s2">&quot;polconv&quot;</span><span class="p">)</span>
+<span class="n">check_set_polconv</span> <span class="o">=</span> <span class="n">check_set_dict</span><span class="p">(</span><span class="s2">"polconv"</span><span class="p">)</span>
+<span class="n">check_get_polconv</span> <span class="o">=</span> <span class="n">check_get_dict</span><span class="p">(</span><span class="s2">"polconv"</span><span class="p">)</span>
 
-<span class="n">check_set_pix_order</span> <span class="o">=</span> <span class="n">check_set_dict</span><span class="p">(</span><span class="s2">&quot;pix_order&quot;</span><span class="p">)</span>
-<span class="n">check_get_pix_order</span> <span class="o">=</span> <span class="n">check_get_dict</span><span class="p">(</span><span class="s2">&quot;pix_order&quot;</span><span class="p">)</span>
+<span class="n">check_set_pix_order</span> <span class="o">=</span> <span class="n">check_set_dict</span><span class="p">(</span><span class="s2">"pix_order"</span><span class="p">)</span>
+<span class="n">check_get_pix_order</span> <span class="o">=</span> <span class="n">check_get_dict</span><span class="p">(</span><span class="s2">"pix_order"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">check_get_bool</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
@@ -1081,57 +1081,57 @@
 
 
 <span class="n">options</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;accuracy&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;mean_aber&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;fast_aber&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;fast_math&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;polconv&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;pix_order&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;interp_pix&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;fast_pix&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;error_missing&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;nan_missing&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;interp_missing&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;num_threads&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;thread_num&quot;</span><span class="p">,</span>
+    <span class="s2">"accuracy"</span><span class="p">,</span>
+    <span class="s2">"mean_aber"</span><span class="p">,</span>
+    <span class="s2">"fast_aber"</span><span class="p">,</span>
+    <span class="s2">"fast_math"</span><span class="p">,</span>
+    <span class="s2">"polconv"</span><span class="p">,</span>
+    <span class="s2">"pix_order"</span><span class="p">,</span>
+    <span class="s2">"interp_pix"</span><span class="p">,</span>
+    <span class="s2">"fast_pix"</span><span class="p">,</span>
+    <span class="s2">"error_missing"</span><span class="p">,</span>
+    <span class="s2">"nan_missing"</span><span class="p">,</span>
+    <span class="s2">"interp_missing"</span><span class="p">,</span>
+    <span class="s2">"num_threads"</span><span class="p">,</span>
+    <span class="s2">"thread_num"</span><span class="p">,</span>
 <span class="p">]</span>
 <span class="n">option_funcs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
     <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_ofunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_ofunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;check_set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="s2">&quot;check_set_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">p</span><span class="p">]</span>
-    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;check_get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="s2">&quot;check_get_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">p</span><span class="p">]</span>
+    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"set"</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_ofunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"get"</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_ofunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"check_set"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="s2">"check_set_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">p</span><span class="p">]</span>
+    <span class="n">option_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"check_get"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="s2">"check_get_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">p</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">set_pfunc</span><span class="p">(</span><span class="n">par</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_set_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_set_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">get_pfunc</span><span class="p">(</span><span class="n">par</span><span class="p">):</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">&quot;qp_get_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">libqp</span><span class="p">[</span><span class="s2">"qp_get_</span><span class="si">%s</span><span class="s2">"</span> <span class="o">%</span> <span class="n">par</span><span class="p">]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">qp_memory_t_p</span><span class="p">,)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">c_double</span>
     <span class="k">return</span> <span class="n">f</span>
 
 
-<span class="n">double_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ref_delta&quot;</span><span class="p">,</span> <span class="s2">&quot;dut1&quot;</span><span class="p">]</span>
+<span class="n">double_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ref_delta"</span><span class="p">,</span> <span class="s2">"dut1"</span><span class="p">]</span>
 <span class="n">double_funcs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">double_params</span><span class="p">:</span>
     <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_pfunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_pfunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;check_set&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_set_float</span>
-    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">&quot;check_get&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_pass</span>
+    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"set"</span><span class="p">]</span> <span class="o">=</span> <span class="n">set_pfunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"get"</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_pfunc</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"check_set"</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_set_float</span>
+    <span class="n">double_funcs</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="s2">"check_get"</span><span class="p">]</span> <span class="o">=</span> <span class="n">check_pass</span>
 
 <span class="n">qp_funcs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">&quot;rates&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_funcs</span>
-<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">&quot;options&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">option_funcs</span>
-<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">&quot;weather&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">weather_funcs</span>
-<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">double_funcs</span>
+<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">"rates"</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_funcs</span>
+<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">"options"</span><span class="p">]</span> <span class="o">=</span> <span class="n">option_funcs</span>
+<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">"weather"</span><span class="p">]</span> <span class="o">=</span> <span class="n">weather_funcs</span>
+<span class="n">qp_funcs</span><span class="p">[</span><span class="s2">"params"</span><span class="p">]</span> <span class="o">=</span> <span class="n">double_funcs</span>
 
 <span class="c1"># **********************************************************************</span>
 <span class="c1"># Argument checking</span>
@@ -1140,10 +1140,10 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">check_flags</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">&quot;C_CONTIGUOUS&quot;</span><span class="p">]</span>
-        <span class="o">|</span> <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">&quot;OWNDATA&quot;</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span>
-        <span class="o">|</span> <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">&quot;WRITEABLE&quot;</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span>
-        <span class="o">|</span> <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">&quot;ALIGNED&quot;</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">3</span>
+        <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">"C_CONTIGUOUS"</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">"OWNDATA"</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span>
+        <span class="o">|</span> <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">"WRITEABLE"</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span>
+        <span class="o">|</span> <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">"ALIGNED"</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">3</span>
     <span class="p">)</span>
 
 
@@ -1161,7 +1161,7 @@
     <span class="n">allow_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">output</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Ensure input argument is an aligned array of the right type and shape.</span>
 
 <span class="sd">    Arguments</span>
@@ -1198,10 +1198,10 @@
 <span class="sd">    arg :</span>
 <span class="sd">        Aligned, contiguous and properly typed and shaped array for</span>
 <span class="sd">        passing to the C library.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;need shape to initialize input!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"need shape to initialize input!"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">fill</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">arg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1211,9 +1211,9 @@
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
         <span class="n">arg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;input </span><span class="si">{}</span><span class="s2"> must be of type numpy.ndarray&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"input </span><span class="si">{}</span><span class="s2"> must be of type numpy.ndarray"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">quat</span> <span class="ow">and</span> <span class="n">arg</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;input </span><span class="si">{}</span><span class="s2"> is not a valid quaternion array&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"input </span><span class="si">{}</span><span class="s2"> is not a valid quaternion array"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">arg</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">shape</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">arg</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">shape</span> <span class="ow">and</span> <span class="n">allow_transpose</span><span class="p">:</span>
@@ -1226,12 +1226,12 @@
                     <span class="k">if</span> <span class="n">inplace</span> <span class="ow">or</span> <span class="n">output</span><span class="p">:</span>
                         <span class="n">arg</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">&quot;WRITEABLE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="n">arg</span><span class="o">.</span><span class="n">flags</span><span class="p">[</span><span class="s2">"WRITEABLE"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                    <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;input </span><span class="si">{}</span><span class="s2"> of shape </span><span class="si">{}</span><span class="s2"> cannot be broadcast to shape </span><span class="si">{}</span><span class="s2">&quot;</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="s2">"input </span><span class="si">{}</span><span class="s2"> of shape </span><span class="si">{}</span><span class="s2"> cannot be broadcast to shape </span><span class="si">{}</span><span class="s2">"</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">shape</span><span class="p">))</span>
     <span class="n">istat</span> <span class="o">=</span> <span class="n">check_flags</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
-    <span class="n">arg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="s2">&quot;AC&quot;</span> <span class="o">+</span> <span class="s2">&quot;W&quot;</span> <span class="o">*</span> <span class="n">output</span><span class="p">))</span>
+    <span class="n">arg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="s2">"AC"</span> <span class="o">+</span> <span class="s2">"W"</span> <span class="o">*</span> <span class="n">output</span><span class="p">))</span>
     <span class="n">ostat</span> <span class="o">=</span> <span class="n">check_flags</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">output</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">or</span> <span class="n">istat</span> <span class="o">==</span> <span class="n">ostat</span><span class="p">)</span> <span class="ow">and</span> <span class="n">inplace</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">arg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -1242,7 +1242,7 @@
 <div class="viewcode-block" id="check_inputs">
 <a class="viewcode-back" href="../../api.html#qpoint.qpoint_class.check_inputs">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">check_inputs</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Ensure that a group of input arguments have the same shape by broadcasting.</span>
 
 <span class="sd">    Arguments</span>
@@ -1257,12 +1257,12 @@
 <span class="sd">    args :</span>
 <span class="sd">        A list of broadcast and properly aligned/shaped/typed arrays for</span>
 <span class="sd">        passing to the C library as a set of timestreams.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span> <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
-    <span class="k">if</span> <span class="s2">&quot;shape&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="s2">"shape"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"shape"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
     <span class="k">return</span> <span class="p">[</span>
-        <span class="n">check_input</span><span class="p">(</span><span class="s2">&quot;argument </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ix</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">check_input</span><span class="p">(</span><span class="s2">"argument </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ix</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="p">]</span></div>
 
@@ -1282,7 +1282,7 @@
     <span class="n">allow_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Ensure that the output argument is properly aligned/shaped/typed.</span>
 <span class="sd">    Check input kwargs to see if a pointer to the output array</span>
 <span class="sd">    has been passed in.</span>
@@ -1320,7 +1320,7 @@
 <span class="sd">    arg :</span>
 <span class="sd">        Aligned, contiguous, writeable and properly typed and shaped array</span>
 <span class="sd">        for passing to the C library.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">arg</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">check_input</span><span class="p">(</span>
