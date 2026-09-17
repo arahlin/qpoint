@@ -928,3 +928,286 @@ class TestGetInterpVal:
         val = qp.get_interp_val(m, 0.0, 0.0)
         assert np.isscalar(val) or val.ndim == 0
         assert np.isclose(float(val), 1.0, atol=1e-10)
+
+
+# ---------------------------------------------------------------------------
+# Broadcasting behavior
+# ---------------------------------------------------------------------------
+# Each class verifies that scalar inputs broadcast correctly against array
+# inputs, and that broadcast results are numerically identical to passing
+# explicitly repeated arrays.
+
+
+class TestLmstBroadcast:
+    """lmst(ctime, lon) broadcasts ctime and lon against each other."""
+
+    def test_scalar_lon_array_ctime_shape(self, qp):
+        ctimes = CTIME + np.arange(5) * 3600.0
+        result = qp.lmst(ctimes, LON)
+        assert result.shape == (5,)
+
+    def test_array_lon_scalar_ctime_shape(self, qp):
+        lons = np.array([0.0, 90.0, 180.0, 270.0])
+        result = qp.lmst(CTIME, lons)
+        assert result.shape == (4,)
+
+    def test_scalar_lon_matches_repeated_lon(self, qp):
+        ctimes = CTIME + np.arange(5) * 3600.0
+        r1 = qp.lmst(ctimes, LON)
+        r2 = qp.lmst(ctimes, np.full(5, LON))
+        assert np.allclose(r1, r2)
+
+    def test_scalar_ctime_matches_repeated_ctime(self, qp):
+        lons = np.array([0.0, 90.0, 180.0, 270.0])
+        r1 = qp.lmst(CTIME, lons)
+        r2 = qp.lmst(np.full(4, CTIME), lons)
+        assert np.allclose(r1, r2)
+
+
+class TestDipoleBroadcast:
+    """dipole(ctime, ra, dec) broadcasts ctime, ra, and dec against each other."""
+
+    def test_scalar_radec_array_ctime_shape(self, qp):
+        d = qp.dipole(CTIMES, 0.0, 0.0)
+        assert d.shape == (N,)
+
+    def test_scalar_radec_matches_repeated_radec(self, qp):
+        d1 = qp.dipole(CTIMES, 0.0, 0.0)
+        d2 = qp.dipole(CTIMES, np.zeros(N), np.zeros(N))
+        assert np.allclose(d1, d2)
+
+    def test_scalar_ctime_array_radec_shape(self, qp):
+        ra = np.linspace(0, 360, 8, endpoint=False)
+        dec = np.zeros(8)
+        d = qp.dipole(CTIME, ra, dec)
+        assert d.shape == (8,)
+
+    def test_scalar_ctime_matches_repeated_ctime(self, qp):
+        ra = np.linspace(0, 360, 8, endpoint=False)
+        dec = np.zeros(8)
+        d1 = qp.dipole(CTIME, ra, dec)
+        d2 = qp.dipole(np.full(8, CTIME), ra, dec)
+        assert np.allclose(d1, d2)
+
+
+class TestDetOffsetBroadcast:
+    """det_offset(delta_az, delta_el, delta_psi) broadcasts all three arguments."""
+
+    def test_scalar_az_el_array_psi_shape(self, qp):
+        psi = np.array([0.0, 45.0, 90.0, 135.0])
+        q = qp.det_offset(0.0, 0.0, psi)
+        assert q.shape == (4, 4)
+
+    def test_scalar_az_el_matches_repeated(self, qp):
+        psi = np.array([0.0, 45.0, 90.0, 135.0])
+        q1 = qp.det_offset(0.0, 0.0, psi)
+        q2 = qp.det_offset(np.zeros(4), np.zeros(4), psi)
+        assert np.allclose(q1, q2)
+
+    def test_scalar_psi_array_az_el_shape(self, qp):
+        az = np.array([-1.0, 0.0, 1.0])
+        el = np.array([0.0, 0.0, 0.5])
+        q = qp.det_offset(az, el, 0.0)
+        assert q.shape == (3, 4)
+
+    def test_scalar_psi_matches_repeated(self, qp):
+        az = np.array([-1.0, 0.0, 1.0])
+        el = np.array([0.0, 0.0, 0.5])
+        q1 = qp.det_offset(az, el, 0.0)
+        q2 = qp.det_offset(az, el, np.zeros(3))
+        assert np.allclose(q1, q2)
+
+    def test_scalar_inputs_squeeze_to_quat(self, qp):
+        q = qp.det_offset(0.0, 0.0, 0.0)
+        assert q.shape == (4,)
+
+
+class TestAzel2BoreBroadcast:
+    """azel2bore broadcasts az, el, lon, lat, ctime against each other."""
+
+    def test_scalar_el_array_az_ctime_shape(self, qp):
+        q = qp.azel2bore(AZ, EL[0], None, None, LON, LAT, CTIMES)
+        assert q.shape == (N, 4)
+
+    def test_scalar_el_matches_repeated_el(self, qp):
+        qp.reset_rates()
+        q1 = qp.azel2bore(AZ, EL[0], None, None, LON, LAT, CTIMES)
+        qp.reset_rates()
+        q2 = qp.azel2bore(AZ, np.full(N, EL[0]), None, None, LON, LAT, CTIMES)
+        assert np.allclose(q1, q2, atol=1e-12)
+
+    def test_scalar_ctime_array_az_el_shape(self, qp):
+        q = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIME)
+        assert q.shape == (N, 4)
+
+    def test_scalar_ctime_matches_repeated_ctime(self, qp):
+        qp.reset_rates()
+        q1 = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIME)
+        qp.reset_rates()
+        q2 = qp.azel2bore(AZ, EL, None, None, LON, LAT, np.full(N, CTIME))
+        assert np.allclose(q1, q2, atol=1e-12)
+
+    def test_scalar_lonlat_matches_repeated_lonlat(self, qp):
+        qp.reset_rates()
+        q1 = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+        qp.reset_rates()
+        q2 = qp.azel2bore(AZ, EL, None, None, np.full(N, LON), np.full(N, LAT), CTIMES)
+        assert np.allclose(q1, q2, atol=1e-12)
+
+
+class TestAzel2RadecBroadcast:
+    """azel2radec broadcasts az, el, lon, lat, ctime against each other."""
+
+    def test_scalar_el_array_az_ctime_shape(self, qp):
+        ra, dec, s, c = qp.azel2radec(0, 0, 0, AZ, EL[0], None, None, LON, LAT, CTIMES)
+        assert ra.shape == (N,)
+
+    def test_scalar_el_matches_repeated_el(self, qp):
+        qp.reset_rates()
+        ra1, dec1, s1, c1 = qp.azel2radec(
+            0, 0, 0, AZ, EL[0], None, None, LON, LAT, CTIMES
+        )
+        qp.reset_rates()
+        ra2, dec2, s2, c2 = qp.azel2radec(
+            0, 0, 0, AZ, np.full(N, EL[0]), None, None, LON, LAT, CTIMES
+        )
+        assert np.allclose(ra1, ra2, atol=1e-12)
+        assert np.allclose(dec1, dec2, atol=1e-12)
+
+    def test_scalar_ctime_array_az_el_shape(self, qp):
+        ra, dec, s, c = qp.azel2radec(0, 0, 0, AZ, EL, None, None, LON, LAT, CTIME)
+        assert ra.shape == (N,)
+
+    def test_scalar_ctime_matches_repeated_ctime(self, qp):
+        qp.reset_rates()
+        ra1, dec1, s1, c1 = qp.azel2radec(0, 0, 0, AZ, EL, None, None, LON, LAT, CTIME)
+        qp.reset_rates()
+        ra2, dec2, s2, c2 = qp.azel2radec(
+            0, 0, 0, AZ, EL, None, None, LON, LAT, np.full(N, CTIME)
+        )
+        assert np.allclose(ra1, ra2, atol=1e-12)
+        assert np.allclose(dec1, dec2, atol=1e-12)
+
+    def test_scalar_lonlat_matches_repeated_lonlat(self, qp):
+        qp.reset_rates()
+        ra1, dec1, s1, c1 = qp.azel2radec(0, 0, 0, AZ, EL, None, None, LON, LAT, CTIMES)
+        qp.reset_rates()
+        ra2, dec2, s2, c2 = qp.azel2radec(
+            0, 0, 0, AZ, EL, None, None, np.full(N, LON), np.full(N, LAT), CTIMES
+        )
+        assert np.allclose(ra1, ra2, atol=1e-12)
+        assert np.allclose(dec1, dec2, atol=1e-12)
+
+    def test_single_sample_output_shape(self, qp):
+        # azel2radec always returns arrays (no scalar squeeze for n=1).
+        ra, dec, s, c = qp.azel2radec(
+            0, 0, 0, AZ[:1], EL[:1], None, None, LON, LAT, CTIMES[:1]
+        )
+        assert ra.shape == (1,)
+
+
+class TestRadec2AzelBroadcast:
+    """radec2azel broadcasts ra, dec, pa, lon, lat, ctime against each other."""
+
+    def _make_radecpa(self, qp):
+        qp.reset_rates()
+        ra, dec, pa = qp.azel2radec(
+            0, 0, 0, AZ, EL, None, None, LON, LAT, CTIMES, return_pa=True
+        )
+        return ra, dec, pa
+
+    def test_scalar_lonlat_array_sky_shape(self, qp):
+        ra, dec, pa = self._make_radecpa(qp)
+        qp.reset_inv_rates()
+        az, el, hpa = qp.radec2azel(ra, dec, pa, LON, LAT, CTIMES)
+        assert az.shape == (N,)
+
+    def test_scalar_lonlat_matches_repeated_lonlat(self, qp):
+        ra, dec, pa = self._make_radecpa(qp)
+        qp.reset_inv_rates()
+        az1, el1, _ = qp.radec2azel(ra, dec, pa, LON, LAT, CTIMES)
+        qp.reset_inv_rates()
+        az2, el2, _ = qp.radec2azel(
+            ra, dec, pa, np.full(N, LON), np.full(N, LAT), CTIMES
+        )
+        assert np.allclose(az1, az2, atol=1e-12)
+        assert np.allclose(el1, el2, atol=1e-12)
+
+
+class TestBore2AzelBroadcast:
+    """bore2azel broadcasts lon, lat, ctime against the q_bore array."""
+
+    def test_scalar_lonlat_array_bore_ctime_shape(self, qp):
+        q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+        qp.reset_inv_rates()
+        az, el, pa = qp.bore2azel(q_bore, LON, LAT, CTIMES)
+        assert az.shape == (N,)
+
+    def test_scalar_lonlat_matches_repeated_lonlat(self, qp):
+        q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+        qp.reset_inv_rates()
+        az1, el1, _ = qp.bore2azel(q_bore, LON, LAT, CTIMES)
+        qp.reset_inv_rates()
+        az2, el2, _ = qp.bore2azel(q_bore, np.full(N, LON), np.full(N, LAT), CTIMES)
+        assert np.allclose(az1, az2, atol=1e-12)
+        assert np.allclose(el1, el2, atol=1e-12)
+
+
+class TestBoreOffsetBroadcast:
+    """bore_offset broadcasts ang1/ang2/ang3 against the boresight array length."""
+
+    def test_scalar_ang1_broadcasts_shape(self, qp):
+        q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+        q_out = qp.bore_offset(q_bore.copy(), ang1=1.0)
+        assert q_out.shape == (N, 4)
+
+    def test_scalar_ang1_matches_repeated_ang1(self, qp):
+        q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+        q1 = qp.bore_offset(q_bore.copy(), ang1=1.0)
+        q2 = qp.bore_offset(q_bore.copy(), ang1=np.full(N, 1.0))
+        assert np.allclose(q1, q2, atol=1e-12)
+
+    def test_scalar_ang2_broadcasts_shape(self, qp):
+        q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+        q_out = qp.bore_offset(q_bore.copy(), ang2=0.5)
+        assert q_out.shape == (N, 4)
+
+    def test_scalar_ang3_matches_repeated_ang3(self, qp):
+        q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+        q1 = qp.bore_offset(q_bore.copy(), ang3=2.0)
+        q2 = qp.bore_offset(q_bore.copy(), ang3=np.full(N, 2.0))
+        assert np.allclose(q1, q2, atol=1e-12)
+
+
+class TestRadecpaQuatBroadcast:
+    """radecpa2quat broadcasts ra, dec, pa against each other."""
+
+    def test_scalar_pa_array_radec_shape(self, qp):
+        ra = np.array([0.0, 90.0, 180.0, 270.0])
+        dec = np.zeros(4)
+        q = qp.radecpa2quat(ra, dec, 0.0)
+        assert q.shape == (4, 4)
+
+    def test_scalar_pa_matches_repeated_pa(self, qp):
+        ra = np.array([0.0, 90.0, 180.0, 270.0])
+        dec = np.zeros(4)
+        q1 = qp.radecpa2quat(ra, dec, 0.0)
+        q2 = qp.radecpa2quat(ra, dec, np.zeros(4))
+        assert np.allclose(q1, q2)
+
+    def test_scalar_dec_array_ra_pa_shape(self, qp):
+        ra = np.linspace(0, 360, 6, endpoint=False)
+        pa = np.zeros(6)
+        q = qp.radecpa2quat(ra, 0.0, pa)
+        assert q.shape == (6, 4)
+
+    def test_scalar_dec_matches_repeated_dec(self, qp):
+        ra = np.linspace(0, 360, 6, endpoint=False)
+        pa = np.zeros(6)
+        q1 = qp.radecpa2quat(ra, 0.0, pa)
+        q2 = qp.radecpa2quat(ra, np.zeros(6), pa)
+        assert np.allclose(q1, q2)
+
+    def test_scalar_inputs_squeeze_to_quat(self, qp):
+        q = qp.radecpa2quat(0.0, 0.0, 0.0)
+        assert q.shape == (4,)
