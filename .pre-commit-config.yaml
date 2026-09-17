@@ -4,4 +4,4 @@ repos:
     hooks:
     -   id: black
         name: Black Format
-        args: [--check, --diff]
+        args: [--check, --diff, --fast]

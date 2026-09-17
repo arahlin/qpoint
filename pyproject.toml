@@ -15,7 +15,13 @@ license = "MIT"
 dynamic = ["version"]
 dependencies = ["numpy>1.10.0", "scipy", "astropy"]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
 [tool.setuptools_scm]
 write_to = "qpoint/_version.py"
 version_scheme = "only-version"
 local_scheme = "no-local-version"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
