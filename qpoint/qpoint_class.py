@@ -1718,7 +1718,8 @@ class QPoint(object):
             Input map, of shape (3, N)
         coord : list, optional
             2-element list of input and output coordinates.
-            Supported systems: C, G.
+            Supported systems: C, G.  Case-insensitive.  If the two match,
+            the input map is returned unchanged.
         map_out : array_like, optional
             Rotated output map, for inplace operation.  Same shape as `map_in`.
         interp_pix : bool, optional
@@ -1737,28 +1738,52 @@ class QPoint(object):
         Only full-sky maps are currently supported.
         """
 
-        warn("This code is buggy, use at your own risk", UserWarning)
-
         interp_orig = self.get("interp_pix")
         self.set(interp_pix=interp_pix, **kwargs)
 
         from .qmap_class import check_map
 
         map_in, nside = check_map(map_in)
+
+        try:
+            coord_in, coord_out = (str(c).upper() for c in (coord[0], coord[1]))
+        except:
+            raise ValueError("unable to parse coord")
+
+        # qp_rotate_map indexes map_in[1] and map_in[2] unconditionally, so
+        # anything narrower reads past the end of the row table.
+        if len(map_in) != 3:
+            raise ValueError(
+                "rotate_map requires a polarized map with 3 rows (T, Q, U), "
+                "got %d" % len(map_in)
+            )
+
+        # qp_rotate_map returns early for an unsupported or identical coord
+        # pair, leaving the output as the zeros it was allocated with. Catch
+        # both here instead of silently handing back a blank map.
+        for c in (coord_in, coord_out):
+            if c not in ("C", "G"):
+                raise ValueError("Unsupported coord: %s" % repr(coord))
+        if coord_in == coord_out:
+            self.set(interp_pix=interp_orig)
+            return map_in
+
         map_out = check_output(
             "map_out", map_out, shape=map_in.shape, dtype=map_in.dtype, fill=0
         )
 
-        try:
-            coord_in = coord[0]
-            coord_out = coord[1]
-        except:
-            raise ValueError("unable to parse coord")
-
         map_in_p = lib.pointer_2d(map_in)
         map_out_p = lib.pointer_2d(map_out)
 
-        qp.qp_rotate_map(self._memory, nside, map_in_p, coord_in, map_out_p, coord_out)
+        # c_char wants bytes, not str
+        qp.qp_rotate_map(
+            self._memory,
+            nside,
+            map_in_p,
+            coord_in.encode(),
+            map_out_p,
+            coord_out.encode(),
+        )
 
         self.set(interp_pix=interp_orig)
         return map_out
