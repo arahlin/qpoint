@@ -733,6 +733,37 @@ class TestQuat2Pix:
         assert np.all(pix_q == pix_rd)
 
 
+class TestQuat2PixPa:
+    """quat2pixpa previously dropped nside from its ctypes call."""
+
+    def _quats(self, qp):
+        self.ra = np.array([0.0, 90.0, 180.0, 270.0])
+        self.dec = np.array([10.0, -10.0, 30.0, -30.0])
+        return qp.radecpa2quat(self.ra, self.dec, np.zeros(4))
+
+    def test_shape(self, qp):
+        pix, pa = qp.quat2pixpa(self._quats(qp), nside=64)
+        assert pix.shape == (4,)
+        assert pa.shape == (4,)
+
+    def test_consistent_with_radec2pix(self, qp):
+        q = self._quats(qp)
+        pix, _ = qp.quat2pixpa(q, nside=64)
+        assert np.all(pix == qp.radec2pix(self.ra, self.dec, nside=64))
+
+    def test_nside_is_honored(self, qp):
+        q = self._quats(qp)
+        assert not np.array_equal(
+            qp.quat2pixpa(q, nside=64)[0], qp.quat2pixpa(q, nside=256)[0]
+        )
+
+    def test_pa_matches_quat2radecpa(self, qp):
+        q = self._quats(qp)
+        _, pa = qp.quat2pixpa(q, nside=64)
+        _, _, pa_ref = qp.quat2radecpa(q)
+        assert np.allclose(pa, pa_ref)
+
+
 # ---------------------------------------------------------------------------
 # bore2pix
 # ---------------------------------------------------------------------------
