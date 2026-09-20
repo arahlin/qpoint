@@ -1957,7 +1957,7 @@ class QPoint(object):
 
         self.set(pix_order=pix_order)
 
-        v = v.squeeze()
+        v = val.squeeze()
         if not v.shape:
             return v[()]
         return v
