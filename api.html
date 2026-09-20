@@ -881,7 +881,8 @@ G = galactic</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>map_in</strong> (<em>array_like</em>) – Input map, of shape (3, N)</p></li>
 <li><p><strong>coord</strong> (<em>list</em><em>, </em><em>optional</em>) – 2-element list of input and output coordinates.
-Supported systems: C, G.</p></li>
+Supported systems: C, G.  Case-insensitive.  If the two match,
+the input map is returned unchanged.</p></li>
 <li><p><strong>map_out</strong> (<em>array_like</em><em>, </em><em>optional</em>) – Rotated output map, for inplace operation.  Same shape as <cite>map_in</cite>.</p></li>
 <li><p><strong>interp_pix</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, interpolate the rotated map.</p></li>
 </ul>
