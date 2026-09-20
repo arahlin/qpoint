@@ -960,6 +960,35 @@ class TestGetInterpVal:
         assert np.isscalar(val) or val.ndim == 0
         assert np.isclose(float(val), 1.0, atol=1e-10)
 
+    def test_single_map_squeezes(self, qp):
+        npix = 12 * 8 * 8
+        ra = np.array([0.0, 90.0, 180.0])
+        dec = np.array([0.0, 30.0, -30.0])
+        assert qp.get_interp_val(np.ones(npix), ra, dec).shape == (3,)
+
+    def test_multi_map_returns_every_map(self, qp):
+        """The return previously collapsed to the last map."""
+        npix = 12 * 8 * 8
+        maps = np.array([np.full(npix, 1.0), np.full(npix, 2.0), np.full(npix, 3.0)])
+        ra = np.array([0.0, 90.0, 180.0])
+        dec = np.array([0.0, 30.0, -30.0])
+
+        val = qp.get_interp_val(maps, ra, dec)
+        assert val.shape == (3, 3)
+        for i, level in enumerate([1.0, 2.0, 3.0]):
+            assert np.allclose(val[i], level, atol=1e-10)
+
+    def test_multi_map_rows_match_individual_calls(self, qp):
+        rng = np.random.default_rng(0)
+        npix = 12 * 8 * 8
+        maps = rng.normal(size=(3, npix))
+        ra = np.array([10.0, 45.0, 200.0])
+        dec = np.array([5.0, -20.0, 60.0])
+
+        val = qp.get_interp_val(maps, ra, dec)
+        for i in range(3):
+            assert np.array_equal(val[i], qp.get_interp_val(maps[i], ra, dec))
+
 
 # ---------------------------------------------------------------------------
 # Broadcasting behavior
