@@ -295,10 +295,14 @@ void qp_num_maps(qp_vec_mode vec_mode, qp_proj_mode proj_mode,
     case QP_VEC_VPOL:
       nm = 4;
       break;
-    case QP_VEC_D1_POL:
+    /* D2 is T with 1st and 2nd derivatives: value, dtheta, dphi, dtheta^2,
+       dtheta*dphi, dphi^2.  D1_POL is (T,Q,U) with 1st derivatives, so three
+       POLDATUM triplets.  These two were swapped, leaving a D1_POL map three
+       rows short of what qp_map2tod1 reads. */
+    case QP_VEC_D2:
       nm = 6;
       break;
-    case QP_VEC_D2:
+    case QP_VEC_D1_POL:
       nm = 9;
       break;
     case QP_VEC_D2_POL:
