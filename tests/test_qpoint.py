@@ -942,6 +942,52 @@ class TestRefractionMethod:
 # ---------------------------------------------------------------------------
 
 
+class TestRotateMap:
+    """rotate_map previously raised on every call, so none of this was covered."""
+
+    NSIDE = 8
+    NPIX = 12 * 8 * 8
+
+    def test_runs_and_keeps_shape(self, qp):
+        m = np.zeros((3, self.NPIX))
+        m[0] = 1.0
+        out = qp.rotate_map(m, coord=("C", "G"))
+        assert out.shape == (3, self.NPIX)
+
+    @pytest.mark.parametrize("coord", [("C", "G"), ("G", "C")])
+    def test_constant_temperature_is_preserved(self, qp, coord):
+        """Resampling a constant map must give the same constant back."""
+        m = np.zeros((3, self.NPIX))
+        m[0] = 2.5
+        out = qp.rotate_map(m, coord=coord)
+        assert np.allclose(out[0], 2.5)
+        assert np.allclose(out[1], 0.0)
+        assert np.allclose(out[2], 0.0)
+
+    def test_polarized_intensity_is_preserved(self, qp):
+        """
+        Rotation mixes Q into U, but the polarized intensity at a pixel is
+        invariant.
+        """
+        m = np.zeros((3, self.NPIX))
+        m[1] = 0.6
+        m[2] = 0.8
+        out = qp.rotate_map(m, coord=("C", "G"), interp_pix=False)
+        assert np.allclose(np.hypot(out[1], out[2]), 1.0)
+
+    def test_rotation_actually_mixes_q_and_u(self, qp):
+        m = np.zeros((3, self.NPIX))
+        m[1] = 1.0
+        out = qp.rotate_map(m, coord=("C", "G"), interp_pix=False)
+        assert not np.allclose(out[2], 0.0)
+
+    @pytest.mark.parametrize("nrow", [1, 2, 4])
+    def test_wrong_row_count_raises(self, qp, nrow):
+        """Fewer than three rows used to read off the end and segfault."""
+        with pytest.raises(ValueError, match="3 rows"):
+            qp.rotate_map(np.ones((nrow, self.NPIX)), coord=("C", "G"))
+
+
 class TestGetInterpVal:
     def test_constant_map(self, qp):
         nside = 8
