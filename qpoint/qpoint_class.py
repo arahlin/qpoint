@@ -1458,7 +1458,7 @@ class QPoint(object):
         pix = check_output("pix", shape=(n,), dtype=int, **kwargs)
         pa = check_output("pa", shape=(n,), dtype=np.double, **kwargs)
 
-        qp.qp_quat2pixpan(self._memory, quat, pix, pa, n)
+        qp.qp_quat2pixpan(self._memory, quat, nside, pix, pa, n)
         if n == 1:
             return pix[0], pa[0]
         return pix, pa
