@@ -471,15 +471,12 @@ class QMap(QPoint):
             npix = len(pixels)
             partial = True
 
-        if vec is None:
-            if vpol:
-                vec = np.zeros((4, npix), dtype=np.double)
-            elif pol:
-                vec = np.zeros((3, npix), dtype=np.double)
-            else:
-                vec = np.zeros((1, npix), dtype=np.double)
-            vdim2 = npix if partial else nside
-        elif vec is not False:
+        # Normalize whatever was supplied before building any default.
+        # Either map fixes nside and the polarization mode, and the default
+        # for the other one has to match it. Only a supplied vec used to do
+        # that, so a defaulted vec was built at the default nside and mode
+        # and the caller's proj then failed the cross-check against it.
+        if vec is not None and vec is not False:
             vec, vdim2 = check_map(vec, copy=copy, partial=partial)
             if not partial:
                 nside = vdim2
@@ -498,18 +495,10 @@ class QMap(QPoint):
             else:
                 raise ValueError("vec has incompatible shape")
 
-        if proj is None:
-            if vpol:
-                proj = np.zeros((10, npix), dtype=np.double)
-            elif pol:
-                proj = np.zeros((6, npix), dtype=np.double)
-            else:
-                proj = np.zeros((1, npix), dtype=np.double)
-            pdim2 = npix if partial else nside
-        elif proj is not False:
+        if proj is not None and proj is not False:
             proj, pdim2, pnmap = check_proj(proj, copy=copy, partial=partial)
 
-            if vec is not False:
+            if vec is not None and vec is not False:
                 if pnmap != len(vec):
                     raise ValueError("proj has incompatible shape")
                 if len(proj) != [[1, 6][pol], 10][vpol]:
@@ -533,6 +522,24 @@ class QMap(QPoint):
                     npix = nside2npix(nside)
                 elif pdim2 != npix:
                     raise ValueError("proj has incompatible shape")
+
+        if vec is None:
+            if vpol:
+                vec = np.zeros((4, npix), dtype=np.double)
+            elif pol:
+                vec = np.zeros((3, npix), dtype=np.double)
+            else:
+                vec = np.zeros((1, npix), dtype=np.double)
+            vdim2 = npix if partial else nside
+
+        if proj is None:
+            if vpol:
+                proj = np.zeros((10, npix), dtype=np.double)
+            elif pol:
+                proj = np.zeros((6, npix), dtype=np.double)
+            else:
+                proj = np.zeros((1, npix), dtype=np.double)
+            pdim2 = npix if partial else nside
 
         # store arrays for later retrieval
         self.depo["vec"] = vec
