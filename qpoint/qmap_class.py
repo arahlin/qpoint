@@ -1004,9 +1004,13 @@ class QMap(QPoint):
         proj : array_like
             Projection matrix, of shape (N*(N+1)/2, npix).
             If None, obtained from the depo.
-        mode : {None, 1, -1, 2, -2, inf, -inf, 'fro'}, optional
-            condition number order.  See `numpy.linalg.cond`.
-            Default: None (2-norm from SVD)
+        mode : {None, 'eigh', 1, -1, 2, -2, inf, -inf, 'fro'}, optional
+            How to compute the condition number.  Any order accepted by
+            `numpy.linalg.cond` uses that norm, via an SVD.  'eigh' uses
+            the symmetric eigenvalues instead, which is faster but not a
+            drop-in: for a nearly singular pixel the smallest eigenvalue
+            is rounding noise, so the ratio can differ from the SVD by
+            tens of percent.  Default: None (2-norm from SVD)
         partial : bool, optional
             If True, the map is not checked to ensure a proper healpix nside.
 
@@ -1021,27 +1025,47 @@ class QMap(QPoint):
             proj = self.depo["proj"]
         if proj is None or proj is False:
             raise ValueError("missing proj")
-        proj, _, nmap = check_proj(proj, copy=True, partial=partial)
+        # Not copied: nothing below writes to it. The normalization is
+        # applied to the hit columns pulled out of it, which is a fresh
+        # small array -- at nside 512 a full-sky proj is 150 MB and a real
+        # scan hits a fraction of a percent of it.
+        proj, _, nmap = check_proj(proj, copy=False, partial=partial)
         nproj = len(proj)
 
         # normalize
         m = proj[0].astype(bool)
-        proj[:, m] /= proj[0, m]
-        proj[:, ~m] = np.inf
+        sel = np.flatnonzero(m)
+        cond = np.full(len(m), np.inf)
 
-        # return if unpolarized
+        # return if unpolarized. Hits-normalized, so a 1x1 matrix is its
+        # own hit count over itself; written as the division rather than
+        # as 1.0 so a degenerate hit count gives what it always gave.
         if nmap == 1:
-            return proj[0]
+            cond[sel] = proj[0, sel] / proj[0, sel]
+            return cond
 
         # projection matrix indices
         idx = np.zeros((nmap, nmap), dtype=int)
         rtri, ctri = np.triu_indices(nmap)
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
-        # calculate for each pixel
-        proj[:, ~m] = 0
-        cond = np.linalg.cond(proj[idx].transpose(2, 0, 1), p=mode)
-        cond[~m] = np.inf
+        # Calculate for the hit pixels only. An unhit pixel's condition
+        # number is infinite by definition, and a full-sky map of a real
+        # scan is almost all unhit -- 21k of 3.1M for an hour of one patch
+        # -- so computing it everywhere and then overwriting is nearly all
+        # of the cost. Each pixel's matrix is independent, so the answer
+        # for the ones that are kept is unchanged. The unhit columns are
+        # left alone rather than blanked for the same reason: mats reads
+        # only the hit ones and cond starts at inf.
+        mats = (proj[:, sel] / proj[0, sel])[idx].transpose(2, 0, 1)
+        if mode == "eigh":
+            # A projection matrix is symmetric and positive semi-definite,
+            # so its singular values are the moduli of its eigenvalues.
+            w = np.abs(np.linalg.eigvalsh(mats))
+            with np.errstate(divide="ignore", invalid="ignore"):
+                cond[sel] = w.max(axis=-1) / w.min(axis=-1)
+        else:
+            cond[sel] = np.linalg.cond(mats, p=mode)
         # threshold at machine precision
         cond[cond > 1.0 / np.finfo(float).eps] = np.inf
         return cond
@@ -1058,6 +1082,7 @@ class QMap(QPoint):
         fill=0,
         cond=None,
         cond_thresh=1e6,
+        cond_mode=None,
         method="exact",
     ):
         """
@@ -1097,7 +1122,14 @@ class QMap(QPoint):
         cond_thresh : scalar, optional
             A threshold to place on the condition number to exclude pixels
             prior to solving.  Reduce this to avoid `LinAlgError` due to
-            singular matrices.
+            singular matrices.  If None, the condition number is not
+            computed at all and no pixel is excluded for it, which is the
+            bulk of the cost of solving a map -- only do this where the
+            matrices are known to be invertible, since a singular one will
+            raise `LinAlgError` for the whole map.
+        cond_mode : optional
+            Passed to :meth:`proj_cond` as `mode` when the condition number
+            has to be computed.  'eigh' is the cheaper approximate route.
         method : string, optional
             Map inversion method.  If "exact", invert the pointing matrix directly
             If "cho", use Cholesky decomposition to solve.  Default: "exact".
@@ -1132,7 +1164,9 @@ class QMap(QPoint):
             proj = self.depo["proj"]
         if proj is None or proj is False:
             raise ValueError("missing proj")
-        pcopy = True if not return_proj else copy
+        # proj is written only where it is returned, so where it is not
+        # there is nothing to protect the caller's array from.
+        pcopy = copy if return_proj else False
         proj, pnside, nmap = check_proj(proj, copy=pcopy, partial=partial)
 
         if pnside != nside or nmap != len(vec):
@@ -1141,7 +1175,9 @@ class QMap(QPoint):
 
         # deal with mask
         if mask is None:
-            mask = np.ones(len(vec[0]), dtype=bool)
+            # the hit pixels are the whole mask; no need for a ones array
+            # and a second pass to and it away
+            mask = proj[0] != 0
         else:
             mcopy = True if not return_mask else copy
             mask, mnside = check_map(mask, copy=mcopy, partial=partial)
@@ -1170,21 +1206,28 @@ class QMap(QPoint):
         # Cholesky one used to see only the hits mask, and cho_factor
         # succeeds on a rank-deficient matrix rather than raising, so a
         # one- or two-hit pixel came back with whatever it produced.
-        if cond is None:
-            cond = self.proj_cond(proj=proj, partial=partial)
-        mask &= cond < cond_thresh
+        if cond is None and cond_thresh is not None:
+            cond = self.proj_cond(proj=proj, mode=cond_mode, partial=partial)
+        if cond is not None:
+            mask &= cond < cond_thresh
 
         # solve
         if method == "exact":
-            vec[:, ~mask] = 0
-            proj[..., ~mask] = np.eye(nmap)[rtri, ctri][:, None]
+            # Solve where there is something to solve. Everything else used
+            # to be handed an identity matrix to invert, which for a
+            # full-sky map of a real scan is almost every pixel.
+            sel = np.flatnonzero(mask)
             # numpy 2 requires b (ie vec) to have shape (..., M, K) not (..., M).
             # Use K = 1 with np.newaxis.
-            vec[:] = np.linalg.solve(
-                proj[idx].transpose(2, 0, 1), vec.transpose()[..., np.newaxis]
+            vec[:, sel] = np.linalg.solve(
+                proj[:, sel][idx].transpose(2, 0, 1),
+                vec[:, sel].transpose()[..., np.newaxis],
             )[..., 0].transpose()
             vec[:, ~mask] = fill
-            proj[:, ~mask] = 0
+            # Only worth doing to a proj the caller gets back; otherwise it
+            # is a throwaway copy and this is a pass over the whole map.
+            if return_proj:
+                proj[:, ~mask] = 0
             ret = (vec,) + return_proj * (proj,) + return_mask * (mask,)
             if len(ret) == 1:
                 return ret[0]
@@ -1196,19 +1239,30 @@ class QMap(QPoint):
         # slow method, loop over pixels
         from scipy.linalg import cho_factor, cho_solve
 
-        for ii, (m, A, v) in enumerate(zip(mask, proj[idx].T, vec.T)):
-            if not m:
-                proj[:, ii] = 0
-                vec[:, ii] = fill
-                continue
+        # Only the pixels worth solving, as above. This used to expand
+        # proj[idx] for the whole map -- an (nmap, nmap, npix) temporary --
+        # and then walk all of it in Python to skip the masked ones, which
+        # for a full-sky map of a real scan is almost every pixel.
+        sel = np.flatnonzero(mask)
+        vec[:, ~mask] = fill
+        if return_proj:
+            proj[:, ~mask] = 0
+        mats = proj[:, sel][idx].transpose(2, 0, 1)
+
+        for jj, ii in enumerate(sel):
+            A = mats[jj]
             try:
-                vec[:, ii] = cho_solve(cho_factor(A, False, True), v, True)
+                # cho_factor overwrites A, which is why proj takes the
+                # decomposition from it afterwards rather than from proj
+                vec[:, ii] = cho_solve(cho_factor(A, False, True), vec[:, ii], True)
             except:
                 mask[ii] = False
-                proj[:, ii] = 0
                 vec[:, ii] = fill
+                if return_proj:
+                    proj[:, ii] = 0
             else:
-                proj[:, ii] = A[rtri, ctri]
+                if return_proj:
+                    proj[:, ii] = A[rtri, ctri]
 
         # return
         ret = (vec,) + (proj,) * return_proj + (mask,) * return_mask
@@ -1334,7 +1388,9 @@ class QMap(QPoint):
             proj = self.depo["proj"]
         if proj is None or proj is False:
             raise ValueError("missing proj")
-        pcopy = True if not return_proj else copy
+        # proj is only read here, so where it is not returned there is
+        # nothing to protect the caller's array from.
+        pcopy = copy if return_proj else False
         proj, pnside, nmap = check_proj(proj, copy=pcopy, partial=partial)
 
         if pnside != nside or nmap != len(map_in):
@@ -1343,7 +1399,9 @@ class QMap(QPoint):
 
         # deal with mask
         if mask is None:
-            mask = np.ones(len(map_in[0]), dtype=bool)
+            # the hit pixels are the whole mask; no need for a ones array
+            # and a second pass to and it away
+            mask = proj[0] != 0
         else:
             mcopy = True if not return_mask else copy
             mask, mnside = check_map(mask, copy=mcopy, partial=partial)
@@ -1363,7 +1421,13 @@ class QMap(QPoint):
             idx = np.zeros((nmap, nmap), dtype=int)
             rtri, ctri = np.triu_indices(nmap)
             idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
-            map_in[:] = np.einsum("ij...,j...->i...", proj[idx], map_in)
+            # Only the masked-in pixels, as solve_map does: proj[idx]
+            # across the whole map is an (nmap, nmap, npix) temporary, and
+            # every pixel it computes outside the mask is then overwritten.
+            sel = np.flatnonzero(mask)
+            map_in[:, sel] = np.einsum(
+                "ij...,j...->i...", proj[:, sel][idx], map_in[:, sel]
+            )
             map_in[:, ~mask] = fill
 
         # return
