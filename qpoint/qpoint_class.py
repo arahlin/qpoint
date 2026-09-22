@@ -2077,15 +2077,20 @@ class QPoint(object):
             )
         kwargs["unpack"] = True
         data = np.loadtxt(filename, **kwargs)
-        mjd, x, y, dut1 = (data[columns.index(x)] for x in req_columns)
+        # unpack=True hands back the rows of a transposed array, which are
+        # strided views, and the C requires contiguous input.
+        mjd, dut1, x, y = (
+            np.require(data[list(columns).index(c)], np.double, ["C", "A"])
+            for c in req_columns
+        )
         mjd_min, mjd_max = int(mjd[0]), int(mjd[-1])
 
         try:
             qp.qp_set_iers_bulletin_a(self._memory, mjd_min, mjd_max, dut1, x, y)
-        except:
+        except Exception as e:
             raise RuntimeError(
                 "Error loading Bulletin A data from file {}".format(filename)
-            )
+            ) from e
 
         return mjd, dut1, x, y
 
