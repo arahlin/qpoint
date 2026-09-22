@@ -108,6 +108,21 @@ class Pointing {
 
   double update_ref(const Quat &q);
 
+  // ---- pixelization ----
+  long radec2pix(double ra, double dec, int nside) const;
+
+  // Combines qp_quat2pix and qp_quat2pixpa; p2 is untouched for PolOut::PA.
+  // By value, for the reason quat2radec is.
+  void quat2pix(Quat q, int nside, PolOut pmode, long &pix, double &p1,
+                double *p2) const;
+
+  void pixel_offset(int nside, long pix, double ra, double dec,
+                    double &dtheta, double &dphi) const;
+
+  // ---- galactic rotation ----
+  void radec2gal_quat(Quat &q);
+  void gal2radec_quat(Quat &q);
+
 
  private:
   UpdateState &state(Rate r, bool inv);
@@ -123,6 +138,7 @@ class Pointing {
   void pol_out(Quat q, double cosb2, bool north, PolOut pmode,
                double &p1, double *p2) const;
 
+  void init_gal();
 
   std::array<UpdateState, kNumRates> fwd_ = kInitialRateStates;
   std::array<UpdateState, kNumRates> inv_ = kInitialRateStates;
@@ -137,6 +153,7 @@ class Pointing {
   Quat q_erot_{}, q_erot_inv_{};
   Quat q_ref_{}, q_ref_inv_{};
 
+  Quat q_gal_{}, q_gal_inv_{};
   bool gal_init_ = false;
 
   bool dipole_init_ = false;

@@ -63,6 +63,36 @@ __all__ = ["QPoint", "qp_settings"]
 # layer resolves the two against each other with a stride-0 column rather
 # than materializing broadcast copies. Arrays are never converted: a wrong
 # dtype or layout raises instead of being silently copied.
+#
+# The one exception is the in-place coordinate rotations below, which write
+# their results back into their inputs. Those genuinely do need real,
+# writable, full-length arrays, so a scalar has to be materialized.
+
+
+def _prep_coord_rotation(ra, dec, pa, sin2psi, cos2psi, inplace):
+    """
+    Validate and produce writable arrays for an in-place coordinate rotation.
+
+    Returns (do_pa, arrays, all_scalar), where do_pa selects pa mode over
+    sin2psi/cos2psi mode and all_scalar says every supplied coordinate was
+    a true scalar. The rotation needs writable 1-d arrays either way, so
+    the caller degrades the result afterwards rather than here.
+    """
+    do_pa = pa is not None or (sin2psi is None and cos2psi is None)
+    if pa is not None and (sin2psi is not None or cos2psi is not None):
+        raise KeyError("supply either pa or sin2psi/cos2psi, not both")
+    if not do_pa and (sin2psi is None) != (cos2psi is None):
+        raise KeyError("both sin2psi and cos2psi are required")
+
+    args = (ra, dec, pa) if do_pa else (ra, dec, sin2psi, cos2psi)
+    all_scalar = all(np.ndim(a) == 0 for a in args if a is not None)
+    arrays = np.broadcast_arrays(
+        *[np.asarray(a if a is not None else 0.0, dtype=float) for a in args]
+    )
+    if not inplace:
+        arrays = [np.array(a) for a in arrays]
+    prepped = [np.require(np.atleast_1d(a), float, ["C", "A", "W"]) for a in arrays]
+    return do_pa, prepped, all_scalar
 
 
 def _settings_note(defaults):
@@ -845,6 +875,314 @@ class QPoint(lib.Pointing):
             Position angle in horizon coordinates
         """
         return super().radec2azel(ra, dec, pa, lon, lat, ctime)
+
+    # ---- Pixelization ----
+
+    @qp_settings
+    def radec2pix(self, ra, dec, nside=256):
+        """
+        HEALPix pixel numbers for the given sky coordinates.
+
+        Arguments
+        ---------
+        ra : array_like
+            Right ascension angle
+        dec : array_like
+            Declination angle
+        nside : int
+            HEALpix resolution parameter
+
+        Returns
+        -------
+        pix : array_like
+            Pixel number(s) corresponding to the input positions(s).
+        """
+        return super().radec2pix(ra, dec, nside)
+
+    @qp_settings
+    def quat2pix(self, quat, nside=256, pol=True):
+        """
+        Pixel number and polarization angle for a quaternion.
+
+        Arguments
+        ---------
+        quat : quaternion or array of quaternions
+            Pointing orientation(s)
+        nside : int, optional
+            HEALpix resolution parameter
+        pol : bool, optional
+            If True, return sin2psi and cos2psi along with the pixel number(s)
+
+        Returns
+        -------
+        pix : array_like
+            Pixel number(s) for the given input quaternion(s)
+        sin2psi : array_like
+        cos2psi : array_like
+            Polarization coefficients, if `pol` is `True`.
+        """
+        pix, sin2psi, cos2psi = super().quat2pix(quat, nside, False)
+        return (pix, sin2psi, cos2psi) if pol else pix
+
+    @qp_settings
+    def quat2pixpa(self, quat, nside=256):
+        """
+        Pixel number and position angle for a quaternion.
+
+        Arguments
+        ---------
+        quat : quaternion or array of quaternions
+            Orientation quaternions, of shape (N, 4).
+        nside : int, optional
+            HEALPix resolution of the pixelization.
+
+        Returns
+        -------
+        pix : array_like
+            Pixel number for each quaternion.
+        pa : array_like
+            Position angle in degrees.
+        """
+        return super().quat2pix(quat, nside, True)
+
+    @qp_settings
+    def bore2pix(
+        self,
+        q_off,
+        ctime,
+        q_bore,
+        q_hwp=None,
+        nside=256,
+        pol=True,
+        return_pa=False,
+    ):
+        """
+        Pixel and polarization timestreams for a detector offset.
+
+        Arguments
+        ---------
+        q_off : quaternion
+            Detector offset quaternion for a single detector,
+            calculated using :meth:`det_offset`.
+        ctime : array_like
+            Unix times in seconds UTC, broadcastable to shape (N,),
+            the long dimenions of `q_bore`.
+        q_bore : quaternion or array of quaternions
+            Nx4 array of quaternions encoding the boresight orientation on the
+            sky (as output by :meth:`azel2radec` or equivalent)
+        q_hwp : quaternion or array of quaternions, optional
+            HWP angle quaternions calculated using :meth:`hwp_quat`.  Must be
+            broadcastable to the same shape as `q_bore`.
+        nside : int, optional
+            HEALpix map dimension.  Default: 256.
+        pol : bool, optional
+            If `False`, return only the pixel timestream
+        return_pa : bool, optional
+            If `True`, return pa instead of sin2psi / cos2psi
+
+        Returns
+        -------
+        pix : array_like
+            Detector pixel number
+        pa/sin2psi : array_like
+            Detector polarization orientation if `return_pa` is `True`, or
+            sin(2*pa) if `return_pa` is `False`.
+        cos2psi : array_like
+            detector polarization orientation cos(2*pa), if `return_pa` is `False`.
+        """
+        if ctime is None:
+            if not self.get_param("mean_aber"):
+                raise ValueError("ctime required if mean_aber is False")
+            ctime = 0.0
+        out = super().bore2pix(q_off, ctime, q_bore, q_hwp, nside, bool(return_pa))
+        if return_pa:
+            return out
+        pix, sin2psi, cos2psi = out
+        return (pix, sin2psi, cos2psi) if pol else pix
+
+    # ---- Galactic rotation ----
+
+    @qp_settings
+    def rotate_quat(self, quat, coord=("C", "G"), inplace=True):
+        """
+        Rotate a quaternion between celestial and galactic coordinates.
+
+        Arguments
+        ---------
+        quat : array_like
+            array of quaternions, of shape (n, 4)
+        coord : list, optional
+            2-element list of input and output coordinates
+        inplace : bool, optional
+            If True, apply the rotation in-place on the input quaternion.
+            Otherwise, return a copy of the input array.  Default: True.
+
+        Returns
+        -------
+        quat : array_like
+            rotated quaternion array
+        """
+        if tuple(coord) == ("C", "G"):
+            to_gal = True
+        elif tuple(coord) == ("G", "C"):
+            to_gal = False
+        else:
+            raise ValueError("Unsupported coord: {}".format(coord))
+
+        arr = np.asarray(quat, dtype=float)
+        # A bare (4,) is one quaternion without a sample axis and comes
+        # back the same way; an (n, 4) keeps its axis, n of 1 included.
+        single = arr.ndim == 1
+        quat = np.atleast_2d(arr)
+        if not inplace:
+            quat = np.array(quat)
+        quat = np.require(quat, float, ["C", "A", "W"])
+        super().rotate_quat(quat, to_gal)
+        return quat[0] if single else quat
+
+    @qp_settings
+    def radec2gal(self, ra, dec, pa=None, sin2psi=None, cos2psi=None, inplace=True):
+        """
+        Rotate equatorial coordinates to galactic.
+
+        Arguments
+        ---------
+        ra : array_like
+            Right ascension in degrees, of shape (N,). Rotated in place unless
+            `inplace` is False.
+        dec : array_like
+            Declination in degrees, of shape (N,). Rotated in place unless
+            `inplace` is False.
+        pa : array_like, optional
+            Position angle in degrees. Supply this or the `sin2psi`/`cos2psi`
+            pair, not both.
+        sin2psi : array_like, optional
+            sin(2*pa), if the polarization angle is carried as a pair.
+        cos2psi : array_like, optional
+            cos(2*pa), paired with `sin2psi`.
+        inplace : bool, optional
+            If True, the default, rotate the caller's arrays and return them.
+            If False, work on copies and leave the inputs untouched.
+
+        Returns
+        -------
+        ra : array_like
+            Rotated right ascension in degrees.
+        dec : array_like
+            Rotated declination in degrees.
+        pa/sin2psi : array_like
+            Rotated position angle, or sin(2*pa) if the pair was supplied.
+        cos2psi : array_like
+            Rotated cos(2*pa), if the pair was supplied.
+        """
+        return self._rotate_coord(ra, dec, pa, sin2psi, cos2psi, inplace, True)
+
+    @qp_settings
+    def gal2radec(self, ra, dec, pa=None, sin2psi=None, cos2psi=None, inplace=True):
+        """
+        Rotate galactic coordinates to equatorial.
+
+        Arguments
+        ---------
+        ra : array_like
+            Right ascension in degrees, of shape (N,). Rotated in place unless
+            `inplace` is False.
+        dec : array_like
+            Declination in degrees, of shape (N,). Rotated in place unless
+            `inplace` is False.
+        pa : array_like, optional
+            Position angle in degrees. Supply this or the `sin2psi`/`cos2psi`
+            pair, not both.
+        sin2psi : array_like, optional
+            sin(2*pa), if the polarization angle is carried as a pair.
+        cos2psi : array_like, optional
+            cos(2*pa), paired with `sin2psi`.
+        inplace : bool, optional
+            If True, the default, rotate the caller's arrays and return them.
+            If False, work on copies and leave the inputs untouched.
+
+        Returns
+        -------
+        ra : array_like
+            Rotated right ascension in degrees.
+        dec : array_like
+            Rotated declination in degrees.
+        pa/sin2psi : array_like
+            Rotated position angle, or sin(2*pa) if the pair was supplied.
+        cos2psi : array_like
+            Rotated cos(2*pa), if the pair was supplied.
+        """
+        return self._rotate_coord(ra, dec, pa, sin2psi, cos2psi, inplace, False)
+
+    def _rotate_coord(self, ra, dec, pa, sin2psi, cos2psi, inplace, to_gal):
+        do_pa, bc, all_scalar = _prep_coord_rotation(
+            ra, dec, pa, sin2psi, cos2psi, inplace
+        )
+        if do_pa:
+            super().rotate_coord(bc[0], bc[1], bc[2], None, None, to_gal)
+        else:
+            super().rotate_coord(bc[0], bc[1], None, bc[2], bc[3], to_gal)
+        # Scalars in, scalars out. There was nothing to rotate in place
+        # in that case: the arrays above were made here.
+        if all_scalar:
+            return tuple(a[0] for a in bc)
+        return tuple(bc)
+
+    @qp_settings
+    def rotate_coord(
+        self,
+        ra,
+        dec,
+        pa=None,
+        sin2psi=None,
+        cos2psi=None,
+        coord=("C", "G"),
+        inplace=True,
+    ):
+        """
+        Rotate sky coordinates between celestial and galactic.
+
+        Arguments
+        ---------
+        ra : array_like
+            Right ascension in degrees, of shape (N,). Rotated in place unless
+            `inplace` is False.
+        dec : array_like
+            Declination in degrees, of shape (N,). Rotated in place unless
+            `inplace` is False.
+        pa : array_like, optional
+            Position angle in degrees. Supply this or the `sin2psi`/`cos2psi`
+            pair, not both.
+        sin2psi : array_like, optional
+            sin(2*pa), if the polarization angle is carried as a pair.
+        cos2psi : array_like, optional
+            cos(2*pa), paired with `sin2psi`.
+        inplace : bool, optional
+            If True, the default, rotate the caller's arrays and return them.
+            If False, work on copies and leave the inputs untouched.
+        coord : tuple of str, optional
+            The frames to rotate from and to, as a pair. ('C', 'G') is
+            celestial to galactic and ('G', 'C') the reverse; anything else
+            raises ValueError.
+
+        Returns
+        -------
+        ra : array_like
+            Rotated right ascension in degrees.
+        dec : array_like
+            Rotated declination in degrees.
+        pa/sin2psi : array_like
+            Rotated position angle, or sin(2*pa) if the pair was supplied.
+        cos2psi : array_like
+            Rotated cos(2*pa), if the pair was supplied.
+        """
+        if tuple(coord) == ("C", "G"):
+            fn = self.radec2gal
+        elif tuple(coord) == ("G", "C"):
+            fn = self.gal2radec
+        else:
+            raise ValueError("Unsupported coord: {}".format(coord))
+        return fn(ra, dec, pa=pa, sin2psi=sin2psi, cos2psi=cos2psi, inplace=inplace)
 
     # ---- IERS Bulletin A ----
 

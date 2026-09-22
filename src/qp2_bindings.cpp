@@ -203,6 +203,56 @@ Quat load_quat(const py::handle &o, const char *name) {
   return Quat::load(static_cast<const double *>(a.data()));
 }
 
+// An array written in place. No stride-0 broadcasting here: a repeated
+// column cannot be an output, and the length must match exactly.
+//
+// The n-less overload takes the length from the array itself, for the
+// in-place entry points where that array is the only thing that sets the
+// sample count -- parsing it a second time just to count it was pure
+// duplicate validation.
+template <class T>
+Span<T> out_span(const py::handle &o, const char *name) {
+  if (!py::isinstance<py::array>(o))
+    throw py::type_error(std::string(name) +
+                         " must be a float64 array; it is written in place");
+  auto a = py::reinterpret_borrow<py::array>(o);
+  require_double_array(a, name);
+  if (!a.writeable())
+    throw py::value_error(std::string(name) +
+                          " must be writeable; it is written in place");
+  const py::ssize_t want = static_cast<py::ssize_t>(sizeof(T) / sizeof(double));
+  // For a quaternion span, the same shapes parse_quat_col accepts -- a
+  // count that merely divides evenly is not enough.
+  const bool shape_ok =
+      want == 1 || (a.ndim() == 1 && a.shape(0) == want) ||
+      (a.ndim() == 2 && a.shape(1) == want);
+  if (!shape_ok)
+    throw py::value_error(std::string(name) + " must have shape (" +
+                          std::to_string(want) + ",) or (n, " +
+                          std::to_string(want) + "), got " + shape_str(a));
+  return {reinterpret_cast<T *>(a.mutable_data()),
+          static_cast<size_t>(a.size() / want)};
+}
+
+template <class T>
+Span<T> out_span(const py::handle &o, const char *name, py::ssize_t n) {
+  if (!py::isinstance<py::array>(o))
+    throw py::type_error(std::string(name) +
+                         " must be a float64 array; it is written in place");
+  auto a = py::reinterpret_borrow<py::array>(o);
+  require_double_array(a, name);
+  if (!a.writeable())
+    throw py::value_error(std::string(name) +
+                          " must be writeable; it is written in place");
+  const py::ssize_t want = static_cast<py::ssize_t>(sizeof(T) / sizeof(double));
+  const py::ssize_t have = a.size() / want;
+  if (have != n || a.size() % want != 0)
+    throw py::value_error(std::string(name) + " has length " +
+                          std::to_string(have) + ", expected " +
+                          std::to_string(n));
+  return {reinterpret_cast<T *>(a.mutable_data()), static_cast<size_t>(n)};
+}
+
 // Output conventions: a call made entirely of scalars degrades to a scalar,
 // and to a bare (4,) for a quaternion. A call made with arrays keeps its
 // axis, even when the array holds one sample.
@@ -322,6 +372,18 @@ py::object vec_out(SampleCount count, Fn &&body) {
   return std::move(out);
 }
 
+template <class Fn>
+py::object long_out(SampleCount count, Fn &&body) {
+  const py::ssize_t n = count.n;
+  py::array_t<long> arr(n);
+  long *op = arr.mutable_data();
+  {
+    py::gil_scoped_release nogil;
+    for (py::ssize_t i = 0; i < n; ++i) op[i] = body(i);
+  }
+  return maybe_scalar(std::move(arr), count.all_scalar);
+}
+
 // The sky-coordinate output shapes. Both end in the polarization pair --
 // p1 always, p2 only when sin2psi/cos2psi were asked for -- and differ
 // only in what they put in front of it. p2 reaches the body as nullptr in
@@ -344,6 +406,27 @@ py::object radec_out(SampleCount count, bool return_pa, Fn &&body) {
                           maybe_scalar(std::move(p1), degrade));
   return py::make_tuple(maybe_scalar(std::move(ra), degrade),
                         maybe_scalar(std::move(dec), degrade),
+                        maybe_scalar(std::move(p1), degrade),
+                        maybe_scalar(std::move(p2), degrade));
+}
+
+template <class Fn>
+py::object pix_out(SampleCount count, bool return_pa, Fn &&body) {
+  const py::ssize_t n = count.n;
+  const bool degrade = count.all_scalar;
+  py::array_t<long> pix(n);
+  py::array_t<double> p1(n), p2(return_pa ? 0 : n);
+  long *opix = pix.mutable_data();
+  double *op1 = p1.mutable_data();
+  double *op2 = return_pa ? nullptr : p2.mutable_data();
+  {
+    py::gil_scoped_release nogil;
+    for (py::ssize_t i = 0; i < n; ++i) body(i, opix, op1, op2);
+  }
+  if (return_pa)
+    return py::make_tuple(maybe_scalar(std::move(pix), degrade),
+                          maybe_scalar(std::move(p1), degrade));
+  return py::make_tuple(maybe_scalar(std::move(pix), degrade),
                         maybe_scalar(std::move(p1), degrade),
                         maybe_scalar(std::move(p2), degrade));
 }
@@ -768,8 +851,101 @@ py::object py_get_bulletin_a(PointingWrap &w, py::object mjd) {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Pixelization
+// ---------------------------------------------------------------------------
+
+py::object py_radec2pix(PointingWrap &w, py::object ra, py::object dec,
+                        int nside) {
+  ColSet cs;
+  auto &vra = cs.add(ra, "ra");
+  auto &vdec = cs.add(dec, "dec");
+  const auto n = cs.resolve();
+
+  return long_out(n, [&](py::ssize_t i) {
+    return w.core.radec2pix(vra[i], vdec[i], nside);
+  });
+}
+
+py::object py_quat2pix(PointingWrap &w, py::object quat, int nside,
+                       bool return_pa) {
+  ColSet cs;
+  auto &vq = cs.add_quat(quat, "quat", true);
+  const auto n = cs.resolve();
+  const PolOut pmode = return_pa ? PolOut::PA : PolOut::SinCos;
+
+  return pix_out(n, return_pa,
+                 [&](py::ssize_t i, long *pix, double *p1, double *p2) {
+                   w.core.quat2pix(vq.ref(i), nside, pmode, pix[i], p1[i],
+                                   p2 ? &p2[i] : nullptr);
+                 });
+}
+
+py::object py_bore2pix(PointingWrap &w, py::object q_off, py::object ctime,
+                       py::object q_bore, py::object q_hwp, int nside,
+                       bool return_pa) {
+  const Quat off = load_quat(q_off, "q_off");
+  ColSet cs;
+  auto &vct = cs.add(ctime, "ctime");
+  auto &vbore = cs.add_quat(q_bore, "q_bore", true);
+  auto &vhwp = cs.add_quat(q_hwp, "q_hwp");
+  const auto n = cs.resolve();
+
+  const PolOut pmode = return_pa ? PolOut::PA : PolOut::SinCos;
+  return pix_out(n, return_pa,
+                 [&](py::ssize_t i, long *pix, double *p1, double *p2) {
+                   const Quat q =
+                       vhwp ? w.core.bore2det_hwp(off, vct[i], vbore.ref(i),
+                                                  vhwp.ref(i))
+                            : w.core.bore2det(off, vct[i], vbore.ref(i));
+                   w.core.quat2pix(q, nside, pmode, pix[i], p1[i],
+                                   p2 ? &p2[i] : nullptr);
+                 });
+}
+
+// ---------------------------------------------------------------------------
 // Galactic rotation, all in place
 // ---------------------------------------------------------------------------
+
+void py_rotate_quat(PointingWrap &w, py::object quat, bool to_gal) {
+  auto q = out_span<Quat>(quat, "quat");
+  const py::ssize_t n = static_cast<py::ssize_t>(q.len);
+  {
+    py::gil_scoped_release nogil;
+    for (py::ssize_t i = 0; i < n; ++i) {
+      if (to_gal)
+        w.core.radec2gal_quat(q[i]);
+      else
+        w.core.gal2radec_quat(q[i]);
+    }
+  }
+}
+
+void py_rotate_coord(PointingWrap &w, py::object ra, py::object dec,
+                     py::object pa, py::object sin2psi, py::object cos2psi,
+                     bool to_gal) {
+  const bool do_pa = !pa.is_none();
+  auto vra = out_span<double>(ra, "ra");
+  const py::ssize_t n = static_cast<py::ssize_t>(vra.len);
+
+  auto vdec = out_span<double>(dec, "dec", n);
+  auto vp1 = out_span<double>(do_pa ? pa : sin2psi, do_pa ? "pa" : "sin2psi", n);
+  Span<double> vp2;
+  if (!do_pa) vp2 = out_span<double>(cos2psi, "cos2psi", n);
+
+  {
+    py::gil_scoped_release nogil;
+    for (py::ssize_t i = 0; i < n; ++i) {
+      Quat q = do_pa ? w.core.radecpa2quat(vra[i], vdec[i], vp1[i])
+                     : w.core.radec2quat(vra[i], vdec[i], vp1[i], vp2[i]);
+      if (to_gal)
+        w.core.radec2gal_quat(q);
+      else
+        w.core.gal2radec_quat(q);
+      w.core.quat2radec(q, DecOut::Dec, do_pa ? PolOut::PA : PolOut::SinCos,
+                        vra[i], vdec[i], vp1[i], do_pa ? nullptr : &vp2[i]);
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Mapmaking structures
@@ -1229,6 +1405,133 @@ which is what the C does and what callers who never loaded a bulletin
 rely on. Zeros are also what the parameters mean when no correction is
 applied.
 )doc")
+      .def("radec2pix", &py_radec2pix, py::arg("ra"), py::arg("dec"),
+           py::arg("nside"),
+           R"doc(
+HEALPix pixel numbers for the given sky coordinates.
+
+Arguments
+---------
+ra : array_like
+    Right ascension angle
+dec : array_like
+    Declination angle
+nside : int
+    HEALpix resolution parameter
+
+Returns
+-------
+pix : array_like
+    Pixel number(s) corresponding to the input positions(s).
+)doc")
+      .def("quat2pix", &py_quat2pix, py::arg("quat"), py::arg("nside"),
+           py::arg("return_pa"),
+           R"doc(
+Pixel number and polarization angle for a quaternion.
+
+Arguments
+---------
+quat : quaternion or array of quaternions
+    Pointing orientation(s)
+nside : int, optional
+    HEALpix resolution parameter
+return_pa : array_like
+    See :meth:`qpoint2.QPoint.quat2pix`.
+
+Returns
+-------
+pix : array_like
+    Pixel number(s) for the given input quaternion(s)
+sin2psi : array_like
+cos2psi : array_like
+    Polarization coefficients, if `pol` is `True`.
+)doc")
+      .def("bore2pix", &py_bore2pix, py::arg("q_off"), py::arg("ctime"),
+           py::arg("q_bore"), py::arg("q_hwp"), py::arg("nside"),
+           py::arg("return_pa"),
+           R"doc(
+Pixel and polarization timestreams for a detector offset.
+
+Arguments
+---------
+q_off : quaternion
+    Detector offset quaternion for a single detector,
+    calculated using :meth:`det_offset`.
+ctime : array_like
+    Unix times in seconds UTC, broadcastable to shape (N,),
+    the long dimenions of `q_bore`.
+q_bore : quaternion or array of quaternions
+    Nx4 array of quaternions encoding the boresight orientation on the
+    sky (as output by :meth:`azel2radec` or equivalent)
+q_hwp : quaternion or array of quaternions, optional
+    HWP angle quaternions calculated using :meth:`hwp_quat`.  Must be
+    broadcastable to the same shape as `q_bore`.
+nside : int, optional
+    HEALpix map dimension.  Default: 256.
+return_pa : bool, optional
+    If `True`, return pa instead of sin2psi / cos2psi
+
+Returns
+-------
+pix : array_like
+    Detector pixel number
+pa/sin2psi : array_like
+    Detector polarization orientation if `return_pa` is `True`, or
+    sin(2*pa) if `return_pa` is `False`.
+cos2psi : array_like
+    detector polarization orientation cos(2*pa), if `return_pa` is `False`.
+)doc")
       // a method on Pointing for API parity, though it uses no state
+      .def("rotate_quat", &py_rotate_quat, py::arg("quat"), py::arg("to_gal"),
+           R"doc(
+Rotate a quaternion between celestial and galactic coordinates.
+
+Arguments
+---------
+quat : array_like
+    array of quaternions, of shape (n, 4)
+to_gal : array_like
+    See :meth:`qpoint2.QPoint.rotate_quat`.
+
+Returns
+-------
+quat : array_like
+    rotated quaternion array
+)doc")
+      .def("rotate_coord", &py_rotate_coord, py::arg("ra"), py::arg("dec"),
+           py::arg("pa"), py::arg("sin2psi"), py::arg("cos2psi"),
+           py::arg("to_gal"),
+           R"doc(
+Rotate sky coordinates between celestial and galactic.
+
+Arguments
+---------
+ra : array_like
+    Right ascension in degrees, of shape (N,). Rotated in place unless
+    `inplace` is False.
+dec : array_like
+    Declination in degrees, of shape (N,). Rotated in place unless
+    `inplace` is False.
+pa : array_like, optional
+    Position angle in degrees. Supply this or the `sin2psi`/`cos2psi`
+    pair, not both.
+sin2psi : array_like, optional
+    sin(2*pa), if the polarization angle is carried as a pair.
+cos2psi : array_like, optional
+    cos(2*pa), paired with `sin2psi`.
+to_gal : array_like
+    See :meth:`qpoint2.QPoint.rotate_coord`.
+
+Returns
+-------
+ra : array_like
+    Rotated right ascension in degrees.
+dec : array_like
+    Rotated declination in degrees.
+pa/sin2psi : array_like
+    Rotated position angle, or sin(2*pa) if the pair was supplied.
+cos2psi : array_like
+    Rotated cos(2*pa), if the pair was supplied.
+)doc")
 ;
 }

@@ -199,6 +199,164 @@ class TestPointing:
 
 
 # Option sets that matter for pixelization specifically.
+PIX_OPTIONS = [
+    pytest.param({}, id="defaults"),
+    pytest.param({"fast_pix": True}, id="fast-pix"),
+    pytest.param({"pix_order": "nest"}, id="nest"),
+    pytest.param({"fast_pix": True, "pix_order": "nest"}, id="fast-pix-nest"),
+    pytest.param({"fast_math": True}, id="fast-math"),
+    pytest.param({"polconv": "iau"}, id="polconv-iau"),
+]
+
+NSIDE = 128
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+@pytest.mark.parametrize("options", PIX_OPTIONS)
+class TestPixelization:
+    def test_radec2pix(self, mod, options):
+        ref = qp(qpoint, **options).radec2pix(RA, DEC, nside=NSIDE)
+        got = qp(mod, **options).radec2pix(RA, DEC, nside=NSIDE)
+        assert_identical(ref, got, "radec2pix")
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [pytest.param({}, id="pol"), pytest.param({"pol": False}, id="no-pol")],
+    )
+    def test_quat2pix(self, mod, options, kwargs):
+        out = []
+        for m in (qpoint, mod):
+            q = qp(m, **options)
+            res = q.quat2pix(q.radecpa2quat(RA, DEC, PA), nside=NSIDE, **kwargs)
+            out.append(res if isinstance(res, tuple) else (res,))
+        assert_identical(out[0], out[1], "quat2pix")
+
+    def test_quat2pixpa(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            q = qp(m, **options)
+            out.append(tuple(q.quat2pixpa(q.radecpa2quat(RA, DEC, PA), nside=NSIDE)))
+        assert_identical(out[0], out[1], "quat2pixpa")
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="pol"),
+            pytest.param({"pol": False}, id="no-pol"),
+            pytest.param({"return_pa": True}, id="pa"),
+        ],
+    )
+    def test_bore2pix(self, mod, options, kwargs):
+        out = []
+        for m in (qpoint, mod):
+            q, qb = bore(m, **options)
+            q_off = q.det_offset(1.0, 2.0, 3.0)
+            res = q.bore2pix(q_off, CTIME, qb, nside=NSIDE, **kwargs)
+            out.append(res if isinstance(res, tuple) else (res,))
+        assert_identical(out[0], out[1], "bore2pix")
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="pol"),
+            pytest.param({"return_pa": True}, id="pa"),
+        ],
+    )
+    def test_bore2pix_hwp(self, mod, options, kwargs):
+        """
+        Pixelization with a HWP, which nothing else exercises. Crossed
+        with return_pa because that combination is its own C entry point,
+        qp_bore2pixpa_hwp, and is not reached by either on its own.
+        """
+        out = []
+        for m in (qpoint, mod):
+            q, qb = bore(m, **options)
+            q_off = q.det_offset(1.0, 2.0, 3.0)
+            q_hwp = np.asarray(q.hwp_quat(HWP))
+            res = q.bore2pix(q_off, CTIME, qb, q_hwp=q_hwp, nside=NSIDE, **kwargs)
+            out.append(res if isinstance(res, tuple) else (res,))
+        assert_identical(out[0], out[1], "bore2pix_hwp")
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+@pytest.mark.parametrize("options", PIX_OPTIONS)
+class TestGalacticRotation:
+    def test_radec2gal_pa(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            out.append(
+                tuple(qp(m, **options).radec2gal(RA.copy(), DEC.copy(), PA.copy()))
+            )
+        assert_identical(out[0], out[1], "radec2gal")
+
+    def test_gal2radec_pa(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            out.append(
+                tuple(qp(m, **options).gal2radec(RA.copy(), DEC.copy(), PA.copy()))
+            )
+        assert_identical(out[0], out[1], "gal2radec")
+
+    def test_radec2gal_sincos(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            out.append(
+                tuple(
+                    qp(m, **options).radec2gal(
+                        RA.copy(),
+                        DEC.copy(),
+                        sin2psi=np.sin(PA).copy(),
+                        cos2psi=np.cos(PA).copy(),
+                    )
+                )
+            )
+        assert_identical(out[0], out[1], "radec2gal sin/cos")
+
+    def test_rotate_quat(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            q = qp(m, **options)
+            out.append(np.asarray(q.rotate_quat(q.radecpa2quat(RA, DEC, PA))))
+        assert_identical(out[0], out[1], "rotate_quat")
+
+    def test_rotate_coord_gc(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            out.append(
+                tuple(
+                    qp(m, **options).rotate_coord(
+                        RA.copy(), DEC.copy(), PA.copy(), coord=("G", "C")
+                    )
+                )
+            )
+        assert_identical(out[0], out[1], "rotate_coord G->C")
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestRotationIsInPlace:
+    """
+    The rotations write through to the caller's arrays. For qpoint2 this
+    also pins the zero-copy contract: the binding writes into the very
+    buffer it was handed.
+    """
+
+    def test_inplace_mutates_input(self, mod):
+        ra, dec, pa = RA.copy(), DEC.copy(), PA.copy()
+        before = ra.copy()
+        out = qp(mod).radec2gal(ra, dec, pa, inplace=True)
+        assert not np.array_equal(ra, before)
+        assert np.shares_memory(out[0], ra)
+
+    def test_not_inplace_leaves_input_alone(self, mod):
+        ra, dec, pa = RA.copy(), DEC.copy(), PA.copy()
+        before = ra.copy()
+        out = qp(mod).radec2gal(ra, dec, pa, inplace=False)
+        assert identical(ra, before)
+        assert not np.shares_memory(out[0], ra)
+
+    def test_unsupported_coord_raises(self, mod):
+        with pytest.raises(ValueError, match="[Uu]nsupported coord"):
+            qp(mod).rotate_coord(RA.copy(), DEC.copy(), PA.copy(), coord=("C", "E"))
 
 
 class TestQpSettingsIsPublic:
