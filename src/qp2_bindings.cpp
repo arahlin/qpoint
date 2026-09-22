@@ -5,10 +5,12 @@
 #include <array>
 #include <atomic>
 #include <cctype>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <optional>
 #include <string>
 #include <vector>
@@ -1661,22 +1663,71 @@ int clamp_threads(int nthr, std::ptrdiff_t ndet) {
   return nthr < 1 ? 1 : nthr;
 }
 
+// A zeroed double buffer, from calloc rather than a vector.
+//
+// The thread-local accumulators are as long as the whole map while a scan
+// touches a fraction of a percent of it. vector::assign writes every byte
+// -- 906 MB per thread at nside 1024 -- where calloc hands back pages the
+// kernel zeroes lazily, so the untouched rest is never faulted in. That
+// only pays off because the merge visits recorded pixels rather than
+// scanning for nonzero ones; scanning would fault the whole thing in.
+class ZeroBuf {
+ public:
+  ZeroBuf() = default;
+  explicit ZeroBuf(std::size_t n)
+      : ptr_(n ? static_cast<double *>(std::calloc(n, sizeof(double)))
+                : nullptr) {
+    if (n && !ptr_) throw std::bad_alloc();
+  }
+  ~ZeroBuf() { std::free(ptr_); }
+  ZeroBuf(ZeroBuf &&o) noexcept : ptr_(o.ptr_) { o.ptr_ = nullptr; }
+  ZeroBuf &operator=(ZeroBuf &&o) noexcept {
+    std::swap(ptr_, o.ptr_);
+    return *this;
+  }
+  ZeroBuf(const ZeroBuf &) = delete;
+  ZeroBuf &operator=(const ZeroBuf &) = delete;
+
+  double *get() const { return ptr_; }
+
+ private:
+  double *ptr_ = nullptr;
+};
+
 // A zeroed map with the same geometry, backed by thread-private buffers.
 // This is the one copy the design cannot avoid -- each thread needs private
 // storage to accumulate into -- but it is internal scratch, not data shared
-// with Python, so a vector is the right thing here.
-Map blank_like(const Map &g, std::vector<double> &vbuf,
-               std::vector<double> &pbuf) {
+// with Python.
+//
+// nslot is the row stride: g.npix for a directly-indexed accumulator, or
+// the accumulator's capacity for a compact one, whose rows are indexed by
+// slot. The pixhash is inherited either way, so a partial destination map
+// still translates sky pixel to map index before any slot lookup.
+Map blank_like(const Map &g, std::size_t nslot, ZeroBuf &vbuf, ZeroBuf &pbuf) {
   Map m = g;
+  m.npix = nslot;
   if (g.has_vec()) {
-    vbuf.assign(num_vec(g.vec_mode) * g.npix, 0.0);
-    m.vec = vbuf.data();
+    vbuf = ZeroBuf(num_vec(g.vec_mode) * nslot);
+    m.vec = vbuf.get();
   }
   if (g.has_proj()) {
-    pbuf.assign(num_proj(g.proj_mode) * g.npix, 0.0);
-    m.proj = pbuf.data();
+    pbuf = ZeroBuf(num_proj(g.proj_mode) * nslot);
+    m.proj = pbuf.get();
   }
   return m;
+}
+
+// Whether a thread's private accumulator should be compacted.
+//
+// reach bounds the distinct pixels one thread can touch: one per sample
+// per detector it handles, doubled for the diff kernel, which remaps a
+// pair. Compacting costs a lookup per sample and saves a private copy of
+// everything the thread did not touch, so it only pays when the map is
+// much bigger than that -- a full-sky destination for a scan that covers
+// a sliver of it. For a map that is already a compact footprint, reach is
+// the same size as the map and this stays off.
+bool want_compact(std::size_t npix, std::size_t reach) {
+  return npix > 4 * reach;
 }
 
 // The detector loop, with all of the OpenMP plumbing in one place.
@@ -1694,11 +1745,23 @@ Map blank_like(const Map &g, std::vector<double> &vbuf,
 // remaining iterations no-op instead. And num_threads is a clause rather
 // than the C's process-wide omp_set_num_threads.
 template <class Setup, class Body, class Finish>
-void parallel_dets(int nthr, std::ptrdiff_t ndet, const char *what,
+void parallel_dets(int nthr, std::ptrdiff_t ndet, const char *what, bool balance,
                    Setup &&per_thread, Body &&body, Finish &&finish) {
   std::atomic<bool> failed{false};
   std::mutex errmtx;
   std::string errmsg;
+
+#ifdef _OPENMP
+  // Detectors cost the same as each other, but cores do not: split them
+  // evenly across a machine with both performance and efficiency cores and
+  // the fast cores sit waiting for the slow ones. Dynamic scheduling fixes
+  // that -- 22% at ten threads on a 4+6 machine -- but it also lets one
+  // thread take any number of the detectors, which a compact accumulator
+  // cannot be sized for without assuming the worst. So the caller says
+  // which of the two it needs.
+  omp_set_schedule(balance ? omp_sched_dynamic : omp_sched_static,
+                   balance ? 1 : 0);
+#endif
 
   {
     py::gil_scoped_release nogil;
@@ -1708,7 +1771,7 @@ void parallel_dets(int nthr, std::ptrdiff_t ndet, const char *what,
     {
       auto state = per_thread();
 #ifdef _OPENMP
-#pragma omp for schedule(static)
+#pragma omp for schedule(runtime)
 #endif
       for (std::ptrdiff_t i = 0; i < ndet; ++i) {
         if (failed.load(std::memory_order_relaxed)) continue;
@@ -1738,7 +1801,11 @@ void parallel_dets(int nthr, std::ptrdiff_t ndet, const char *what,
 // and there is nothing to merge.
 struct Tod2MapLocal {
   Pointing core;
-  std::vector<double> vbuf, pbuf;
+  ZeroBuf vbuf, pbuf;
+  // Heap-allocated so the pointers lmap holds into them survive this
+  // struct being moved out of the setup callable.
+  std::unique_ptr<PixTouch> touched;
+  std::unique_ptr<PixAccum> accum;
   Map lmap;
   bool reduce = false;
 };
@@ -1754,15 +1821,47 @@ void py_tod2map(PointingWrap &w, DetArrWrap &dets, PointWrap &pnt,
   const std::ptrdiff_t ndet = static_cast<std::ptrdiff_t>(dets.n_loop());
   const std::ptrdiff_t nhalf = static_cast<std::ptrdiff_t>(dets.dets.size() / 2);
 
+  // Whether to compact has to be settled before the parallel region,
+  // because it chooses the schedule. It uses the even split, which is
+  // what a thread gets under the static schedule that compacting forces.
+  const int nthr = clamp_threads(w.num_threads, ndet);
+  const std::size_t mult = dets.diff ? 2 : 1;
+  const std::size_t even_split =
+      (static_cast<std::size_t>(ndet) + nthr - 1) / nthr;
+  const bool compacting =
+      nthr > 1 && want_compact(global.npix, even_split * pd.n() * mult);
+
   parallel_dets(
-      clamp_threads(w.num_threads, ndet), ndet, "tod2map",
+      nthr, ndet, "tod2map", !compacting,
       [&] {
         Tod2MapLocal st;
         st.core = w.core;  // O(1): the IERS table is shared
+        int nthreads = 1;
 #ifdef _OPENMP
-        st.reduce = omp_get_num_threads() > 1;
+        nthreads = omp_get_num_threads();
 #endif
-        st.lmap = st.reduce ? blank_like(global, st.vbuf, st.pbuf) : global;
+        st.reduce = nthreads > 1;
+        if (!st.reduce) {
+          // One thread writes the real map, so there is nothing to record
+          // and nothing to merge.
+          st.lmap = global;
+          return st;
+        }
+
+        if (compacting) {
+          // Sized from the thread count the runtime actually gave us,
+          // which is what the static schedule will divide the detectors by.
+          const std::size_t cap =
+              (static_cast<std::size_t>(ndet) + nthreads - 1) / nthreads *
+              pd.n() * mult;
+          st.accum = std::make_unique<PixAccum>(cap);
+          st.lmap = blank_like(global, cap, st.vbuf, st.pbuf);
+          st.lmap.accum = st.accum.get();
+        } else {
+          st.touched = std::make_unique<PixTouch>(global.npix);
+          st.lmap = blank_like(global, global.npix, st.vbuf, st.pbuf);
+          st.lmap.touched = st.touched.get();
+        }
         return st;
       },
       [&](Tod2MapLocal &st, std::ptrdiff_t i) {
@@ -1777,7 +1876,10 @@ void py_tod2map(PointingWrap &w, DetArrWrap &dets, PointWrap &pnt,
 #ifdef _OPENMP
 #pragma omp critical(qp_map_accum)
 #endif
-        add_map(global, st.lmap);
+        if (st.accum)
+          add_map(global, st.lmap, *st.accum);
+        else
+          add_map(global, st.lmap, st.touched.get());
       });
 }
 
@@ -1794,9 +1896,10 @@ void py_map2tod(PointingWrap &w, DetArrWrap &dets, PointWrap &pnt,
   const PointData pd = pnt.core;
   const std::ptrdiff_t ndet = static_cast<std::ptrdiff_t>(dets.dets.size());
 
-  // No reduction: detectors write disjoint rows of the tod.
+  // No reduction -- detectors write disjoint rows of the tod -- so there is
+  // no accumulator to size and nothing stopping the balanced schedule.
   parallel_dets(
-      clamp_threads(w.num_threads, ndet), ndet, "map2tod",
+      clamp_threads(w.num_threads, ndet), ndet, "map2tod", true,
       [&] { return w.core; },
       [&](Pointing &local, std::ptrdiff_t i) {
         map2tod1(local, dets.dets[i], pd, global);

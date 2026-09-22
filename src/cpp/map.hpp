@@ -3,7 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
+#include <vector>
 
+#include "error.hpp"
 #include "pixinfo.hpp"
 #include "quat.hpp"
 #include "span.hpp"
@@ -37,6 +39,81 @@ class PixHash {
 
  private:
   std::unordered_map<long, long> map_;
+};
+
+// A thread-local accumulator's index: pixel -> slot in a compact buffer,
+// slots handed out in the order the thread first sees each pixel.
+//
+// This exists for the case where the destination map is far bigger than
+// anything one thread can touch -- a full-sky map scanned over a fraction
+// of a percent of the sky, where a private copy is 906 MB per thread at
+// nside 1024 and threading comes out slower than serial. Compacting makes
+// the private copy proportional to the coverage instead.
+//
+// It is deliberately not used for a map that is already a compact
+// footprint, which is the usual case: there the accumulator is
+// proportional to the coverage to begin with, and this would only add a
+// lookup per sample.
+class PixAccum {
+ public:
+  explicit PixAccum(std::size_t cap) : cap_(cap) {}
+
+  // Slot for a pixel, assigning the next free one if it is new.
+  long slot(long pix) {
+    const auto it = slot_.find(pix);
+    if (it != slot_.end()) return it->second;
+    // cap_ bounds the distinct pixels a thread can reach, so this is a
+    // guard against the bound being computed wrongly, not a real case.
+    if (slot_.size() >= cap_) throw QpMapError("PixAccum: out of slots");
+    const long s = static_cast<long>(slot_.size());
+    slot_.emplace(pix, s);
+    return s;
+  }
+
+  // Calls f(pixel, slot) for everything the thread touched.
+  template <class Fn>
+  void for_each(Fn &&f) const {
+    for (const auto &kv : slot_) f(kv.first, kv.second);
+  }
+
+  std::size_t size() const { return slot_.size(); }
+
+ private:
+  std::unordered_map<long, long> slot_;
+  std::size_t cap_;
+};
+
+// Records which pixels a thread-local accumulator wrote, so that merging
+// it can visit those rather than the whole map.
+//
+// A scan covers a fraction of a percent of the sky at high nside, and the
+// alternative is to read every element of every row looking for the
+// nonzero ones -- 113M doubles per thread at nside 1024 to find 53k
+// pixels. A bitmap is npix/8 bytes, and iterating it costs 600x less than
+// the map scan it replaces.
+class PixTouch {
+ public:
+  explicit PixTouch(std::size_t npix) : bits_((npix + 63) / 64, 0) {}
+
+  void set(long pix) {
+    const std::size_t p = static_cast<std::size_t>(pix);
+    bits_[p >> 6] |= std::uint64_t(1) << (p & 63);
+  }
+
+  // Calls f(pix) for each recorded pixel, ascending.
+  template <class Fn>
+  void for_each(Fn &&f) const {
+    for (std::size_t w = 0; w < bits_.size(); ++w) {
+      std::uint64_t b = bits_[w];
+      while (b) {
+        f(static_cast<long>(w * 64 + __builtin_ctzll(b)));
+        b &= b - 1;  // clear the lowest set bit
+      }
+    }
+  }
+
+ private:
+  std::vector<std::uint64_t> bits_;
 };
 
 enum class VecMode {
@@ -143,6 +220,13 @@ struct Map {
   const PixHash *pixhash = nullptr;
   const PixInfo *pixinfo = nullptr;
 
+  // Both are set only on a thread-local accumulator, and never together:
+  // touched records the pixels a directly-indexed accumulator wrote, and
+  // accum both assigns and records the slots of a compact one. Null
+  // everywhere else, including on the map the caller passed in.
+  PixTouch *touched = nullptr;
+  PixAccum *accum = nullptr;
+
   double *vrow(std::size_t i) const { return vec + i * npix; }
   double *prow(std::size_t i) const { return proj + i * npix; }
 
@@ -169,6 +253,14 @@ void map2tod1(Pointing &mem, const Det &det, const PointData &pnt,
               const Map &map);
 
 // Merge a thread-local map into the shared one.
-void add_map(Map &map, const Map &local);
+// Merge local into map. Given the pixels local recorded while
+// accumulating, only those are visited; without them the whole map is
+// scanned to find the nonzero entries.
+void add_map(Map &map, const Map &local, const PixTouch *touched = nullptr);
+
+// Merge a compact accumulator, whose rows are indexed by slot rather than
+// by pixel. The index knows which pixel each slot belongs to, so this is
+// proportional to what the thread touched.
+void add_map(Map &map, const Map &local, const PixAccum &accum);
 
 }  // namespace qp

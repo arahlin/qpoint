@@ -103,11 +103,22 @@ inline bool flagged(const Det &det, std::size_t i) {
 // skipped; throws when error_missing is set.
 inline bool remap(const Map &map, long &ipix, bool error_missing,
                   const char *what) {
-  if (!map.partial()) return true;
-  ipix = map.pixhash->repixelize(ipix);
-  if (ipix >= 0) return true;
-  if (error_missing) throw QpMapError(std::string(what) + ": pixel out of bounds");
-  return false;
+  if (map.partial()) {
+    ipix = map.pixhash->repixelize(ipix);
+    if (ipix < 0) {
+      if (error_missing)
+        throw QpMapError(std::string(what) + ": pixel out of bounds");
+      return false;
+    }
+  }
+  // The accumulating kernels reach the map only through here, so this is
+  // the one place a thread-local accumulator has to be told what it wrote
+  // -- or, for a compact one, asked where to write it.
+  if (map.accum)
+    ipix = map.accum->slot(ipix);
+  else if (map.touched)
+    map.touched->set(ipix);
+  return true;
 }
 
 }  // namespace
@@ -459,7 +470,7 @@ void map2tod1(Pointing &mem, const Det &det, const PointData &pnt,
   }
 }
 
-void add_map(Map &map, const Map &local) {
+void add_map(Map &map, const Map &local, const PixTouch *touched) {
   if (map.vec_mode != local.vec_mode || map.proj_mode != local.proj_mode ||
       map.nside != local.nside || map.npix != local.npix)
     throw QpMapError("add_map: maps are not compatible");
@@ -467,8 +478,16 @@ void add_map(Map &map, const Map &local) {
   // The zero test is not an optimization that can be dropped: (-0.0) += 0.0
   // yields +0.0, so skipping zeros preserves signed zeros exactly as the C
   // reduction does.
-  auto accum = [npix = map.npix](double *dst, const double *src) {
-    for (std::size_t p = 0; p < npix; ++p)
+  // Only a touched pixel can be nonzero in a freshly zeroed accumulator,
+  // so visiting just those adds the same terms in the same order.
+  auto accum = [&](double *dst, const double *src) {
+    if (touched) {
+      touched->for_each([&](long p) {
+        if (src[p] != 0) dst[p] += src[p];
+      });
+      return;
+    }
+    for (std::size_t p = 0; p < map.npix; ++p)
       if (src[p] != 0) dst[p] += src[p];
   };
 
@@ -479,6 +498,34 @@ void add_map(Map &map, const Map &local) {
   if (map.has_proj() && local.has_proj())
     for (std::size_t i = 0; i < num_proj(map.proj_mode); ++i)
       accum(map.prow(i), local.prow(i));
+}
+
+void add_map(Map &map, const Map &local, const PixAccum &accum) {
+  if (map.vec_mode != local.vec_mode || map.proj_mode != local.proj_mode ||
+      map.nside != local.nside)
+    throw QpMapError("add_map: maps are not compatible");
+  if (local.npix < accum.size())
+    throw QpMapError("add_map: accumulator is shorter than its index");
+
+  // Each destination element takes one add either way, so visiting by
+  // slot rather than by row leaves the arithmetic alone. The zero test
+  // carries over for the same reason it exists in the row version.
+  const std::size_t nvec = map.has_vec() && local.has_vec()
+                               ? num_vec(map.vec_mode)
+                               : 0;
+  const std::size_t nproj = map.has_proj() && local.has_proj()
+                                ? num_proj(map.proj_mode)
+                                : 0;
+  accum.for_each([&](long pix, long slot) {
+    for (std::size_t i = 0; i < nvec; ++i) {
+      const double x = local.vrow(i)[slot];
+      if (x != 0) map.vrow(i)[pix] += x;
+    }
+    for (std::size_t i = 0; i < nproj; ++i) {
+      const double x = local.prow(i)[slot];
+      if (x != 0) map.prow(i)[pix] += x;
+    }
+  });
 }
 
 }  // namespace qp
