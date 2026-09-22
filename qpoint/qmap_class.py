@@ -1166,11 +1166,16 @@ class QMap(QPoint):
         rtri, ctri = np.triu_indices(nmap)
         idx[rtri, ctri] = idx[ctri, rtri] = np.arange(nproj)
 
+        # An ill-conditioned pixel is excluded whichever solver runs. The
+        # Cholesky one used to see only the hits mask, and cho_factor
+        # succeeds on a rank-deficient matrix rather than raising, so a
+        # one- or two-hit pixel came back with whatever it produced.
+        if cond is None:
+            cond = self.proj_cond(proj=proj, partial=partial)
+        mask &= cond < cond_thresh
+
         # solve
         if method == "exact":
-            if cond is None:
-                cond = self.proj_cond(proj=proj, partial=partial)
-            mask &= cond < cond_thresh
             vec[:, ~mask] = 0
             proj[..., ~mask] = np.eye(nmap)[rtri, ctri][:, None]
             # numpy 2 requires b (ie vec) to have shape (..., M, K) not (..., M).
