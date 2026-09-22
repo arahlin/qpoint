@@ -118,6 +118,11 @@ def bench(request, benchmark_rows):
     if not request.config.getoption("--benchmark"):
         pytest.skip("timing benchmark; pass --benchmark to run")
 
+    # which package this test was parametrized over, if it was
+    spec = getattr(request.node, "callspec", None)
+    impl = spec.params.get("mod") if spec else None
+    impl = getattr(impl, "__name__", "")
+
     def run(label, fn, samples=None, repeat=5, unit="sample"):
         box = {}
 
@@ -142,7 +147,7 @@ def bench(request, benchmark_rows):
         best = min(times)
         rate = samples / best if samples else None
         benchmark_rows.append(
-            (label, 1e3 * best, 1e3 * sorted(times)[len(times) // 2], rate, unit)
+            (label, impl, 1e3 * best, 1e3 * sorted(times)[len(times) // 2], rate, unit)
         )
         return result
 
@@ -150,14 +155,37 @@ def bench(request, benchmark_rows):
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """
+    One row per benchmark. Where the suite ran over more than one
+    package, they get a column each and a ratio, which is the number
+    worth looking at; where it ran over one, the median and the rate.
+    """
     rows = getattr(config, "_benchmark_rows", [])
     if not rows:
         return
-    width = max(len(r[0]) for r in rows)
+    labels = list(dict.fromkeys(r[0] for r in rows))
+    impls = [i for i in dict.fromkeys(r[1] for r in rows) if i]
+    best = {(r[0], r[1]): r for r in rows}
+    width = max(len(l) for l in labels)
     write = terminalreporter.write_line
     write("")
     write("benchmarks (fastest of 5)")
-    write(f"  {'':{width}}  {'best':>9}  {'median':>9}  rate")
-    for label, best, median, rate, unit in rows:
-        speed = f"{rate:,.0f} {unit}/s" if rate else ""
-        write(f"  {label:{width}}  {best:>8.2f}ms  {median:>8.2f}ms  {speed}")
+
+    if len(impls) < 2:
+        write(f"  {'':{width}}  {'best':>9}  {'median':>9}  rate")
+        for label, _, b, median, rate, unit in rows:
+            speed = f"{rate:,.0f} {unit}/s" if rate else ""
+            write(f"  {label:{width}}  {b:>8.2f}ms  {median:>8.2f}ms  {speed}")
+        return
+
+    write(f"  {'':{width}}" + "".join(f"  {i:>10}" for i in impls) + "   ratio")
+    for label in labels:
+        line = f"  {label:{width}}"
+        times = []
+        for impl in impls:
+            row = best.get((label, impl))
+            times.append(row[2] if row else None)
+            line += f"  {row[2]:>8.2f}ms" if row else f"  {'':>10}"
+        if len(times) == 2 and all(times):
+            line += f"  {times[0] / times[1]:>5.2f}x"
+        write(line)
