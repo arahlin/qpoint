@@ -82,7 +82,7 @@ def make_qpoint(inverse=True, **kwargs):
     A QPoint using the same Earth orientation data as astropy.
 
     `update_iers` does the loading: it calls update_bulletin_a, which
-    reads astropy's IERS table and passes it to set_iers_bulletin_a.
+    reads astropy's IERS table and installs it as a Bulletin A.
     Without it the two disagree by the size of those terms, which is
     seconds of arc -- real, but a comparison of Earth orientation data
     rather than of the transforms built on it.
