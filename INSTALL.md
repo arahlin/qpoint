@@ -22,43 +22,35 @@ enabled there automatically.
 
 ## Building the C library
 
-Some users may want to build the `C` library for linking to their own projects,
-or have more control over the build process.
+There is no standalone `make` build. It went away with the move to PEP 517
+packaging, which removed the root `Makefile` along with the ones under
+`erfa/` and `chealpix/`, and the library is now built only as part of the
+Python extension.
 
-To just build and install the `C` library without OpenMP support:
-
-```
-make
-make install
-```
-
-To enable OpenMP support in the `C` library:
+The sources are self-contained, though -- `erfa` and `chealpix` are bundled
+in `src/`, and nothing outside libc and libm is needed -- so a project that
+wants the `C` on its own can compile them directly:
 
 ```
-make ENABLE_OMP=y
+cc -std=c99 -O3 -fPIC -Isrc -c src/erfa.c src/chealpix.c src/qp_*.c \
+    src/qpoint.c src/quaternion.c src/sincos.c
+ar rcs libqpoint.a *.o
 ```
 
-To build a shared library instead of a static one:
+Add `-fopenmp` for a parallel `tod2map`/`map2tod`, subject to the macOS
+caveat above. The headers a caller needs are `src/qpoint.h`,
+`src/quaternion.h` and `src/vec3.h`.
+
+## The C tests
+
+Two test programs come with the bundled third-party code and are not built
+by anything, so they have to be compiled by hand:
 
 ```
-make ENABLE_SHARED=y
+cc -std=c99 -O2 -Isrc src/test_erfa.c src/erfa.c -lm -o test_erfa
+cc -std=c99 -O2 -Isrc src/test_chealpix.c src/chealpix.c -lm -o test_chealpix
 ```
 
-To build a "lite" version of the library without support for OpenMP or any of the healpix mapmaking backend:
-
-```
-make ENABLE_LITE=y
-```
-
-To install to a user directory (by default this is `$HOME/.local`):
-
-```
-make install-user
-```
-
-To install to a specific prefix (the directory that will contain the `lib/`
-and `include/` subfolders):
-
-```
-make PREFIX=/your/install/prefix install
-```
+Each exits nonzero on failure. They cover the vendored `erfa` and
+`chealpix` only; everything else is covered by the Python suite, which
+`pytest` runs.
