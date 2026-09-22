@@ -713,12 +713,12 @@ int qp_tod2map1_diff(qp_memory_t *mem, qp_det_t *det, qp_det_t *det_pair,
       return mem->error_code;
 
   for (size_t ii = 0; ii < pnt->n; ii++) {
-    /* if either samples are flagged then skip */
-    if (det->flag_init || det_pair->flag_init){
-      if(det->flag[ii] || det_pair->flag[ii]){
-	continue;
-      }
-    }
+    /* if either sample is flagged then skip.  Each detector is checked
+       against its own flag_init: the pair need not both have flags, and
+       dereferencing the one that does not is a null read. */
+    if ((det->flag_init && det->flag[ii]) ||
+        (det_pair->flag_init && det_pair->flag[ii]))
+      continue;
     ctime = pnt->ctime_init ? pnt->ctime[ii] : 0;
     if (pnt->q_hwp_init){
       qp_bore2det_hwp(mem, det->q_off, ctime, pnt->q_bore[ii],
