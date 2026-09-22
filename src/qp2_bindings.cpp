@@ -847,8 +847,92 @@ py::object py_get_bulletin_a(PointingWrap &w, py::object mjd) {
 }
 
 // ---------------------------------------------------------------------------
+// Dipole
+// ---------------------------------------------------------------------------
+
+py::object py_dipole(PointingWrap &w, py::object ctime, py::object ra,
+                     py::object dec) {
+  ColSet cs;
+  auto &vct = cs.add(ctime, "ctime");
+  auto &vra = cs.add(ra, "ra");
+  auto &vdec = cs.add(dec, "dec");
+  const auto n = cs.resolve();
+
+  return vec_out<1>(n, [&](py::ssize_t i, auto &o) {
+    o[0][i] = w.core.dipole(vct[i], vra[i], vdec[i]);
+  });
+}
+
+py::object py_bore2dipole(PointingWrap &w, py::object q_off, py::object ctime,
+                          py::object q_bore) {
+  const Quat off = load_quat(q_off, "q_off");
+  ColSet cs;
+  auto &vct = cs.add(ctime, "ctime");
+  auto &vbore = cs.add_quat(q_bore, "q_bore", true);
+  const auto n = cs.resolve();
+
+  return vec_out<1>(n, [&](py::ssize_t i, auto &o) {
+    const Quat q = w.core.bore2det(off, vct[i], vbore.ref(i));
+    o[0][i] = w.core.quat2dipole(vct[i], q);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Boresight offset and gyro integration
 // ---------------------------------------------------------------------------
+
+// Adjusts q_bore in place by a per-sample offset. post selects whether the
+// offset is applied in the detector frame or the sky frame.
+void py_bore_offset(PointingWrap &w, py::object q_bore, py::object ang1,
+                    py::object ang2, py::object ang3, bool post) {
+  auto vbore = out_span<Quat>(q_bore, "q_bore");
+  const py::ssize_t n = static_cast<py::ssize_t>(vbore.len);
+
+  const auto a1 = fix(parse_col(ang1, "ang1"), n, "ang1");
+  const auto a2 = fix(parse_col(ang2, "ang2"), n, "ang2");
+  const auto a3 = fix(parse_col(ang3, "ang3"), n, "ang3");
+
+  {
+    py::gil_scoped_release nogil;
+    for (py::ssize_t i = 0; i < n; ++i) {
+      if (post) {
+        const Quat q = w.core.radecpa2quat(a1[i], a2[i], a3[i]);
+        mul_left(q, vbore[i]);
+      } else {
+        mul_right(vbore[i], det_offset(a1[i], a2[i], a3[i]));
+      }
+    }
+  }
+}
+
+// Integrates gyro rates into an attitude timestream. The loop carries the
+// attitude quaternion forward, so it is sequential by construction -- but
+// that state is a local here, not something the core holds.
+// Takes no Pointing state at all: the attitude is a local. Bound as a
+// lambda that drops the wrapper argument.
+py::object py_omega2azelpsi(double init_az, double init_el, double init_psi,
+                            py::object omega_x, py::object omega_y,
+                            py::object omega_z, double dt) {
+  ColSet cs;
+  auto &ox = cs.add(omega_x, "omega_x");
+  auto &oy = cs.add(omega_y, "omega_y");
+  auto &oz = cs.add(omega_z, "omega_z");
+  const auto n = cs.resolve();
+
+  // The attitude carries across samples, so it is declared outside the
+  // body the loop calls.
+  Quat attitude = azelpsi_quat(init_az, init_el, init_psi, 0.0, 0.0);
+  return vec_out<3>(n, [&](py::ssize_t i, auto &o) {
+    const Vec3 omega{{ox[i], oy[i], oz[i]}};
+    const double mag = omega.norm();
+    if (std::fabs(mag) > 1e-12) {
+      const Vec3 axis{{omega[0] / mag, omega[1] / mag, omega[2] / mag}};
+      mul_right(attitude, Quat::rot(mag * dt, axis));
+      attitude.unit();
+    }
+    quat_azelpsi(attitude, o[0][i], o[1][i], o[2][i]);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Pixelization
@@ -1481,7 +1565,106 @@ pa/sin2psi : array_like
 cos2psi : array_like
     detector polarization orientation cos(2*pa), if `return_pa` is `False`.
 )doc")
+      .def("dipole", &py_dipole, py::arg("ctime"), py::arg("ra"),
+           py::arg("dec"),
+           R"doc(
+CMB dipole amplitude in the given equatorial direction, in K.
+
+Arguments
+---------
+ctime : array_like
+    Unix time in seconds UTC
+ra : array_like
+    Right ascension on the sky, in degrees.
+dec : array_like
+    Declination on the sky, in degrees
+
+Returns
+-------
+dipole : array_like
+    Dipole amplitude in K
+)doc")
+      .def("bore2dipole", &py_bore2dipole, py::arg("q_off"), py::arg("ctime"),
+           py::arg("q_bore"),
+           R"doc(
+CMB dipole timestream for a detector offset and boresight.
+
+Arguments
+---------
+q_off : quaternion
+    Detector offset quaternion for a single detector, calculated using
+    :meth:`det_offset`
+ctime : array_like
+    Array of unix times in seconds UTC
+q_bore : quaternion or array of quaternions
+    Array of quaternions encoding the boresight orientation on the sky
+    (as output by :meth:`azel2radec` or similar).  Broadcastable to the
+    same length as `ctime`.
+
+Returns
+-------
+dipole : array_like
+    Dipole amplitude in K
+)doc")
+      .def("bore_offset", &py_bore_offset, py::arg("q_bore"), py::arg("ang1"),
+           py::arg("ang2"), py::arg("ang3"), py::arg("post"),
+           R"doc(
+Apply a fixed or per-sample offset to a boresight quaternion.
+
+Arguments
+---------
+q_bore : array_like
+    boresight pointing quaternion
+ang1 : array_like, optional
+    Azimuthal or ra offset in degrees
+ang2 : array_like, optional
+    Elevation or dec offset in degrees
+ang3 : array_like, optional
+    Position angle offset in degrees
+post : bool, optional
+    If False, apply offset as an az/el/pa pre-rotation
+    If True, apply offset as an ra/dec/pa post-rotation
+
+Returns
+-------
+q_bore : array_like
+    Offset boresight quaternion
+)doc")
       // a method on Pointing for API parity, though it uses no state
+      .def(
+          "omega2azelpsi",
+          [](PointingWrap &, double init_az, double init_el, double init_psi,
+             py::object ox, py::object oy, py::object oz, double dt) {
+            return py_omega2azelpsi(init_az, init_el, init_psi, ox, oy, oz, dt);
+          },
+          py::arg("init_az"), py::arg("init_el"), py::arg("init_psi"),
+          py::arg("omega_x"), py::arg("omega_y"), py::arg("omega_z"),
+          py::arg("dt"),
+           R"doc(
+Integrate gyro rates into an az/el/psi attitude timestream.
+
+Arguments
+---------
+init_az : float
+    Initial azimuth in degrees.
+init_el : float
+    Initial elevation in degrees.
+init_psi : float
+    Initial rotation about the boresight in degrees.
+omega_x : array_like
+omega_y : array_like
+omega_z : array_like
+    Body-frame angular rates in degrees per second, of shape (N,).
+dt : array_like
+    See :meth:`qpoint2.QPoint.omega2azelpsi`.
+
+Returns
+-------
+az : array_like
+el : array_like
+psi : array_like
+    The integrated attitude in degrees, of shape (N,).
+)doc")
       .def("rotate_quat", &py_rotate_quat, py::arg("quat"), py::arg("to_gal"),
            R"doc(
 Rotate a quaternion between celestial and galactic coordinates.

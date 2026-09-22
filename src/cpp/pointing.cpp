@@ -25,6 +25,40 @@ Quat azelpsi_quat(double az, double el, double psi, double pitch,
   return q;
 }
 
+void quat_azelpsi(const Quat &q, double &az, double &el, double &psi) {
+  const double w = q[0], x = q[1], y = q[2], z = q[3];
+
+  const double sin_el_sq = x * x + y * y;
+  const double cos_el_sq = w * w + z * z;
+
+  const double s = std::atan2(z, w);
+  const double d = std::atan2(x, y);
+
+  az = s - d;
+  psi = s + d;
+
+  if (cos_el_sq > 1e-12)
+    el = 2.0 * std::atan(std::sqrt(sin_el_sq / cos_el_sq));
+  else
+    el = (sin_el_sq < 0.5) ? 0.0 : kPi;
+
+  el = kPiHalf - el;
+  psi = kPi - psi;
+
+  az = -rad2deg(az);
+  el = rad2deg(el);
+  psi = rad2deg(psi);
+
+  if (psi > 180.0)
+    psi -= 360.0;
+  else if (psi < -180.0)
+    psi += 360.0;
+
+  if (std::fabs(az) < 1e-12) az = 0.0;
+  if (std::fabs(el) < 1e-12) el = 0.0;
+  if (std::fabs(psi) < 1e-12) psi = 0.0;
+}
+
 namespace {
 
 // ---------------------------------------------------------------------------
@@ -519,6 +553,56 @@ namespace {
 constexpr double kDipoleRa = 167.923;
 constexpr double kDipoleDec = -6.947;
 }  // namespace
+
+double Pointing::cdist2dipole(double cdist, double ctime) const {
+  const double tcmb = 2.7255;             // Fixsen 2009
+  const double beta = 3364.5e-6 / tcmb;   // Planck 2015
+  const double vhelio = 0.00027;          // annual modulation
+  const double dipole_epoch = 2451170;
+
+  double out = tcmb * beta * (cdist + beta / 2. * (2 * cdist * cdist - 1));
+
+  double jd[2];
+  ctime2jd(ctime, jd);
+  const double delta = (jd[1] + (jd[0] - dipole_epoch)) / 365.25;
+  out += vhelio * (opt_.fast_math ? poly_cos(2 * kPi * delta)
+                                  : std::cos(2 * kPi * delta));
+  return out;
+}
+
+void Pointing::init_dipole() {
+  if (dipole_init_) return;
+  v_dipole_ = radecpa2quat(kDipoleRa, kDipoleDec, 0.).col3();
+  dipole_init_ = true;
+}
+
+double Pointing::quat2dipole(double ctime, const Quat &q) {
+  init_dipole();
+  return cdist2dipole(dot(v_dipole_, q.col3()), ctime);
+}
+
+double Pointing::dipole(double ctime, double ra, double dec) const {
+  const double dipole_phi = deg2rad(kDipoleRa);
+  const double dipole_theta = kPi / 2 - deg2rad(kDipoleDec);
+  const double sdtheta = std::sin(dipole_theta);
+  const double cdtheta = std::cos(dipole_theta);
+
+  const double theta = kPi / 2 - deg2rad(dec);
+  const double phi = deg2rad(ra);
+
+  double stheta, ctheta, cdphi;
+  if (opt_.fast_math) {
+    stheta = poly_sin(theta);
+    ctheta = poly_cos(theta);
+    cdphi = poly_cos(dipole_phi - phi);
+  } else {
+    stheta = std::sin(theta);
+    ctheta = std::cos(theta);
+    cdphi = std::cos(dipole_phi - phi);
+  }
+
+  return cdist2dipole(cdtheta * ctheta + sdtheta * stheta * cdphi, ctime);
+}
 
 Quat Pointing::bore2det(const Quat &q_off, double ctime, const Quat &q_bore) {
   Quat q_det = q_off;

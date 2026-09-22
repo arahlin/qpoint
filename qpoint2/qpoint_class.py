@@ -461,6 +461,53 @@ class QPoint(lib.Pointing):
         """
         return super().lmst(ctime, lon)
 
+    # ---- Dipole ----
+
+    @qp_settings
+    def dipole(self, ctime, ra, dec):
+        """
+        CMB dipole amplitude in the given equatorial direction, in K.
+
+        Arguments
+        ---------
+        ctime : array_like
+            Unix time in seconds UTC
+        ra : array_like
+            Right ascension on the sky, in degrees.
+        dec : array_like
+            Declination on the sky, in degrees
+
+        Returns
+        -------
+        dipole : array_like
+            Dipole amplitude in K
+        """
+        return super().dipole(ctime, ra, dec)
+
+    @qp_settings
+    def bore2dipole(self, q_off, ctime, q_bore):
+        """
+        CMB dipole timestream for a detector offset and boresight.
+
+        Arguments
+        ---------
+        q_off : quaternion
+            Detector offset quaternion for a single detector, calculated using
+            :meth:`det_offset`
+        ctime : array_like
+            Array of unix times in seconds UTC
+        q_bore : quaternion or array of quaternions
+            Array of quaternions encoding the boresight orientation on the sky
+            (as output by :meth:`azel2radec` or similar).  Broadcastable to the
+            same length as `ctime`.
+
+        Returns
+        -------
+        dipole : array_like
+            Dipole amplitude in K
+        """
+        return super().bore2dipole(q_off, ctime, q_bore)
+
     # ---- Quaternion construction ----
 
     def det_offset(self, delta_az, delta_el, delta_psi):
@@ -602,6 +649,85 @@ class QPoint(lib.Pointing):
             Nx4 numpy array of quaternions for each supplied timestamp.
         """
         return super().azel2bore(az, el, psi, pitch, roll, lon, lat, ctime)
+
+    def bore_offset(
+        self, q_bore, ang1=None, ang2=None, ang3=None, post=False, inplace=False
+    ):
+        """
+        Apply a fixed or per-sample offset to a boresight quaternion.
+
+        With post=False the angles are a detector offset; with post=True they
+        are ra/dec/pa applied in the sky frame.
+
+        Arguments
+        ---------
+        q_bore : array_like
+            boresight pointing quaternion
+        ang1 : array_like, optional
+            Azimuthal or ra offset in degrees
+        ang2 : array_like, optional
+            Elevation or dec offset in degrees
+        ang3 : array_like, optional
+            Position angle offset in degrees
+        post : bool, optional
+            If False, apply offset as an az/el/pa pre-rotation
+            If True, apply offset as an ra/dec/pa post-rotation
+        inplace : bool, optional
+            If True, apply the rotation in-place in memory.
+
+        Returns
+        -------
+        q_bore : array_like
+            Offset boresight quaternion
+        """
+        if ang1 is None and ang2 is None and ang3 is None:
+            raise ValueError("One of ang1, ang2, ang3 is required")
+
+        q_bore = np.asarray(q_bore, dtype=float)
+        if not inplace:
+            q_bore = np.array(q_bore)
+        q_bore = np.require(q_bore, float, ["C", "A", "W"])
+        super().bore_offset(q_bore, ang1, ang2, ang3, bool(post))
+        return q_bore
+
+    @qp_settings
+    def omega2azelpsi(
+        self, init_az, init_el, init_psi, omega_x, omega_y, omega_z, delta_t
+    ):
+        """
+        Integrate gyro rates into an az/el/psi attitude timestream.
+
+        Arguments
+        ---------
+        init_az : float
+            Initial azimuth in degrees.
+        init_el : float
+            Initial elevation in degrees.
+        init_psi : float
+            Initial rotation about the boresight in degrees.
+        omega_x : array_like
+        omega_y : array_like
+        omega_z : array_like
+            Body-frame angular rates in degrees per second, of shape (N,).
+        delta_t : float
+            Time step in seconds between consecutive rate samples.
+
+        Returns
+        -------
+        az : array_like
+        el : array_like
+        psi : array_like
+            The integrated attitude in degrees, of shape (N,).
+
+        Notes
+        -----
+        The integration carries the attitude quaternion from one sample to
+        the next, so unlike the rest of the surface this one is inherently
+        sequential.
+        """
+        return super().omega2azelpsi(
+            init_az, init_el, init_psi, omega_x, omega_y, omega_z, delta_t
+        )
 
     # ---- Coordinate conversion ----
 

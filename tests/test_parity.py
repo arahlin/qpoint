@@ -198,6 +198,88 @@ class TestPointing:
         assert_identical(ref, got, "lmst")
 
 
+OMEGA = np.random.default_rng(0).normal(size=(3, N)) * 0.01
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+@pytest.mark.parametrize("options", OPTIONS)
+class TestDipole:
+    def test_dipole(self, mod, options):
+        ref = qp(qpoint, **options).dipole(CTIME, RA, DEC)
+        got = qp(mod, **options).dipole(CTIME, RA, DEC)
+        assert_identical(ref, got, "dipole")
+
+    def test_bore2dipole(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            q, qb = bore(m, **options)
+            out.append(q.bore2dipole(q.det_offset(1.0, 2.0, 3.0), CTIME, qb))
+        assert_identical(out[0], out[1], "bore2dipole")
+
+    def test_scalar_matches_array(self, mod, options):
+        """The dipole is smooth, so a scalar direction must match element 0."""
+        q = qp(mod, **options)
+        assert identical(
+            q.dipole(CTIME[0], RA[0], DEC[0]),
+            np.asarray(q.dipole(CTIME, RA, DEC))[0],
+        )
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestOmega2AzElPsi:
+    @pytest.mark.parametrize("options", OPTIONS)
+    def test_matches_reference(self, mod, options):
+        args = (10.0, 45.0, 0.0, OMEGA[0], OMEGA[1], OMEGA[2], 0.01)
+        ref = tuple(qp(qpoint, **options).omega2azelpsi(*args))
+        got = tuple(qp(mod, **options).omega2azelpsi(*args))
+        assert_identical(ref, got, "omega2azelpsi")
+
+    def test_zero_rates_hold_position(self, mod):
+        zero = np.zeros(N)
+        az, el, psi = qp(mod).omega2azelpsi(10.0, 45.0, 0.0, zero, zero, zero, 0.01)
+        assert np.allclose(az, 10.0)
+        assert np.allclose(el, 45.0)
+        assert np.allclose(psi, 0.0)
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestBoreOffset:
+    @pytest.mark.parametrize("post", [False, True])
+    def test_matches_reference(self, mod, post):
+        out = []
+        for m in (qpoint, mod):
+            _, qb = bore(m)
+            out.append(qp(m).bore_offset(qb.copy(), 1.0, 2.0, 3.0, post=post))
+        assert_identical(out[0], out[1], "bore_offset")
+
+    @pytest.mark.parametrize("post", [False, True])
+    def test_per_sample_angles(self, mod, post):
+        out = []
+        for m in (qpoint, mod):
+            _, qb = bore(m)
+            out.append(qp(m).bore_offset(qb.copy(), RA / 100, DEC / 100, PA, post=post))
+        assert_identical(out[0], out[1], "bore_offset per-sample")
+
+    def test_no_angle_raises(self, mod):
+        _, qb = bore(mod)
+        with pytest.raises(ValueError, match="ang1"):
+            qp(mod).bore_offset(qb)
+
+    def test_inplace_defaults_off(self, mod):
+        """bore_offset is the one rotation that does not mutate by default."""
+        _, qb = bore(mod)
+        before = qb.copy()
+        qp(mod).bore_offset(qb, 1.0, 2.0, 3.0)
+        assert identical(qb, before)
+
+    def test_inplace_true_mutates(self, mod):
+        _, qb = bore(mod)
+        before = qb.copy()
+        out = qp(mod).bore_offset(qb, 1.0, 2.0, 3.0, inplace=True)
+        assert not np.array_equal(qb, before)
+        assert np.shares_memory(out, qb)
+
+
 # Option sets that matter for pixelization specifically.
 PIX_OPTIONS = [
     pytest.param({}, id="defaults"),

@@ -28,12 +28,14 @@ inline Quat hwp_quat(double ang) { return Quat::r3(-2. * deg2rad(ang)); }
 // Attitude quaternion from horizon angles, in degrees.
 Quat azelpsi_quat(double az, double el, double psi, double pitch, double roll);
 
+// Its inverse. Used by the gyro integration, which needs the round trip.
+void quat_azelpsi(const Quat &q, double &az, double &el, double &psi);
+
 // Atmospheric refraction in degrees, from the elevation and the weather.
 // Stateless, so it is a free function: Pointing::update_ref is the one that
 // reads the stored weather and caches the result.
 double refraction(double el, double temp, double press, double hum,
                   double freq);
-
 
 // The time conversions and the individual correction quaternions are
 // internal to pointing.cpp -- nothing outside it ever wanted one.
@@ -124,6 +126,10 @@ class Pointing {
   void gal2radec_quat(Quat &q);
 
 
+  // ---- CMB dipole ----
+  double dipole(double ctime, double ra, double dec) const;
+  double quat2dipole(double ctime, const Quat &q);
+
  private:
   UpdateState &state(Rate r, bool inv);
   const UpdateState &state(Rate r, bool inv) const;
@@ -139,6 +145,8 @@ class Pointing {
                double &p1, double *p2) const;
 
   void init_gal();
+  void init_dipole();
+  double cdist2dipole(double cdist, double ctime) const;
 
   std::array<UpdateState, kNumRates> fwd_ = kInitialRateStates;
   std::array<UpdateState, kNumRates> inv_ = kInitialRateStates;
@@ -156,6 +164,7 @@ class Pointing {
   Quat q_gal_{}, q_gal_inv_{};
   bool gal_init_ = false;
 
+  Vec3 v_dipole_{};
   bool dipole_init_ = false;
 
   Vec3 beta_earth_{}, beta_rot_{};
