@@ -229,6 +229,11 @@ void qp_print_memory(qp_memory_t *mem) {
   printf("[%d]  initialized: %s\n", thread, mem->init ? "yes" : "no");
 
   printf("[%d]  ===================================\n", thread);
+
+  /* Flush here: the caller is usually a Python session whose own output
+     goes through a different buffer, and leaving this one to be flushed at
+     exit puts the whole dump after whatever prompted it. */
+  fflush(stdout);
 }
 
 void qp_set_rates(qp_memory_t *mem,
