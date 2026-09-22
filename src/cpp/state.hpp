@@ -112,7 +112,12 @@ struct Options {
   int polconv = 0;
   int pix_order = 0;
   int interp_pix = 0;
-  int fast_pix = 0;
+  // On by default here, unlike the C. It takes the pixel from the pointing
+  // vector instead of going round through ra/dec, which is 26-34% of
+  // tod2map, and in qpoint2 it costs nothing: the polarization angles are
+  // bit-identical to the slow path, and the pixel differs only inside
+  // 2.1e-8 rad of a pole, where the fast path is the correct one.
+  int fast_pix = 1;
   int error_missing = 1;
   int nan_missing = 0;
   int interp_missing = 0;

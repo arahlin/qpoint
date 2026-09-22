@@ -31,7 +31,17 @@ void Pointing::quat2pix(Quat q, int nside, PolOut pmode, long &pix,
   else
     vec2pix_ring(nside, vec.data(), &pix);
 
-  pol_out(q, (1 - vec[2] * vec[2]) / 4., vec[2] > 0, pmode, p1, p2);
+  // cos^2(b) from the quaternion, exactly as quat2radec forms it, rather
+  // than as (1 - vec[2]*vec[2])/4 from the pointing vector. That
+  // subtraction cancels catastrophically near a pole, where vec[2] tends
+  // to +/-1, and it then divides the polarization angle -- worth 2e-10 in
+  // sin2psi and cos2psi within a degree of one. Feeding pol_out the same
+  // cos^2(b) the slow path uses makes the two bit-identical, since they
+  // already share everything after it. The C computes it the lossy way in
+  // five separate copies of this arithmetic, so this is a divergence.
+  const double q00p33 = q[0] * q[0] + q[3] * q[3];
+  const double q11p22 = q[1] * q[1] + q[2] * q[2];
+  pol_out(q, q00p33 * q11p22, q00p33 - q11p22 > 0, pmode, p1, p2);
 }
 
 void Pointing::pixel_offset(int nside, long pix, double ra, double dec,

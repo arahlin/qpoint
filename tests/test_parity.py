@@ -283,11 +283,17 @@ class TestBoreOffset:
 # Option sets that matter for pixelization specifically.
 PIX_OPTIONS = [
     pytest.param({}, id="defaults"),
-    pytest.param({"fast_pix": True}, id="fast-pix"),
     pytest.param({"pix_order": "nest"}, id="nest"),
-    pytest.param({"fast_pix": True, "pix_order": "nest"}, id="fast-pix-nest"),
     pytest.param({"fast_math": True}, id="fast-math"),
     pytest.param({"polconv": "iau"}, id="polconv-iau"),
+]
+
+# fast_pix is deliberately not in that list: qpoint2 computes it exactly
+# where the C does not, so it is checked against the two-step path it
+# approximates rather than against the C. See TestFastPix.
+FAST_PIX_ORDERS = [
+    pytest.param("ring", id="ring"),
+    pytest.param("nest", id="nest"),
 ]
 
 NSIDE = 128
@@ -358,6 +364,152 @@ class TestPixelization:
             res = q.bore2pix(q_off, CTIME, qb, q_hwp=q_hwp, nside=NSIDE, **kwargs)
             out.append(res if isinstance(res, tuple) else (res,))
         assert_identical(out[0], out[1], "bore2pix_hwp")
+
+
+class TestFastPix:
+    """
+    fast_pix takes the pixel straight from the pointing vector instead of
+    going round through ra/dec, so the thing it has to agree with is that
+    two-step path -- quat2radec then radec2pix -- and not the C, whose own
+    fast path is the less accurate of the two.
+
+    qpoint derives cos^2(b) for the polarization angle as
+    (1 - vec[2]**2) / 4, which cancels catastrophically approaching a pole
+    and is then divided by, costing 2e-10 in sin2psi and cos2psi within a
+    degree of one. qpoint2 takes it from the quaternion, as the slow path
+    does, which makes the two identical. The pixel itself was never
+    affected.
+    """
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    @pytest.mark.parametrize(
+        "kwargs",
+        [pytest.param({}, id="pol"), pytest.param({"pol": False}, id="no-pol")],
+    )
+    def test_quat2pix(self, order, kwargs):
+        """fast_pix=False is the two-step path, taken inside quat2pix."""
+        q = qp(qpoint2, pix_order=order)
+        quat = q.radecpa2quat(RA, DEC, PA)
+        slow = q.quat2pix(quat, nside=NSIDE, fast_pix=False, **kwargs)
+        fast = q.quat2pix(quat, nside=NSIDE, fast_pix=True, **kwargs)
+        assert_identical(tuple(slow), tuple(fast), "quat2pix fast vs two-step")
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_quat2pixpa_against_the_public_two_step(self, order):
+        """Here the two steps are separately reachable, so spell them out."""
+        q = qp(qpoint2, pix_order=order)
+        quat = q.radecpa2quat(RA, DEC, PA)
+        ra, dec, pa = q.quat2radecpa(quat)
+        want = (np.asarray(q.radec2pix(ra, dec, nside=NSIDE)), np.asarray(pa))
+        got = tuple(q.quat2pixpa(quat, nside=NSIDE, fast_pix=True))
+        assert_identical(want, got, "quat2pixpa fast vs quat2radecpa+radec2pix")
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="pol"),
+            pytest.param({"pol": False}, id="no-pol"),
+            pytest.param({"return_pa": True}, id="pa"),
+        ],
+    )
+    def test_bore2pix(self, order, kwargs):
+        q, qb = bore(qpoint2, pix_order=order)
+        off = q.det_offset(1.0, 2.0, 3.0)
+        slow = q.bore2pix(off, CTIME, qb, nside=NSIDE, fast_pix=False, **kwargs)
+        fast = q.bore2pix(off, CTIME, qb, nside=NSIDE, fast_pix=True, **kwargs)
+        assert_identical(tuple(slow), tuple(fast), "bore2pix fast vs two-step")
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_near_the_poles(self, order):
+        """
+        Where the cancellation bit: the old form lost 2e-10 in sin2psi and
+        cos2psi within a degree of a pole, and more the closer it got.
+        Those are exact now, at the pole itself included.
+
+        The pixel is a separate matter. Taking it from the pointing vector
+        rather than from ra/dec is the whole point of fast_pix, and within
+        about a microdegree of a pole the two routes land on adjacent
+        pixels -- 0 against 1 at nside 128. No choice of cos^2(b) changes
+        that, so the pixel is only required to match outside that sliver.
+        """
+        dec = np.array([90.0, -90.0, 89.999999, -89.999999, 89.99, -89.99, 89.9, 89.0])
+        ra = np.linspace(0.0, 350.0, len(dec))
+        pa = np.linspace(-170.0, 170.0, len(dec))
+        q = qp(qpoint2, pix_order=order)
+        quat = q.radecpa2quat(ra, dec, pa)
+        pix_s, sin_s, cos_s = q.quat2pix(quat, nside=NSIDE, fast_pix=False)
+        pix_f, sin_f, cos_f = q.quat2pix(quat, nside=NSIDE, fast_pix=True)
+        assert_identical((sin_s, cos_s), (sin_f, cos_f), "pol angle at the poles")
+        settled = np.abs(dec) <= 89.99
+        assert_identical(
+            np.asarray(pix_s)[settled],
+            np.asarray(pix_f)[settled],
+            "pixel away from the pole sliver",
+        )
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_the_fast_path_is_the_better_one_at_the_pole(self, order):
+        """
+        Inside theta < 2.1e-8 rad the two disagree, and it is the slow path
+        that is wrong: its cos(theta) rounds to exactly 1, which throws the
+        azimuth away and dumps every direction into pixel 0. The vector
+        keeps x and y, so fast_pix still lands in the right quadrant.
+
+        Hence no attempt to force agreement in there -- doing that would
+        mean adopting the worse answer. The azimuths here sit inside the
+        quadrants rather than on their boundaries, where the assignment is
+        a tie-break and tells you nothing.
+        """
+        ra = np.array(
+            [
+                15.0,
+                45.0,
+                75.0,
+                105.0,
+                135.0,
+                165.0,
+                195.0,
+                225.0,
+                255.0,
+                285.0,
+                315.0,
+                345.0,
+            ]
+        )
+        pa = np.full(len(ra), 17.0)
+        q = qp(qpoint2, pix_order=order)
+
+        def pix(theta, fast):
+            dec = np.full(len(ra), 90.0 - np.degrees(theta))
+            quat = q.radecpa2quat(ra, dec, pa)
+            return np.asarray(q.quat2pix(quat, nside=NSIDE, fast_pix=fast)[0])
+
+        # far enough out that no rounding is in play, so this is the truth
+        want = pix(1e-3, False)
+        assert len(np.unique(want)) == 4, "expected one pixel per quadrant"
+        assert_identical(want, pix(1e-3, True), "quadrants away from the pole")
+
+        for theta in (2e-8, 1e-8, 1e-12):
+            assert_identical(want, pix(theta, True), "fast_pix in the cap")
+            assert np.all(pix(theta, False) == want[0]), "slow path collapses"
+
+    def test_to_tod(self):
+        """The same, reached through map2tod's kernel."""
+        out = []
+        for fast in (False, True):
+            qm, off = qmap(qpoint2, fast_pix=fast)
+            qm.init_source(SOURCE_MAP, pol=True)
+            out.append(np.asarray(qm.to_tod(off)))
+        assert_identical(out[0], out[1], "to_tod fast vs two-step")
+
+    def test_from_tod(self):
+        """And through tod2map's."""
+        out = []
+        for fast in (False, True):
+            qm, off = qmap(qpoint2, nside=NSIDE_MAP, fast_pix=fast)
+            out.append([np.asarray(x) for x in qm.from_tod(off, tod=TOD.copy())])
+        assert_identical(tuple(out[0]), tuple(out[1]), "from_tod fast vs two-step")
 
 
 MAP_RNG = np.random.default_rng(0)
@@ -1114,7 +1266,6 @@ class TestMap2Tod:
             pytest.param({}, id="defaults"),
             pytest.param({"interp_pix": True}, id="interp"),
             pytest.param({"pix_order": "nest"}, id="nest"),
-            pytest.param({"fast_pix": True}, id="fast-pix"),
         ],
     )
     def test_to_tod(self, mod, options):
@@ -1962,8 +2113,21 @@ class TestParameterAPI:
         assert set(got) == {"weather", "accuracy"}
         assert ref == got
 
+    # fast_pix is on by default in qpoint2 and off in the C: there it loses
+    # precision in the polarization angle, here it does not, so there is no
+    # reason to make callers ask for it.
+    DEFAULT_DIVERGENCES = {"qpoint2": {"fast_pix": True}}
+
     def test_same_defaults(self, mod):
-        assert qpoint_defaults() == flat_params(mod)
+        want = qpoint_defaults()
+        want.update(self.DEFAULT_DIVERGENCES.get(mod.__name__, {}))
+        assert want == flat_params(mod)
+
+    def test_the_divergences_are_real(self, mod):
+        """Guards the exception list against going stale."""
+        for key, value in self.DEFAULT_DIVERGENCES.get(mod.__name__, {}).items():
+            assert qpoint_defaults()[key] != value, key
+            assert qp(mod).get(key) == value, key
 
     def test_same_default_types(self, mod):
         """
