@@ -360,6 +360,33 @@ class TestPixelization:
         assert_identical(out[0], out[1], "bore2pix_hwp")
 
 
+MAP_RNG = np.random.default_rng(0)
+INTERP_DEC = np.linspace(-85.0, 85.0, N)
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+@pytest.mark.parametrize("nest", [False, True])
+class TestInterpVal:
+    @pytest.mark.parametrize("nside", [16, 64])
+    def test_single_map(self, mod, nest, nside):
+        m = MAP_RNG.normal(size=12 * nside * nside)
+        ref = qp(qpoint).get_interp_val(m, RA, INTERP_DEC, nest=nest)
+        got = qp(mod).get_interp_val(m, RA, INTERP_DEC, nest=nest)
+        assert_identical(ref, got, "get_interp_val")
+
+    def test_multi_map(self, mod, nest):
+        m = MAP_RNG.normal(size=(3, 12 * 16 * 16))
+        ref = qp(qpoint).get_interp_val(m, RA, INTERP_DEC, nest=nest)
+        got = qp(mod).get_interp_val(m, RA, INTERP_DEC, nest=nest)
+        assert np.asarray(got).shape == (3, N)
+        assert_identical(ref, got, "get_interp_val multi")
+
+    def test_constant_map_interpolates_to_constant(self, mod, nest):
+        m = np.full(12 * 16 * 16, 2.5)
+        got = qp(mod).get_interp_val(m, RA, INTERP_DEC, nest=nest)
+        assert np.allclose(got, 2.5)
+
+
 @pytest.mark.parametrize("mod", IMPLS)
 @pytest.mark.parametrize("options", PIX_OPTIONS)
 class TestGalacticRotation:
@@ -412,6 +439,99 @@ class TestGalacticRotation:
                 )
             )
         assert_identical(out[0], out[1], "rotate_coord G->C")
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestRotateMap:
+
+    @staticmethod
+    def smooth_map(nside=32):
+        """Band-limited, so pixel resampling error stays small."""
+        hp = pytest.importorskip("healpy")
+        rng = np.random.default_rng(0)
+        npix = 12 * nside * nside
+        alms = tuple(hp.map2alm(rng.normal(size=npix), lmax=24) for _ in range(3))
+        return np.array(hp.alm2map(alms, nside))
+
+    @pytest.mark.parametrize("coord", [("C", "G"), ("G", "C")])
+    @pytest.mark.parametrize("interp", [True, False])
+    def test_matches_reference(self, mod, coord, interp):
+        m = self.smooth_map()
+        ref = np.asarray(qp(qpoint).rotate_map(m, coord=coord, interp_pix=interp))
+        got = np.asarray(qp(mod).rotate_map(m, coord=coord, interp_pix=interp))
+        assert_identical(ref, got, "rotate_map")
+
+    def test_nest_ordering(self, mod):
+        hp = pytest.importorskip("healpy")
+        m = np.array([hp.reorder(x, r2n=True) for x in self.smooth_map()])
+        ref = np.asarray(qp(qpoint, pix_order="nest").rotate_map(m))
+        got = np.asarray(qp(mod, pix_order="nest").rotate_map(m))
+        assert_identical(ref, got, "rotate_map nest")
+
+    @pytest.mark.parametrize("coord", [("C", "G"), ("G", "C")])
+    def test_matches_healpy(self, mod, coord):
+        """Interpolated rotation should agree with healpy's own."""
+        hp = pytest.importorskip("healpy")
+        m = self.smooth_map()
+        got = np.asarray(qp(mod).rotate_map(m, coord=coord, interp_pix=True))
+        ref = np.asarray(hp.Rotator(coord=list(coord)).rotate_map_pixel(m))
+        assert np.allclose(got, ref, rtol=0, atol=1e-5)
+
+    def test_round_trip_is_lossy_like_healpy(self, mod):
+        """
+        Pixel-space rotation does not invert. That is inherent, not a bug:
+        healpy loses the same amount, so pin them against each other rather
+        than against the input.
+        """
+        hp = pytest.importorskip("healpy")
+        m = self.smooth_map()
+        q = qp(mod)
+        back = np.asarray(
+            q.rotate_map(
+                np.asarray(q.rotate_map(m, coord=("C", "G"))), coord=("G", "C")
+            )
+        )
+        hg = hp.Rotator(coord=["C", "G"]).rotate_map_pixel(m)
+        hback = np.asarray(hp.Rotator(coord=["G", "C"]).rotate_map_pixel(hg))
+        assert not np.allclose(back, m, atol=1e-3)  # genuinely lossy
+        assert np.allclose(back, hback, rtol=0, atol=1e-5)  # but lossy the same way
+
+    @pytest.mark.parametrize("nrow", [1, 2, 4])
+    def test_rejects_wrong_row_count(self, mod, nrow):
+        """Fewer than three rows used to read off the end and segfault."""
+        npix = 12 * 16 * 16
+        with pytest.raises(ValueError, match="3 rows"):
+            qp(mod).rotate_map(np.ones((nrow, npix)))
+
+    @pytest.mark.parametrize("coord", [("C", "E"), ("X", "G"), (1, 2)])
+    def test_unrecognized_coord_raises(self, mod, coord):
+        """Used to return an all-zero map, silently destroying the input."""
+        with pytest.raises(ValueError):
+            qp(mod).rotate_map(self.smooth_map(), coord=coord)
+
+    @pytest.mark.parametrize("coord", [("c", "g"), ("C", "g"), ("g", "C")])
+    def test_coord_is_case_insensitive(self, mod, coord):
+        m = self.smooth_map()
+        upper = tuple(c.upper() for c in coord)
+        ref = np.asarray(qp(mod).rotate_map(m, coord=upper))
+        got = np.asarray(qp(mod).rotate_map(m, coord=coord))
+        assert_identical(ref, got, "rotate_map case")
+
+    def test_no_warning(self, mod):
+        """The blanket "this code is buggy" warning is gone."""
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            qp(mod).rotate_map(self.smooth_map(), coord=("C", "G"))
+
+    @pytest.mark.parametrize("coord", [("C", "C"), ("G", "G"), ("c", "c")])
+    def test_same_coord_returns_the_input(self, mod, coord):
+        """Also used to return zeros. Passes the map straight through now."""
+        m = self.smooth_map()
+        out = qp(mod).rotate_map(m, coord=coord)
+        assert identical(out, m)
+        assert np.shares_memory(out, m)
 
 
 @pytest.mark.parametrize("mod", IMPLS)
@@ -486,6 +606,85 @@ class TestQpSettingsIsPublic:
         assert q.which() == "low"
         assert q.which(accuracy="high") == "high"
         assert q.get("accuracy") == qp(qpoint2).get("accuracy")
+
+
+class TestLengthOneArraysKeepTheirAxis:
+    """
+    A deliberate divergence, and the one place the packages disagree on
+    shape rather than on numbers.
+
+    qpoint2 decides from how the arguments arrived: a true scalar (or a
+    0-d array) degrades, an array keeps its axis even at length one. That
+    cannot be read off the output, which is length one either way, so
+    qpoint -- which decides from the output size -- cannot tell `f(1.0)`
+    from `f(np.array([1.0]))` and collapses both.
+
+    qpoint is not consistent about it either, which is the other reason to
+    diverge: it keeps the axis for azel2radec, bore2pix and radec2azel and
+    drops it for the six below. The values are identical throughout; only
+    the shape differs.
+    """
+
+    NAMES = ["gmst", "lmst", "dipole", "bore2radec", "det_offset", "radec2gal"]
+    ONE = np.array([CTIME[0]])
+
+    def calls(self, mod):
+        q = qp(mod)
+        qb = np.atleast_2d(
+            q.azel2bore(45.0, 45.0, None, None, LON[0], LAT[0], CTIME[0])
+        )
+        q_off = q.det_offset(0.0, 0.0, 0.0)
+        return {
+            "gmst": lambda: q.gmst(self.ONE),
+            "lmst": lambda: q.lmst(self.ONE, LON[:1]),
+            "dipole": lambda: q.dipole(self.ONE, RA[:1], DEC[:1]),
+            "bore2radec": lambda: q.bore2radec(q_off, self.ONE, qb),
+            "det_offset": lambda: q.det_offset(
+                np.array([1.0]), np.array([2.0]), np.array([3.0])
+            ),
+            # copies: radec2gal rotates in place, and these are slices of
+            # the module-level arrays every other test reads
+            "radec2gal": lambda: q.radec2gal(
+                RA[:1].copy(), DEC[:1].copy(), PA[:1].copy()
+            ),
+        }
+
+    @pytest.mark.parametrize("name", NAMES)
+    def test_qpoint2_keeps_the_axis(self, name):
+        got = self.calls(qpoint2)[name]()
+        for part in got if isinstance(got, tuple) else (got,):
+            arr = np.asarray(part)
+            assert arr.ndim >= 1 and arr.shape[0] == 1, (name, arr.shape)
+
+    @pytest.mark.parametrize("name", NAMES)
+    def test_the_divergence_is_real(self, name):
+        """Guards the list above: qpoint really does collapse each of these."""
+        ref = self.calls(qpoint)[name]()
+        first = ref[0] if isinstance(ref, tuple) else ref
+        assert np.asarray(first).shape in ((), (4,)), (name, np.shape(first))
+
+    @pytest.mark.parametrize("name", NAMES)
+    def test_only_the_shape_differs(self, name):
+        """The numbers are still bit-identical, which is the point."""
+        ref, got = self.calls(qpoint)[name](), self.calls(qpoint2)[name]()
+        ref = ref if isinstance(ref, tuple) else (ref,)
+        got = got if isinstance(got, tuple) else (got,)
+        for r, g in zip(ref, got):
+            assert_identical(np.ravel(r), np.ravel(g), name)
+
+    @pytest.mark.parametrize("mod", IMPLS)
+    @pytest.mark.parametrize("name", ["gmst", "lmst", "dipole"])
+    def test_true_scalars_still_agree(self, mod, name):
+        """Where the input is genuinely scalar, the two still match exactly."""
+        args = {
+            "gmst": (CTIME[0],),
+            "lmst": (CTIME[0], LON[0]),
+            "dipole": (CTIME[0], RA[0], DEC[0]),
+        }[name]
+        ref = getattr(qp(qpoint), name)(*args)
+        got = getattr(qp(mod), name)(*args)
+        assert np.ndim(ref) == np.ndim(got) == 0, name
+        assert_identical(ref, got, name)
 
 
 @pytest.mark.parametrize("mod", IMPLS)

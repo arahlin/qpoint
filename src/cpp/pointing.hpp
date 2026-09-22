@@ -125,6 +125,12 @@ class Pointing {
   void radec2gal_quat(Quat &q);
   void gal2radec_quat(Quat &q);
 
+  // Rotate a sky position and its polarization basis in place.
+  void rotate_coord(double &ra, double &dec, double &sin2psi, double &cos2psi,
+                    bool to_gal);
+
+  // Sky coordinates of a pixel centre, in degrees.
+  void pix2radec(int nside, long pix, double &ra, double &dec) const;
 
   // ---- CMB dipole ----
   double dipole(double ctime, double ra, double dec) const;

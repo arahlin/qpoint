@@ -1015,6 +1015,111 @@ py::object py_bore2pix(PointingWrap &w, py::object q_off, py::object ctime,
                  });
 }
 
+// The ring table is built once per call and shared across the loop, rather
+// than rebuilt per sample as qp_get_interp_valn does.
+py::object py_get_interp_val(PointingWrap &w, int nside, py::object map,
+                             py::object ra, py::object dec) {
+  auto rmap = parse_col(map, "map");
+  if (!rmap.ptr) throw py::value_error("map must be an array");
+  const long npix = ::nside2npix(nside);
+  if (rmap.len != npix)
+    throw py::value_error("map has length " + std::to_string(rmap.len) +
+                          ", expected " + std::to_string(npix) +
+                          " for nside " + std::to_string(nside));
+
+  ColSet cs;
+  auto &vra = cs.add(ra, "ra");
+  auto &vdec = cs.add(dec, "dec");
+  const auto n = cs.resolve();
+  const bool nest = w.core.opt().pix_order == 1;
+
+  // One ring table for the whole call, rather than one per sample as
+  // qp_get_interp_valn does.
+  const PixInfo pixinfo(nside);
+  return vec_out<1>(n, [&](py::ssize_t i, auto &o) {
+    o[0][i] = pixinfo.interp_val(rmap.ptr, vra[i], vdec[i], nest);
+  });
+}
+
+// Resample a polarized map into another coordinate frame.
+//
+// For each output pixel: take its direction, rotate backwards to find where
+// it came from, read T/Q/U there, then rotate the polarization basis
+// forwards. Matches healpy's Rotator.rotate_map_pixel to ~5e-7 with
+// interpolation on.
+//
+// Unlike the C, this checks the row count. qp_rotate_map dereferences
+// map_in[1] and map_in[2] unconditionally, so a T-only map reads past the
+// end of the row table and segfaults.
+py::object py_rotate_map(PointingWrap &w, int nside, py::object map_in,
+                         bool to_gal) {
+  MapArray in = parse_map(map_in, "map_in", false);
+  if (!in.ptr) throw py::value_error("map_in is required");
+  if (in.nrow != 3)
+    throw py::value_error(
+        "rotate_map needs a polarized map with exactly 3 rows (T, Q, U), got " +
+        std::to_string(in.nrow));
+
+  const long npix = ::nside2npix(nside);
+  if (static_cast<long>(in.npix) != npix)
+    throw py::value_error("map_in has " + std::to_string(in.npix) +
+                          " pixels, expected " + std::to_string(npix) +
+                          " for nside " + std::to_string(nside));
+
+  const double *ti = in.ptr, *qi = in.ptr + npix, *ui = in.ptr + 2 * npix;
+  py::array_t<double> out({py::ssize_t(3), py::ssize_t(npix)});
+  double *to = out.mutable_data();
+  std::memset(to, 0, static_cast<std::size_t>(3 * npix) * sizeof(double));
+  double *qo = to + npix, *uo = to + 2 * npix;
+
+  const bool interp = w.core.opt().interp_pix;
+  const bool nest = w.core.opt().pix_order == 1;
+  {
+    py::gil_scoped_release nogil;
+    std::optional<PixInfo> pixinfo;
+    if (interp) pixinfo.emplace(nside);
+
+    for (long ii = 0; ii < npix; ++ii) {
+      double ra, dec;
+      w.core.pix2radec(nside, ii, ra, dec);
+      double sin2psi = 0., cos2psi = 1.;
+
+      // backwards, to the direction this pixel came from
+      w.core.rotate_coord(ra, dec, sin2psi, cos2psi, !to_gal);
+
+      double t, q, u;
+      if (interp) {
+        long pix[4];
+        double wt[4];
+        pixinfo->interpol(ra, dec, nest, pix, wt);
+        t = q = u = 0;
+        for (int jj = 0; jj < 4; ++jj) {
+          t += ti[pix[jj]] * wt[jj];
+          q += qi[pix[jj]] * wt[jj];
+          u += ui[pix[jj]] * wt[jj];
+        }
+      } else {
+        const long pix = w.core.radec2pix(ra, dec, nside);
+        t = ti[pix];
+        q = qi[pix];
+        u = ui[pix];
+      }
+
+      if (t == 0 && q == 0 && u == 0) continue;
+
+      // forwards, for the polarization basis at the source position
+      sin2psi = 0.;
+      cos2psi = 1.;
+      w.core.rotate_coord(ra, dec, sin2psi, cos2psi, to_gal);
+
+      to[ii] = t;
+      qo[ii] = q * cos2psi + u * sin2psi;
+      uo[ii] = u * cos2psi - q * sin2psi;
+    }
+  }
+  return std::move(out);
+}
+
 // ---------------------------------------------------------------------------
 // Galactic rotation, all in place
 // ---------------------------------------------------------------------------
@@ -2280,6 +2385,47 @@ az : array_like
 el : array_like
 psi : array_like
     The integrated attitude in degrees, of shape (N,).
+)doc")
+      .def("get_interp_val", &py_get_interp_val, py::arg("nside"),
+           py::arg("map"), py::arg("ra"), py::arg("dec"),
+           R"doc(
+Bilinearly interpolate a map at the given sky coordinates.
+
+Arguments
+---------
+ra : array_like
+    Right ascension in degrees, of shape (N,).
+dec : array_like
+    Declination in degrees, of shape (N,).
+nside : array_like
+    See :meth:`qpoint2.QPoint.get_interp_val`.
+map : array_like
+    See :meth:`qpoint2.QPoint.get_interp_val`.
+
+Returns
+-------
+val : array_like
+    Bilinearly interpolated map values, of shape (N,) for one map or
+    (nmap, N) for several. A single sample degrades to a scalar.
+)doc")
+      .def("rotate_map", &py_rotate_map, py::arg("nside"),
+           py::arg("map_in"), py::arg("to_gal"),
+           R"doc(
+Resample a polarized (3, npix) map into another coordinate frame.
+
+Arguments
+---------
+map_in : array_like
+    Input map, of shape (3, N)
+nside : array_like
+    See :meth:`qpoint2.QPoint.rotate_map`.
+to_gal : array_like
+    See :meth:`qpoint2.QPoint.rotate_map`.
+
+Returns
+-------
+map_out : array_like
+    Rotated output map.
 )doc")
       .def("rotate_quat", &py_rotate_quat, py::arg("quat"), py::arg("to_gal"),
            R"doc(

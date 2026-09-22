@@ -1126,6 +1126,48 @@ class QPoint(lib.Pointing):
         pix, sin2psi, cos2psi = out
         return (pix, sin2psi, cos2psi) if pol else pix
 
+    def get_interp_val(self, map_in, ra, dec, nest=False):
+        """
+        Bilinearly interpolate a map at the given sky coordinates.
+
+        Arguments
+        ---------
+        map_in : array_like
+            A map of shape (npix,), or a set of maps of shape (nmap, npix).
+            nside is taken from the length.
+        ra : array_like
+            Right ascension in degrees, of shape (N,).
+        dec : array_like
+            Declination in degrees, of shape (N,).
+        nest : bool, optional
+            If True, the map is in nested pixel ordering rather than ring.
+
+        Returns
+        -------
+        val : array_like
+            Bilinearly interpolated map values, of shape (N,) for one map or
+            (nmap, N) for several. A single sample degrades to a scalar.
+
+        Notes
+        -----
+        The ring table is built once per call and shared across the samples,
+        rather than rebuilt per sample as qp_get_interp_valn does.
+        """
+        from .qmap_class import check_map
+
+        with self.settings(pix_order="nest" if nest else "ring"):
+            map_in, nside = check_map(map_in)
+            vals = [
+                super(QPoint, self).get_interp_val(nside, m, ra, dec) for m in map_in
+            ]
+        # The binding already decided the sample axis -- a scalar for scalar
+        # coordinates, (N,) for arrays -- so only the map axis is left, and
+        # squeezing here would undo that decision for a single map at one
+        # sample.
+        if len(vals) == 1:
+            return vals[0]
+        return np.array(vals)
+
     # ---- Galactic rotation ----
 
     @qp_settings
@@ -1309,6 +1351,53 @@ class QPoint(lib.Pointing):
         else:
             raise ValueError("Unsupported coord: {}".format(coord))
         return fn(ra, dec, pa=pa, sin2psi=sin2psi, cos2psi=cos2psi, inplace=inplace)
+
+    @qp_settings(interp_pix=True)
+    def rotate_map(self, map_in, coord=("C", "G")):
+        """
+        Resample a polarized (3, npix) map into another coordinate frame.
+
+        Coordinate names are case-insensitive. If the two match, the input
+        map is returned unchanged.
+
+        This is a pixel-space rotation, so it is lossy: rotating there and
+        back does not recover the input. healpy's Rotator.rotate_map_pixel
+        loses exactly as much. Rotate the alms instead if that matters.
+
+        Arguments
+        ---------
+        map_in : array_like
+            Input map, of shape (3, N)
+        coord : list, optional
+            2-element list of input and output coordinates.
+            Supported systems: C, G.  Case-insensitive.  If the two match,
+            the input map is returned unchanged.
+        interp_pix : bool, optional
+            If True, interpolate the rotated map.
+
+        Returns
+        -------
+        map_out : array_like
+            Rotated output map.
+
+        Notes
+        -----
+        Only full-sky maps are currently supported.
+        """
+        from .qmap_class import check_map
+
+        try:
+            coord_in, coord_out = (str(c).upper() for c in (coord[0], coord[1]))
+        except Exception:
+            raise ValueError("unable to parse coord")
+        for c in (coord_in, coord_out):
+            if c not in ("C", "G"):
+                raise ValueError("Unsupported coord: {!r}".format(coord))
+
+        map_in, nside = check_map(map_in)
+        if coord_in == coord_out:
+            return map_in
+        return super().rotate_map(nside, map_in, coord_in == "C")
 
     # ---- IERS Bulletin A ----
 

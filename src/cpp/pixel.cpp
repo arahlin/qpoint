@@ -66,4 +66,24 @@ void Pointing::gal2radec_quat(Quat &q) {
   mul_left(q_gal_, q);
 }
 
+void Pointing::rotate_coord(double &ra, double &dec, double &sin2psi,
+                            double &cos2psi, bool to_gal) {
+  Quat q = radec2quat(ra, dec, sin2psi, cos2psi);
+  if (to_gal)
+    radec2gal_quat(q);
+  else
+    gal2radec_quat(q);
+  quat2radec(q, DecOut::Dec, PolOut::SinCos, ra, dec, sin2psi, &cos2psi);
+}
+
+void Pointing::pix2radec(int nside, long pix, double &ra, double &dec) const {
+  double theta, phi;
+  if (opt_.pix_order == 1)
+    pix2ang_nest(nside, pix, &theta, &phi);
+  else
+    pix2ang_ring(nside, pix, &theta, &phi);
+  dec = rad2deg(kPiHalf - theta);
+  ra = rad2deg(phi);
+}
+
 }  // namespace qp
