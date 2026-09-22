@@ -62,8 +62,13 @@ Quaternion_rot(Quaternion q, double angle, const double v[3])
   double angle_2 = 0.5*angle;
   double s = sin(angle_2);
   double norm = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-  if (norm <= 0.)
+  if (norm <= 0.) {
+    /* No axis, so no rotation.  Still an error for anyone who checks, but
+       the quaternion is left usable either way: both callers here ignore
+       the return, and one of them would otherwise multiply by garbage. */
+    Quaternion_identity(q);
     return 1;
+  }
   q[0] = cos(angle_2);
   q[1] = s*v[0]/norm;
   q[2] = s*v[1]/norm;
