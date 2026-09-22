@@ -19,6 +19,8 @@
 
 #include "cpp/cshims.hpp"
 #include "cpp/error.hpp"
+#include "cpp/map.hpp"
+#include "cpp/pixinfo.hpp"
 #include "cpp/pointing.hpp"
 #include "cpp/quat.hpp"
 #include "cpp/span.hpp"
@@ -251,6 +253,33 @@ Span<T> out_span(const py::handle &o, const char *name, py::ssize_t n) {
                           std::to_string(have) + ", expected " +
                           std::to_string(n));
   return {reinterpret_cast<T *>(a.mutable_data()), static_cast<size_t>(n)};
+}
+
+struct MapArray {
+  double *ptr = nullptr;
+  std::size_t nrow = 0;
+  std::size_t npix = 0;
+  py::object keep;
+};
+
+MapArray parse_map(const py::handle &o, const char *name, bool need_write) {
+  MapArray r;
+  if (o.is_none() || (py::isinstance<py::bool_>(o) && !o.cast<bool>()))
+    return r;
+  py::array a = as_array(o, name);
+  if (a.ndim() != 2)
+    throw py::value_error(std::string(name) +
+                          " must have shape (nrow, npix), got " + shape_str(a));
+  if (need_write && !(a.flags() & py::detail::npy_api::NPY_ARRAY_WRITEABLE_))
+    throw py::value_error(std::string(name) +
+                          " must be writeable; it is accumulated into");
+  r.nrow = static_cast<std::size_t>(a.shape(0));
+  r.npix = static_cast<std::size_t>(a.shape(1));
+  // tod2map only reads the source map, so a read-only buffer is fine there.
+  r.ptr = static_cast<double *>(
+      const_cast<void *>(static_cast<const void *>(a.data())));
+  r.keep = std::move(a);
+  return r;
 }
 
 // Output conventions: a call made entirely of scalars degrades to a scalar,
@@ -1039,12 +1068,599 @@ void py_rotate_coord(PointingWrap &w, py::object ra, py::object dec,
 // keeps. The core structs hold only non-owning spans.
 // ---------------------------------------------------------------------------
 
+bool is_false(const py::handle &o) {
+  return py::isinstance<py::bool_>(o) && !o.cast<bool>();
+}
+
+// chealpix's npix2nside uses an integer sqrt and returns -1 when npix is
+// not 12*nside^2, so this is exact where a float sqrt would not be.
+long checked_npix2nside(py::ssize_t npix) {
+  const long n = ::npix2nside(static_cast<long>(npix));
+  if (n < 0) throw py::value_error("Invalid npix, must be 12 * nside**2");
+  return n;
+}
+
+// Mirrors qmap_class.check_map: a C-contiguous float64 (nrow, npix)
+// array. A 1-D map becomes one row.
+//
+// Row count of whichever mode, so one template can serve both components.
+std::size_t mode_rows(VecMode m) { return num_vec(m); }
+std::size_t mode_rows(ProjMode m) { return num_proj(m); }
+
+// map.hpp owns the mode <-> row-count table; these two add the Python-facing
+// error, which the core has no business raising.
+VecMode infer_vec_mode(std::size_t nrow, bool pol, bool vpol) {
+  const VecMode m = vec_mode_for(nrow, pol, vpol);
+  if (m == VecMode::None)
+    throw py::value_error("Cannot infer vec mode from " + std::to_string(nrow) +
+                          " map rows");
+  return m;
+}
+
+ProjMode infer_proj_mode(std::size_t nrow) {
+  const ProjMode m = proj_mode_for(nrow);
+  if (m == ProjMode::None)
+    throw py::value_error("Cannot infer proj mode from " +
+                          std::to_string(nrow) + " projection rows");
+  return m;
+}
+
+class MapWrap {
+ public:
+  Map core;
+  bool inited = false;
+
+  // Each of vec and proj takes a map, None to allocate one of zeros, or
+  // False for a map with no such component -- a source map has no
+  // projection, and a dest map can accumulate either alone.
+  //
+  // A supplied map fixes npix, and its row count fixes the mode. A default
+  // is sized from the other component when there is one, so the two always
+  // describe the same number of map components, and from pol/vpol when
+  // there isn't.
+  void setup(py::object vec, py::object proj, py::object pixels,
+             py::object nside, bool pol, bool vpol) {
+    reset();
+    pol_ = pol;
+    vpol_ = vpol;
+
+    const bool want_vec = !is_false(vec);
+    const bool want_proj = !is_false(proj);
+    if (!want_vec && !want_proj)
+      throw py::value_error("one of vec or proj must not be False");
+
+    const bool partial = !pixels.is_none();
+    if (partial && nside.is_none())
+      throw py::value_error("nside required for partial maps");
+
+    const py::ssize_t expect_npix = partial ? py::len(pixels) : 0;
+
+    MapArray v, p;
+    const bool vec_given = want_vec && !vec.is_none();
+    const bool proj_given = want_proj && !proj.is_none();
+    if (vec_given) v = parse_map(vec, "vec", false);
+    if (proj_given) p = parse_map(proj, "proj", false);
+    if (vec_given && proj_given && v.npix != p.npix)
+      throw py::value_error("vec and proj must have the same npix");
+
+    // npix and nside, from whichever of a supplied map, the pixel list or
+    // nside is available. The 256 default is the documented API default.
+    if (vec_given || proj_given) {
+      core.npix = vec_given ? v.npix : p.npix;
+      core.nside =
+          nside.is_none() ? static_cast<std::size_t>(checked_npix2nside(
+                                static_cast<py::ssize_t>(core.npix)))
+                          : nside.cast<std::size_t>();
+    } else {
+      core.nside = nside.is_none() ? 256 : nside.cast<std::size_t>();
+      core.npix = partial ? static_cast<std::size_t>(expect_npix)
+                          : static_cast<std::size_t>(
+                                nside2npix(static_cast<long>(core.nside)));
+    }
+
+    // A partial map is the one case a shape cannot be judged on its own --
+    // a (3, 2) map of two pixels is taller than it is wide and still right
+    // -- so the pixel list is what catches a transposed one.
+    if (partial && core.npix != static_cast<std::size_t>(expect_npix))
+      throw py::value_error(
+          "partial map has " + std::to_string(core.npix) + " columns for " +
+          std::to_string(expect_npix) + " pixels");
+
+    if (want_vec) {
+      // p.nrow is 0 unless a proj was supplied, in which case the default
+      // vec follows it rather than pol/vpol.
+      if (!vec_given) v = parse_map(zeros_map(vec_rows(p.nrow)), "vec", false);
+      core.vec_mode = infer_vec_mode(v.nrow, pol, vpol);
+      core.vec = v.ptr;
+      vec_keep_ = std::move(v.keep);
+    }
+    if (want_proj) {
+      if (!proj_given)
+        p = parse_map(zeros_map(proj_rows(v.nrow)), "proj", false);
+      core.proj_mode = infer_proj_mode(p.nrow);
+      core.proj = p.ptr;
+      proj_keep_ = std::move(p.keep);
+    }
+
+    if (partial) {
+      py::array a = py::cast<py::array>(pixels);
+      if (!a.dtype().is(py::dtype::of<long>()))
+        throw py::type_error("pixels must be an int64 array");
+      if (!(a.flags() & py::array::c_style))
+        throw py::value_error("pixels must be C-contiguous");
+      pixhash_.emplace(Span<const long>{static_cast<const long *>(a.data()),
+                                        static_cast<std::size_t>(a.size())});
+      core.pixhash = &pixhash_.value();
+      pix_keep_ = std::move(a);
+    }
+
+    inited = true;
+  }
+
+  // The same three argument forms as setup, against an initialized map:
+  // a map replaces the installed buffer and must match its shape, since
+  // re-deciding the mode would change what the kernels read out from under
+  // a half-filled accumulator; None installs a fresh map of zeros; False
+  // disables the component.
+  void update_vec(py::object arr) {
+    update_component(arr, "vec", core.vec, core.vec_mode, vec_keep_,
+                     core.has_proj(), vec_rows(num_proj(core.proj_mode)),
+                     [&](std::size_t nrow) {
+                       return infer_vec_mode(nrow, pol_, vpol_);
+                     });
+  }
+
+  void update_proj(py::object arr) {
+    update_component(arr, "proj", core.proj, core.proj_mode, proj_keep_,
+                     core.has_vec(), proj_rows(num_vec(core.vec_mode)),
+                     infer_proj_mode);
+  }
+
+  void reset() {
+    core = Map();
+    pol_ = true;
+    vpol_ = false;
+    vec_keep_ = py::none();
+    proj_keep_ = py::none();
+    pix_keep_ = py::none();
+    pixhash_.reset();
+    pixinfo_.reset();
+    inited = false;
+  }
+
+  // Called before entering a parallel region. PixInfo fills its ring table
+  // lazily, which mutates the cache on read, so it must be populated up
+  // front before threads share it.
+  void ensure_pixinfo() {
+    if (!pixinfo_) {
+      pixinfo_ = std::make_unique<PixInfo>(static_cast<long>(core.nside));
+      core.pixinfo = pixinfo_.get();
+    }
+    pixinfo_->populate();
+  }
+
+  py::object get_vec() const { return vec_keep_; }
+  py::object get_proj() const { return proj_keep_; }
+  bool is_init() const { return inited; }
+  bool is_partial() const { return core.partial(); }
+  bool has_vec() const { return core.has_vec(); }
+  bool has_proj() const { return core.has_proj(); }
+  // What the map contains, which is a different question from the one the
+  // kernels ask. at_least(vec_mode, Pol) is an ordering test over an enum
+  // that interleaves the derivative modes, so it calls D1 and D2
+  // polarized; and a dest can be proj-only, with no vec mode to read at
+  // all, so the proj has to answer when the vec cannot.
+  bool is_pol() const {
+    return is_polarized(core.vec_mode) ||
+           at_least(core.proj_mode, ProjMode::Pol);
+  }
+  bool is_vpol() const {
+    return core.vec_mode == VecMode::VPol || core.proj_mode == ProjMode::VPol;
+  }
+
+ private:
+  // update_vec and update_proj are the same three branches over different
+  // members. other_present is whether the map would still have a component
+  // after this one is switched off; deflt is the shape to allocate when it
+  // is switched back on.
+  template <class Mode, class Infer>
+  void update_component(py::object arr, const char *name, double *&ptr,
+                        Mode &mode, py::object &keep, bool other_present,
+                        std::size_t deflt, Infer &&infer) {
+    if (is_false(arr)) {
+      if (!other_present)
+        throw py::value_error("one of vec or proj must not be False");
+      ptr = nullptr;
+      mode = Mode::None;
+      keep = py::none();
+      return;
+    }
+
+    const bool present = ptr != nullptr && mode != Mode::None;
+    if (arr.is_none()) {
+      // At the installed shape, or the one the mode implies when the
+      // component is switched off. Replacing the buffer rather than
+      // zeroing it leaves whatever the caller still holds alone.
+      arr = zeros_map(present ? mode_rows(mode) : deflt);
+    }
+
+    MapArray a = parse_map(arr, name, false);
+    if (a.npix != core.npix || (present && a.nrow != mode_rows(mode)))
+      throw py::value_error(std::string(name) +
+                            " shape does not match the existing map");
+    mode = infer(a.nrow);
+    ptr = a.ptr;
+    keep = std::move(a.keep);
+  }
+
+  // Zeros at the map's pixel count, ready for parse_map: numpy hands back
+  // a C-contiguous float64 block, and zeros() is what the Python layer
+  // used to allocate here.
+  py::object zeros_map(std::size_t nrow) const {
+    py::module_ np = py::module_::import("numpy");
+    return np.attr("zeros")(py::make_tuple(nrow, core.npix));
+  }
+
+  // Rows of a default component. Passing the other component's row count
+  // matches the two up -- an N-component map has N vec rows and
+  // N*(N+1)/2 proj rows -- and 0 means there is no other component to
+  // follow, so pol/vpol as given to setup decide.
+  std::size_t vec_rows(std::size_t nproj) const {
+    if (const std::size_t n = num_vec_for_proj(nproj)) return n;
+    return vpol_ ? 4 : pol_ ? 3 : 1;
+  }
+
+  std::size_t proj_rows(std::size_t nvec) const {
+    if (const std::size_t n = num_proj_for_vec(nvec)) return n;
+    return vpol_ ? 10 : pol_ ? 6 : 1;
+  }
+
+  // As passed to setup, so a component re-enabled later is sized the way
+  // the caller asked for originally. The installed modes cannot stand in:
+  // a 3-row source map with pol off is D1, not T,Q,U.
+  bool pol_ = true;
+  bool vpol_ = false;
+  py::object vec_keep_ = py::none();
+  py::object proj_keep_ = py::none();
+  py::object pix_keep_ = py::none();
+  std::optional<PixHash> pixhash_;
+  std::unique_ptr<PixInfo> pixinfo_;
+};
+
+class PointWrap {
+ public:
+  PointData core;
+
+  void set_bore(py::object q_bore) {
+    auto r = parse_quat_col(q_bore, "q_bore");
+    if (!r.present) throw py::value_error("q_bore is required");
+    core.q_bore = {r.ptr, static_cast<std::size_t>(r.len)};
+    bore_keep_ = r.keep;
+  }
+
+  void set_ctime(py::object ctime) {
+    auto r = parse_col(ctime, "ctime");
+    if (!r.ptr) throw py::value_error("ctime must be an array");
+    if (static_cast<std::size_t>(r.len) != core.n())
+      throw py::value_error("ctime length does not match q_bore");
+    core.ctime = {r.ptr, static_cast<std::size_t>(r.len)};
+    ctime_keep_ = r.keep;
+  }
+
+  void clear_ctime() {
+    core.ctime = {};
+    ctime_keep_ = py::none();
+  }
+
+  void set_hwp(py::object q_hwp) {
+    auto r = parse_quat_col(q_hwp, "q_hwp");
+    if (!r.present) throw py::value_error("q_hwp is required");
+    if (static_cast<std::size_t>(r.len) != core.n())
+      throw py::value_error("q_hwp length does not match q_bore");
+    core.q_hwp = {r.ptr, static_cast<std::size_t>(r.len)};
+    hwp_keep_ = r.keep;
+  }
+
+  void clear_hwp() {
+    core.q_hwp = {};
+    hwp_keep_ = py::none();
+  }
+
+  void reset() {
+    core = PointData();
+    bore_keep_ = py::none();
+    ctime_keep_ = py::none();
+    hwp_keep_ = py::none();
+  }
+
+  bool is_init() const { return core.q_bore.size() > 0; }
+  std::size_t n_samples() const { return core.n(); }
+
+ private:
+  py::object bore_keep_ = py::none();
+  py::object ctime_keep_ = py::none();
+  py::object hwp_keep_ = py::none();
+};
+
+class DetArrWrap {
+ public:
+  std::vector<Det> dets;
+  bool diff = false;
+  bool inited = false;
+
+  // Detector pairs are folded together in diff mode, so the loop runs over
+  // half the array. The C halves dets->n in place instead, which means
+  // calling it twice on the same detarr halves it again.
+  std::size_t n_loop() const { return diff ? dets.size() / 2 : dets.size(); }
+
+  void setup(py::object q_off, py::object weight, py::object gain,
+             py::object mueller, py::object tod, py::object flag,
+             py::object weights, py::ssize_t n_samp, bool do_diff,
+             bool write) {
+    reset();
+
+    auto roff = parse_quat_col(q_off, "q_off");
+    if (!roff.present) throw py::value_error("q_off is required");
+    const py::ssize_t ndet = roff.len;
+    qoff_keep_ = roff.keep;
+
+    auto rw = parse_col(weight, "weight");
+    auto rg = parse_col(gain, "gain");
+    weight_keep_ = rw.keep;
+    gain_keep_ = rg.keep;
+
+    const double *mu = nullptr;
+    if (!mueller.is_none()) {
+      py::array a = as_array(mueller, "mueller");
+      if (a.size() != ndet * 4)
+        throw py::value_error("mueller shape does not match q_off");
+      mu = static_cast<const double *>(a.data());
+      mueller_keep_ = std::move(a);
+    }
+
+    // tod2map only reads the tod; map2tod writes it, so that path needs a
+    // writable buffer and allocates one when none was supplied.
+    double *tod_ptr = nullptr;
+    if (!tod.is_none()) {
+      MapArray t = parse_map(tod, "tod", write);
+      if (!t.ptr) throw py::value_error("tod must be a 2-D array");
+      if (static_cast<py::ssize_t>(t.nrow) != ndet ||
+          static_cast<py::ssize_t>(t.npix) != n_samp)
+        throw py::value_error("tod shape does not match q_off and n_samp");
+      tod_ptr = t.ptr;
+      tod_keep_ = std::move(t.keep);
+    } else if (write) {
+      py::array_t<double> a({ndet, n_samp});
+      std::memset(a.mutable_data(), 0,
+                  static_cast<std::size_t>(ndet * n_samp) * sizeof(double));
+      tod_ptr = a.mutable_data();
+      tod_keep_ = std::move(a);
+    }
+
+    const std::uint8_t *flag_ptr = nullptr;
+    if (!flag.is_none()) {
+      py::array a = py::cast<py::array>(flag);
+      if (!a.dtype().is(py::dtype::of<std::uint8_t>()))
+        throw py::type_error("flag must be a uint8 array");
+      if (!(a.flags() & py::array::c_style))
+        throw py::value_error("flag must be C-contiguous");
+      if (a.size() != ndet * n_samp)
+        throw py::value_error("flag shape does not match q_off and n_samp");
+      flag_ptr = static_cast<const std::uint8_t *>(a.data());
+      flag_keep_ = std::move(a);
+    }
+
+    const double *wts_ptr = nullptr;
+    if (!weights.is_none()) {
+      MapArray a = parse_map(weights, "weights", false);
+      if (static_cast<py::ssize_t>(a.nrow) != ndet ||
+          static_cast<py::ssize_t>(a.npix) != n_samp)
+        throw py::value_error("weights shape does not match q_off and n_samp");
+      wts_ptr = a.ptr;
+      weights_keep_ = std::move(a.keep);
+    }
+
+    const auto ns = static_cast<std::size_t>(n_samp);
+    dets.resize(static_cast<std::size_t>(ndet));
+    for (py::ssize_t i = 0; i < ndet; ++i) {
+      Det &d = dets[static_cast<std::size_t>(i)];
+      d.q_off = roff.ptr[i];
+      d.weight = rw.present ? (rw.ptr ? rw.ptr[i] : rw.value) : 1.0;
+      d.gain = rg.present ? (rg.ptr ? rg.ptr[i] : rg.value) : 1.0;
+      if (mu)
+        d.mueller = {{mu[i * 4], mu[i * 4 + 1], mu[i * 4 + 2], mu[i * 4 + 3]}};
+      else
+        d.mueller = {{1., 1., 0., 1.}};
+      if (tod_ptr) d.tod = {tod_ptr + i * ns, ns};
+      if (flag_ptr) d.flag = {flag_ptr + i * ns, ns};
+      if (wts_ptr) d.weights = {wts_ptr + i * ns, ns};
+    }
+
+    diff = do_diff;
+    inited = true;
+  }
+
+  void reset() {
+    dets.clear();
+    diff = false;
+    inited = false;
+    qoff_keep_ = py::none();
+    weight_keep_ = py::none();
+    gain_keep_ = py::none();
+    mueller_keep_ = py::none();
+    tod_keep_ = py::none();
+    flag_keep_ = py::none();
+    weights_keep_ = py::none();
+  }
+
+  py::object get_tod() const { return tod_keep_; }
+  bool is_init() const { return inited; }
+
+ private:
+  py::object qoff_keep_ = py::none();
+  py::object weight_keep_ = py::none();
+  py::object gain_keep_ = py::none();
+  py::object mueller_keep_ = py::none();
+  py::object tod_keep_ = py::none();
+  py::object flag_keep_ = py::none();
+  py::object weights_keep_ = py::none();
+};
+
 // ---------------------------------------------------------------------------
 // Mapmaking drivers
 //
 // OpenMP lives here rather than in the core: the core stays scalar and
 // single-threaded, and this layer owns the thread-local copies.
 // ---------------------------------------------------------------------------
+
+// At most one thread per detector, and never fewer than one.
+int clamp_threads(int nthr, std::ptrdiff_t ndet) {
+  if (nthr > ndet) nthr = static_cast<int>(ndet);
+  return nthr < 1 ? 1 : nthr;
+}
+
+// A zeroed map with the same geometry, backed by thread-private buffers.
+// This is the one copy the design cannot avoid -- each thread needs private
+// storage to accumulate into -- but it is internal scratch, not data shared
+// with Python, so a vector is the right thing here.
+Map blank_like(const Map &g, std::vector<double> &vbuf,
+               std::vector<double> &pbuf) {
+  Map m = g;
+  if (g.has_vec()) {
+    vbuf.assign(num_vec(g.vec_mode) * g.npix, 0.0);
+    m.vec = vbuf.data();
+  }
+  if (g.has_proj()) {
+    pbuf.assign(num_proj(g.proj_mode) * g.npix, 0.0);
+    m.proj = pbuf.data();
+  }
+  return m;
+}
+
+// The detector loop, with all of the OpenMP plumbing in one place.
+//
+// per_thread() runs once inside each thread and returns that thread's
+// state; body(state, i) handles one detector; finish(state) merges it.
+// The state is returned by value, which is safe even if that moves: a
+// moved std::vector keeps its buffer, so a Map pointing into one stays
+// valid.
+//
+// Three things this encodes. An exception must not cross the structured
+// block -- that is undefined behaviour -- so the first one is captured and
+// rethrown afterwards, with the GIL reacquired, because raising through
+// pybind's translator needs it. You cannot break out of an omp for, so the
+// remaining iterations no-op instead. And num_threads is a clause rather
+// than the C's process-wide omp_set_num_threads.
+template <class Setup, class Body, class Finish>
+void parallel_dets(int nthr, std::ptrdiff_t ndet, const char *what,
+                   Setup &&per_thread, Body &&body, Finish &&finish) {
+  std::atomic<bool> failed{false};
+  std::mutex errmtx;
+  std::string errmsg;
+
+  {
+    py::gil_scoped_release nogil;
+#ifdef _OPENMP
+#pragma omp parallel num_threads(nthr)
+#endif
+    {
+      auto state = per_thread();
+#ifdef _OPENMP
+#pragma omp for schedule(static)
+#endif
+      for (std::ptrdiff_t i = 0; i < ndet; ++i) {
+        if (failed.load(std::memory_order_relaxed)) continue;
+        try {
+          body(state, i);
+        } catch (const std::exception &e) {
+          if (!failed.exchange(true)) {
+            std::lock_guard<std::mutex> lk(errmtx);
+            errmsg = e.what();
+          }
+        } catch (...) {
+          if (!failed.exchange(true)) {
+            std::lock_guard<std::mutex> lk(errmtx);
+            errmsg = std::string("unknown error in ") + what;
+          }
+        }
+      }
+      if (!failed.load()) finish(state);
+    }
+  }
+
+  if (failed) throw QpMapError(errmsg);
+}
+
+// One thread's share of a tod2map. The accumulator is private only when
+// there is more than one thread; with one, it writes the real map directly
+// and there is nothing to merge.
+struct Tod2MapLocal {
+  Pointing core;
+  std::vector<double> vbuf, pbuf;
+  Map lmap;
+  bool reduce = false;
+};
+
+void py_tod2map(PointingWrap &w, DetArrWrap &dets, PointWrap &pnt,
+                MapWrap &dest) {
+  if (!dets.is_init()) throw QpInitError("tod2map: detectors not initialized");
+  if (!pnt.is_init()) throw QpInitError("tod2map: pointing not initialized");
+  if (!dest.is_init()) throw QpInitError("tod2map: map not initialized");
+
+  Map &global = dest.core;
+  const PointData pd = pnt.core;
+  const std::ptrdiff_t ndet = static_cast<std::ptrdiff_t>(dets.n_loop());
+  const std::ptrdiff_t nhalf = static_cast<std::ptrdiff_t>(dets.dets.size() / 2);
+
+  parallel_dets(
+      clamp_threads(w.num_threads, ndet), ndet, "tod2map",
+      [&] {
+        Tod2MapLocal st;
+        st.core = w.core;  // O(1): the IERS table is shared
+#ifdef _OPENMP
+        st.reduce = omp_get_num_threads() > 1;
+#endif
+        st.lmap = st.reduce ? blank_like(global, st.vbuf, st.pbuf) : global;
+        return st;
+      },
+      [&](Tod2MapLocal &st, std::ptrdiff_t i) {
+        if (dets.diff)
+          tod2map1_diff(st.core, dets.dets[i], dets.dets[i + nhalf], pd,
+                        st.lmap);
+        else
+          tod2map1(st.core, dets.dets[i], pd, st.lmap);
+      },
+      [&](Tod2MapLocal &st) {
+        if (!st.reduce) return;
+#ifdef _OPENMP
+#pragma omp critical(qp_map_accum)
+#endif
+        add_map(global, st.lmap);
+      });
+}
+
+void py_map2tod(PointingWrap &w, DetArrWrap &dets, PointWrap &pnt,
+                MapWrap &source) {
+  if (!dets.is_init()) throw QpInitError("map2tod: detectors not initialized");
+  if (!pnt.is_init()) throw QpInitError("map2tod: pointing not initialized");
+  if (!source.is_init()) throw QpInitError("map2tod: map not initialized");
+
+  // built here, before the parallel region, so threads only read it
+  if (w.core.opt().interp_pix) source.ensure_pixinfo();
+
+  const Map &global = source.core;
+  const PointData pd = pnt.core;
+  const std::ptrdiff_t ndet = static_cast<std::ptrdiff_t>(dets.dets.size());
+
+  // No reduction: detectors write disjoint rows of the tod.
+  parallel_dets(
+      clamp_threads(w.num_threads, ndet), ndet, "map2tod",
+      [&] { return w.core; },
+      [&](Pointing &local, std::ptrdiff_t i) {
+        map2tod1(local, dets.dets[i], pd, global);
+      },
+      [](Pointing &) {});
+}
 
 }  // namespace
 
@@ -1715,6 +2331,269 @@ pa/sin2psi : array_like
     Rotated position angle, or sin(2*pa) if the pair was supplied.
 cos2psi : array_like
     Rotated cos(2*pa), if the pair was supplied.
+)doc");
+
+  // Mapmaking takes a Pointing rather than belonging to one, so these are
+  // module functions. Binding them onto Pointing put tod2map and map2tod
+  // on QPoint, which has no maps to make.
+  m.def("tod2map", &py_tod2map, py::arg("pointing"), py::arg("detarr"),
+        py::arg("point"), py::arg("map_out"),
+        R"doc(
+Accumulate timestreams into a destination map.
+
+Arguments
+---------
+pointing : Pointing
+    Correction state to project with.
+detarr : QpDetArr
+    Detectors, their timestreams and their per-sample data.
+point : QpPoint
+    Boresight pointing for the same samples.
+map_out : QpMap
+    Destination, accumulated into rather than overwritten.
+)doc");
+  m.def("map2tod", &py_map2tod, py::arg("pointing"), py::arg("detarr"),
+        py::arg("point"), py::arg("map_in"),
+        R"doc(
+Scan a source map into timestreams.
+
+Arguments
+---------
+pointing : Pointing
+    Correction state to project with.
+detarr : QpDetArr
+    Detectors, whose timestreams are accumulated into with +=.
+point : QpPoint
+    Boresight pointing for the same samples.
+map_in : QpMap
+    Source map.
+)doc");
+
+  py::class_<MapWrap>(m, "QpMap")
+      .def(py::init<>())
+      .def("setup", &MapWrap::setup, py::arg("vec"), py::arg("proj"),
+           py::arg("pixels"), py::arg("nside"), py::arg("pol") = true,
+           py::arg("vpol") = false,
+           R"doc(
+Install the map components and fix their shapes.
+
+Arguments
+---------
+vec : array_like, None or False
+    The signal map, a fresh map of zeros, or no such component.
+proj : array_like, None or False
+    The projection matrix, likewise.
+pixels : array_like, optional
+    Pixel numbers for a partial map, of shape (npix,).
+nside : int
+    HEALPix resolution.
+pol : bool
+    Whether the map carries polarization.
+vpol : bool
+    Whether it carries the V component as well.
 )doc")
-;
+      .def("update_vec", &MapWrap::update_vec, py::arg("arr") = py::none(),
+           R"doc(
+Replace the signal map, or switch it off.
+
+Arguments
+---------
+arr : array_like, None or False
+    A map of the installed row count, None for a fresh map of zeros,
+    or False to remove the component.
+)doc")
+      .def("update_proj", &MapWrap::update_proj, py::arg("arr") = py::none(),
+           R"doc(
+Replace the projection matrix, or switch it off.
+
+Arguments
+---------
+arr : array_like, None or False
+    As for update_vec.
+)doc")
+      .def("get_vec", &MapWrap::get_vec,
+           R"doc(
+The installed signal map.
+
+Returns
+-------
+vec : array_like or None
+    The array itself, not a copy.
+)doc")
+      .def("get_proj", &MapWrap::get_proj,
+           R"doc(
+The installed projection matrix.
+
+Returns
+-------
+proj : array_like or None
+    The array itself, not a copy.
+)doc")
+      .def("reset", &MapWrap::reset,
+           R"doc(
+Release both components.
+)doc")
+      .def("is_init", &MapWrap::is_init,
+           R"doc(
+Whether the map has been set up.
+
+Returns
+-------
+bool
+)doc")
+      .def("is_partial", &MapWrap::is_partial,
+           R"doc(
+Whether the map covers a pixel list rather than the sphere.
+
+Returns
+-------
+bool
+)doc")
+      .def("has_vec", &MapWrap::has_vec,
+           R"doc(
+Whether a signal map is installed.
+
+Returns
+-------
+bool
+)doc")
+      .def("has_proj", &MapWrap::has_proj,
+           R"doc(
+Whether a projection matrix is installed.
+
+Returns
+-------
+bool
+)doc")
+      .def("is_pol", &MapWrap::is_pol,
+           R"doc(
+Whether the map is polarized, from either component. The unpolarized
+derivative modes D1 and D2 are not, whatever their row count.
+
+Returns
+-------
+bool
+)doc")
+      .def("is_vpol", &MapWrap::is_vpol,
+           R"doc(
+Whether the map carries the V component, from either component.
+
+Returns
+-------
+bool
+)doc");
+
+  py::class_<PointWrap>(m, "QpPoint")
+      .def(py::init<>())
+      .def("set_bore", &PointWrap::set_bore, py::arg("q_bore"),
+           R"doc(
+Install the boresight quaternions, which fixes the sample count.
+
+Arguments
+---------
+q_bore : array_like
+    Quaternions, of shape (N, 4).
+)doc")
+      .def("set_ctime", &PointWrap::set_ctime, py::arg("ctime"),
+           R"doc(
+Install the timestamps.
+
+Arguments
+---------
+ctime : array_like
+    Unix time in seconds UTC, of shape (N,).
+)doc")
+      .def("clear_ctime", &PointWrap::clear_ctime,
+           R"doc(
+Drop the timestamps, leaving the pointing without time.
+)doc")
+      .def("set_hwp", &PointWrap::set_hwp, py::arg("q_hwp"),
+           R"doc(
+Install the half-wave plate angles.
+
+Arguments
+---------
+q_hwp : array_like
+    HWP quaternions, of shape (N, 4).
+)doc")
+      .def("clear_hwp", &PointWrap::clear_hwp,
+           R"doc(
+Drop the half-wave plate angles.
+)doc")
+      .def("reset", &PointWrap::reset,
+           R"doc(
+Release the pointing.
+)doc")
+      .def("is_init", &PointWrap::is_init,
+           R"doc(
+Whether the boresight has been installed.
+
+Returns
+-------
+bool
+)doc")
+      .def("n_samples", &PointWrap::n_samples,
+           R"doc(
+Number of samples the installed pointing covers.
+
+Returns
+-------
+int
+)doc");
+
+  py::class_<DetArrWrap>(m, "QpDetArr")
+      .def(py::init<>())
+      .def("setup", &DetArrWrap::setup, py::arg("q_off"), py::arg("weight"),
+           py::arg("gain"), py::arg("mueller"), py::arg("tod"), py::arg("flag"),
+           py::arg("weights"), py::arg("n_samp"), py::arg("do_diff"),
+           py::arg("write"),
+           R"doc(
+Install the detectors and the arrays they carry.
+
+Arguments
+---------
+q_off : array_like
+    Offset quaternions, of shape (ndet, 4).
+weight : array_like
+    Per-detector mapmaking weight, of shape (ndet,).
+gain : array_like
+    Per-detector gain, of shape (ndet,).
+mueller : array_like
+    Per-detector polarization efficiency, of shape (ndet, 4).
+tod : array_like, optional
+    Timestreams, of shape (ndet, n_samp).
+flag : array_like, optional
+    Per-sample flags, of shape (ndet, n_samp). A flagged sample is
+    skipped.
+weights : array_like, optional
+    Per-sample weights, of shape (ndet, n_samp).
+n_samp : int
+    Samples per detector, which must match the pointing.
+do_diff : bool
+    Pair the first half of the detectors with the second half and
+    difference them.
+write : bool
+    Whether the timestreams are written to rather than read.
+)doc")
+      .def("get_tod", &DetArrWrap::get_tod,
+           R"doc(
+The installed timestreams.
+
+Returns
+-------
+tod : array_like or None
+    The array itself, not a copy.
+)doc")
+      .def("reset", &DetArrWrap::reset,
+           R"doc(
+Release the detectors.
+)doc")
+      .def("is_init", &DetArrWrap::is_init,
+           R"doc(
+Whether the detectors have been set up.
+
+Returns
+-------
+bool
+)doc");
 }

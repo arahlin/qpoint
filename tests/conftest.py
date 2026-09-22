@@ -56,9 +56,23 @@ def omp_runtime():
 
 
 def pytest_report_header(config):
-    """Say so in the header, so a run's parallelism is never a guess."""
-    rt = openmp_runtime()
-    return "openmp: {}".format(rt if rt else "not linked (threading tests are serial)")
+    """
+    Say so in the header, so a run's parallelism is never a guess.
+
+    Both extensions are reported. They are built separately and the
+    threading tests are split across them, so knowing about one says
+    nothing about the other -- and the pair of tests that brackets
+    `HAS_OPENMP` skips one way or the other either way, which makes the
+    skip count useless for telling them apart.
+    """
+    parts = ["qpoint {}".format(openmp_runtime() or "serial")]
+    try:
+        import qpoint2._libqpoint2 as lib2
+
+        parts.append("qpoint2 {}".format("threaded" if lib2.HAS_OPENMP else "serial"))
+    except ImportError:
+        pass
+    return "openmp: " + ", ".join(parts)
 
 
 def pytest_addoption(parser):
