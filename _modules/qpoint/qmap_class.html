@@ -1273,11 +1273,16 @@
         <span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">nmap</span><span class="p">)</span>
         <span class="n">idx</span><span class="p">[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span><span class="n">ctri</span><span class="p">,</span> <span class="n">rtri</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nproj</span><span class="p">)</span>
 
+        <span class="c1"># An ill-conditioned pixel is excluded whichever solver runs. The</span>
+        <span class="c1"># Cholesky one used to see only the hits mask, and cho_factor</span>
+        <span class="c1"># succeeds on a rank-deficient matrix rather than raising, so a</span>
+        <span class="c1"># one- or two-hit pixel came back with whatever it produced.</span>
+        <span class="k">if</span> <span class="n">cond</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_cond</span><span class="p">(</span><span class="n">proj</span><span class="o">=</span><span class="n">proj</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">cond</span> <span class="o">&lt;</span> <span class="n">cond_thresh</span>
+
         <span class="c1"># solve</span>
         <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"exact"</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">cond</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">cond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_cond</span><span class="p">(</span><span class="n">proj</span><span class="o">=</span><span class="n">proj</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
-            <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">cond</span> <span class="o">&lt;</span> <span class="n">cond_thresh</span>
             <span class="n">vec</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">proj</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nmap</span><span class="p">)[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">]</span>
             <span class="c1"># numpy 2 requires b (ie vec) to have shape (..., M, K) not (..., M).</span>
