@@ -135,11 +135,11 @@ class QMap(QPoint):
     def __init__(
         self,
         nside=None,
-        pol=True,
-        vpol=False,
+        pol=None,
+        vpol=None,
         source_map=None,
-        source_pol=True,
-        source_vpol=False,
+        source_pol=None,
+        source_vpol=None,
         q_bore=None,
         ctime=None,
         q_hwp=None,
@@ -184,10 +184,10 @@ class QMap(QPoint):
     def init_source(
         self,
         source_map,
-        pol=True,
+        pol=None,
         pixels=None,
         nside=None,
-        vpol=False,
+        vpol=None,
         reset=False,
         update=False,
     ):
@@ -201,7 +201,9 @@ class QMap(QPoint):
             1, 3, 6, 9, or 18.
         pol : bool, optional
             If `True`, and the map shape is `(3, npix)`, then input is a
-            polarized map (and not T + first derivatives).
+            polarized map (and not T + first derivatives).  Only consulted
+            where the row count leaves the mode open, which for a source
+            map is 3 rows; defaults to `True`.
         pixels : 1D array_like, optional
             Array of pixel numbers for each map index, if `source_map` is
             a partial map.
@@ -210,7 +212,8 @@ class QMap(QPoint):
             Otherwise, the nside is determined from the input map.
         vpol : bool, optional
             If `True`, and the input map shape is `(4, npix)`, then input is
-            a polarized map that includes V polarization.
+            a polarized map that includes V polarization.  Defaults to
+            `False`, so a 4-row map is rejected unless this is set.
         reset : bool, optional
             If `True`, and if the structure has already been initialized,
             it is reset and re-initialized with the new map.  If `False`,
@@ -308,11 +311,11 @@ class QMap(QPoint):
     def init_dest(
         self,
         nside=None,
-        pol=True,
+        pol=None,
         vec=None,
         proj=None,
         pixels=None,
-        vpol=False,
+        vpol=None,
         copy=False,
         reset=False,
         update=False,
@@ -326,7 +329,9 @@ class QMap(QPoint):
             map dimension.  If `pixels` is supplied, this argument is required.
             Otherwise, the default is 256.
         pol : bool, optional
-            If True, a polarized map will be created.
+            If True, a polarized map will be created.  Consulted only when
+            neither `vec` nor `proj` is supplied, since either of those
+            settles the mode by its shape.  Defaults to True in that case.
         vec : array_like or bool, optional, shape (N, npix)
             If supplied, nside and pol are determined from this map, and
             the vector (binned signal) map is initialized from this.
@@ -341,6 +346,7 @@ class QMap(QPoint):
             partial maps.
         vpol : bool, optional
             If True, a polarized map including V polarization will be created.
+            Read the same way as `pol`, and defaults to False.
         copy : bool, optional
             If True and vec/proj are supplied, make copies of these inputs
             to avoid in-place operations.
@@ -383,11 +389,19 @@ class QMap(QPoint):
             else:
                 raise RuntimeError("dest already initialized")
 
-        # A supplied vec fixes the polarization mode of the dest map, which
-        # in turn sizes a default proj.
+        # pol and vpol decide the mode only where nothing else does. A
+        # supplied vec settles it here, and setup settles it from a
+        # supplied proj, sizing the defaulted vec to match and reading the
+        # mode back off that. Both flags default to None rather than to
+        # T,Q,U so that the signature says which case is which: the
+        # default is what you get when neither component was supplied, not
+        # something imposed over a map whose shape already answered.
         if vec is not None and vec is not False:
             pol = len(vec) >= 3
             vpol = len(vec) == 4
+        elif proj is None or proj is False:
+            pol = True if pol is None else pol
+            vpol = False if vpol is None else vpol
 
         # setup takes it from here: it allocates zeros for a component
         # passed as None, drops one passed as False, and infers nside and

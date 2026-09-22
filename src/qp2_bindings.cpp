@@ -1177,6 +1177,14 @@ bool is_false(const py::handle &o) {
   return py::isinstance<py::bool_>(o) && !o.cast<bool>();
 }
 
+// A flag the caller may have no opinion on: None takes the default.
+// py::object rather than std::optional<bool>, since the latter needs
+// pybind11/stl.h, whose container casters would add exactly the silent
+// copies the array contract exists to prevent.
+bool flag_or(const py::handle &o, bool deflt) {
+  return o.is_none() ? deflt : o.cast<bool>();
+}
+
 // chealpix's npix2nside uses an integer sqrt and returns -1 when npix is
 // not 12*nside^2, so this is exact where a float sqrt would not be.
 long checked_npix2nside(py::ssize_t npix) {
@@ -1223,9 +1231,19 @@ class MapWrap {
   // is sized from the other component when there is one, so the two always
   // describe the same number of map components, and from pol/vpol when
   // there isn't.
+  //
+  // pol and vpol are optional because that is the truth about them: they
+  // decide a mode only where a row count leaves one open -- 3 rows being
+  // T,Q,U or T with a first derivative, 4 rows being T,Q,U,V or nothing
+  // valid -- and are overridden outright wherever a supplied map settles
+  // it. None asks for that reading; the fallbacks here are the documented
+  // API defaults, applied at the point of use rather than in the
+  // signature, so no caller has to pass a flag it has no opinion on.
   void setup(py::object vec, py::object proj, py::object pixels,
-             py::object nside, bool pol, bool vpol) {
+             py::object nside, py::object pol_arg, py::object vpol_arg) {
     reset();
+    bool pol = flag_or(pol_arg, true);
+    bool vpol = flag_or(vpol_arg, false);
     pol_ = pol;
     vpol_ = vpol;
 
@@ -1273,8 +1291,19 @@ class MapWrap {
 
     if (want_vec) {
       // p.nrow is 0 unless a proj was supplied, in which case the default
-      // vec follows it rather than pol/vpol.
-      if (!vec_given) v = parse_map(zeros_map(vec_rows(p.nrow)), "vec", false);
+      // vec follows it rather than pol/vpol -- and so does the mode, since
+      // a 10-row proj describes a TQUV map whatever vpol said. Without
+      // that, a defaulted vec was sized from the proj and then rejected
+      // for not matching the flags.
+      if (!vec_given) {
+        v = parse_map(zeros_map(vec_rows(p.nrow)), "vec", false);
+        if (proj_given) {
+          pol = v.nrow >= 3;
+          vpol = v.nrow == 4;
+          pol_ = pol;
+          vpol_ = vpol;
+        }
+      }
       core.vec_mode = infer_vec_mode(v.nrow, pol, vpol);
       core.vec = v.ptr;
       vec_keep_ = std::move(v.keep);
@@ -1286,6 +1315,14 @@ class MapWrap {
       core.proj = p.ptr;
       proj_keep_ = std::move(p.keep);
     }
+
+    // An N-component map has N vec rows and N*(N+1)/2 proj rows. Supplying
+    // both and getting that wrong hands the kernels two maps describing
+    // different things.
+    if (want_vec && want_proj && num_proj_for_vec(v.nrow) != p.nrow)
+      throw py::value_error("proj shape incompatible with vec: " +
+                            std::to_string(p.nrow) + " rows for a " +
+                            std::to_string(v.nrow) + "-row vec");
 
     if (partial) {
       py::array a = py::cast<py::array>(pixels);
@@ -2518,8 +2555,8 @@ map_in : QpMap
   py::class_<MapWrap>(m, "QpMap")
       .def(py::init<>())
       .def("setup", &MapWrap::setup, py::arg("vec"), py::arg("proj"),
-           py::arg("pixels"), py::arg("nside"), py::arg("pol") = true,
-           py::arg("vpol") = false,
+           py::arg("pixels"), py::arg("nside"), py::arg("pol") = py::none(),
+           py::arg("vpol") = py::none(),
            R"doc(
 Install the map components and fix their shapes.
 
@@ -2533,10 +2570,13 @@ pixels : array_like, optional
     Pixel numbers for a partial map, of shape (npix,).
 nside : int
     HEALPix resolution.
-pol : bool
-    Whether the map carries polarization.
-vpol : bool
-    Whether it carries the V component as well.
+pol : bool, optional
+    Whether the map carries polarization. Consulted only where a row
+    count leaves the mode open, and overridden by a supplied map that
+    settles it. None takes the documented default, T,Q,U.
+vpol : bool, optional
+    Whether it carries the V component as well. Same reading; None is
+    False, so a 4-row map needs this set unless a proj settles it.
 )doc")
       .def("update_vec", &MapWrap::update_vec, py::arg("arr") = py::none(),
            R"doc(

@@ -922,6 +922,7 @@ OFF2 = (
     _mrng.uniform(0, 180, 2 * NDET),
 )
 SOURCE_MAP = _mrng.normal(size=(3, NPIX_MAP))
+SOURCE_MAPS = {n: _mrng.normal(size=(n, NPIX_MAP)) for n in (1, 3, 4)}
 DET_WEIGHTS = np.abs(np.random.default_rng(1).normal(size=(NDET, NS))) + 0.1
 # the differencing kernel pairs the two halves, so it needs both
 DET_WEIGHTS2 = np.abs(np.random.default_rng(2).normal(size=(2 * NDET, NS))) + 0.1
@@ -1205,12 +1206,114 @@ class TestMap2Tod:
             out.append(np.asarray(qm.to_tod(off, flag=flag)))
         assert_identical(out[0], out[1], "to_tod flagged")
 
+    @pytest.mark.parametrize(
+        "rows,pol,vpol",
+        [
+            pytest.param(1, False, False, id="T"),
+            pytest.param(3, True, False, id="TQU"),
+            pytest.param(4, True, True, id="TQUV"),
+        ],
+    )
+    def test_to_tod_interpolated(self, mod, rows, pol, vpol):
+        """
+        With interp_pix, map2tod1 reads four neighbours per sample and the
+        vec mode decides which rows it reads. The options matrix above only
+        reaches the TQU case, which left the merged reader in map2tod1
+        unpinned for T and TQUV.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, interp_pix=True, pol=pol, vpol=vpol)
+            qm.init_source(SOURCE_MAPS[rows], pol=pol, vpol=vpol)
+            out.append(np.asarray(qm.to_tod(off)))
+        assert_identical(out[0], out[1], "to_tod interp")
+
     def test_roundtrip_recovers_a_constant(self, mod):
         """A constant T map scanned and rebinned must come back constant."""
         qm, off = qmap(mod, pol=False)
         qm.init_source(np.full(NPIX_MAP, 3.0), pol=False)
         tod = np.asarray(qm.to_tod(off))
         assert np.allclose(tod, 3.0)
+
+
+def dest_shapes(mod, qm):
+    """
+    (vec, proj) shapes of the maps init_dest installed, None for absent.
+    Works for v1 too, which keeps them in depo rather than on the wrapper.
+    """
+    if mod is qpoint:
+        return tuple(
+            None if qm.depo[k] is False else np.shape(qm.depo[k])
+            for k in ("vec", "proj")
+        )
+    return (
+        np.asarray(qm._dest.get_vec()).shape if qm._dest.has_vec() else None,
+        np.asarray(qm._dest.get_proj()).shape if qm._dest.has_proj() else None,
+    )
+
+
+@pytest.mark.parametrize("mod", [qpoint, qpoint2])
+class TestProjDeterminesTheMap:
+    """
+    A supplied proj fixes nside and the polarization mode exactly as a
+    supplied vec does.
+
+    It used to do so only when vec=False. With the vec defaulted, qpoint
+    built it first, at the default nside and from pol/vpol, and then
+    rejected the caller's proj for not matching it -- so a proj-only call
+    failed whatever its shape. The pybind11 binding sized the default vec
+    from the proj but still inferred its mode from pol/vpol, which rejected
+    exactly the 10-row case.
+    """
+
+    npix = 12 * 8 * 8
+
+    @pytest.mark.parametrize(
+        "nproj,nvec",
+        [
+            pytest.param(1, 1, id="T"),
+            pytest.param(6, 3, id="TQU"),
+            pytest.param(10, 4, id="TQUV"),
+        ],
+    )
+    def test_proj_fixes_the_mode(self, mod, nproj, nvec):
+        qm = mod.QMap()
+        qm.init_dest(proj=np.zeros((nproj, self.npix)))
+        assert dest_shapes(mod, qm) == ((nvec, self.npix), (nproj, self.npix))
+
+    def test_proj_fixes_nside(self, mod):
+        """nside comes from the proj, not from the 256 default."""
+        npix = 12 * 16 * 16
+        qm = mod.QMap()
+        qm.init_dest(proj=np.zeros((6, npix)))
+        assert dest_shapes(mod, qm) == ((3, npix), (6, npix))
+
+    def test_proj_overrides_the_flags(self, mod):
+        """A 10-row proj is a TQUV map whatever vpol said."""
+        qm = mod.QMap()
+        qm.init_dest(proj=np.zeros((10, self.npix)), pol=True, vpol=False)
+        assert dest_shapes(mod, qm) == ((4, self.npix), (10, self.npix))
+
+    @pytest.mark.parametrize(
+        "nvec,nproj",
+        [
+            pytest.param(3, 10, id="TQU-vec-TQUV-proj"),
+            pytest.param(4, 6, id="TQUV-vec-TQU-proj"),
+            pytest.param(1, 6, id="T-vec-TQU-proj"),
+        ],
+    )
+    def test_mismatched_pair_raises(self, mod, nvec, nproj):
+        """Supplying both, describing different numbers of components."""
+        qm = mod.QMap()
+        with pytest.raises(ValueError):
+            qm.init_dest(
+                vec=np.zeros((nvec, self.npix)), proj=np.zeros((nproj, self.npix))
+            )
+
+    def test_invalid_proj_row_count_raises(self, mod):
+        qm = mod.QMap()
+        with pytest.raises(ValueError):
+            qm.init_dest(proj=np.zeros((3, self.npix)))
 
 
 @pytest.mark.parametrize("mod", IMPLS)
