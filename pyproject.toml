@@ -16,7 +16,10 @@ dynamic = ["version"]
 dependencies = ["numpy>1.10.0", "scipy", "astropy"]
 
 [project.optional-dependencies]
-test = ["pytest"]
+# astropy backs tests/test_astropy.py, which checks the coordinate
+# transforms against an independent implementation. The tests skip
+# themselves where it is absent.
+test = ["pytest", "astropy>=6"]
 
 [tool.setuptools_scm]
 write_to = "qpoint/_version.py"
