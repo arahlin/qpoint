@@ -162,6 +162,63 @@ class TestSetGet:
 # ---------------------------------------------------------------------------
 
 
+class TestBulletinA:
+    """
+    IERS Bulletin A loading. The file path had two faults that concealed
+    each other: the columns came out rotated, and numpy's unpack=True
+    returns strided rows that ctypes would not take -- so the rotation was
+    never reached.
+    """
+
+    COLUMNS = ["mjd", "dut1", "x", "y"]
+    # distinct constants, so a rotation is visible rather than plausible
+    VALUES = {"dut1": 0.11, "x": 0.22, "y": 0.33}
+    MJD0 = 57000
+    NDAY = 40
+
+    def _write(self, tmp_path, order):
+        col = {
+            "mjd": np.arange(self.MJD0, self.MJD0 + self.NDAY, dtype=float),
+            **{k: np.full(self.NDAY, v) for k, v in self.VALUES.items()},
+        }
+        path = tmp_path / "bulletin.txt"
+        np.savetxt(path, np.column_stack([col[c] for c in order]), fmt="%.6f")
+        return str(path)
+
+    def test_round_trip(self, tmp_path):
+        q = qpoint.QPoint()
+        path = self._write(tmp_path, self.COLUMNS)
+        mjd, dut1, x, y = q.load_bulletin_a(path)
+        assert mjd[0] == self.MJD0
+        assert np.allclose(dut1, self.VALUES["dut1"])
+        assert np.allclose(x, self.VALUES["x"])
+        assert np.allclose(y, self.VALUES["y"])
+
+    def test_stored_values_are_not_rotated(self, tmp_path):
+        q = qpoint.QPoint()
+        q.load_bulletin_a(self._write(tmp_path, self.COLUMNS))
+        got = q.get_bulletin_a(self.MJD0 + 10)
+        assert np.allclose(
+            got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
+        )
+
+    def test_a_reordered_file(self, tmp_path):
+        """What the columns argument is for."""
+        order = ["x", "mjd", "y", "dut1"]
+        q = qpoint.QPoint()
+        q.load_bulletin_a(self._write(tmp_path, order), columns=order)
+        got = q.get_bulletin_a(self.MJD0 + 10)
+        assert np.allclose(
+            got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
+        )
+
+    def test_missing_columns_raise(self, tmp_path):
+        q = qpoint.QPoint()
+        path = self._write(tmp_path, self.COLUMNS)
+        with pytest.raises(KeyError):
+            q.load_bulletin_a(path, columns=["mjd", "dut1", "x"])
+
+
 class TestResetRates:
     def test_reset_rates(self, qp):
         qp.reset_rates()
