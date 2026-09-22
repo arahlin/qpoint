@@ -77,21 +77,6 @@ void ctime2jdtt(double ctime, double jd_tt[2]) {
   eraTaitt(jd_tai[0], jd_tai[1], &jd_tt[0], &jd_tt[1]);
 }
 
-void jdutc2jdut1(const double jd_utc[2], double dut1, double jd_ut1[2]) {
-  eraUtcut1(jd_utc[0], jd_utc[1], dut1, &jd_ut1[0], &jd_ut1[1]);
-}
-
-double ctime2gmst(double ctime, double dut1, int accuracy) {
-  double jd_utc[2], jd_ut1[2], jd_tt[2];
-  ctime2jd(ctime, jd_utc);
-  if (!accuracy) {
-    jdutc2jdut1(jd_utc, dut1, jd_ut1);
-    ctime2jdtt(ctime, jd_tt);
-    return eraGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
-  }
-  return eraGmst00(jd_utc[0], jd_utc[1], jd_utc[0], jd_utc[1]);
-}
-
 // ---------------------------------------------------------------------------
 // Correction quaternions
 // ---------------------------------------------------------------------------
@@ -278,18 +263,73 @@ double Pointing::get_double(std::string_view name) const {
 // Sidereal time
 // ---------------------------------------------------------------------------
 
+// How far from midnight to stop trusting the cache, in days. A UTC day
+// containing a leap second is 86401 seconds long, so ERFA still calls the
+// instant 86400 seconds in "the previous day, fraction 1.0", while a
+// jd = ctime / 86400 reading has already rolled over. The two notions of
+// the date therefore disagree for exactly one second at the end of such a
+// day. Staying ten seconds clear of midnight keeps the cache away from
+// it, at the price of 20 seconds of exact calls per day.
+constexpr double kUt1Margin = 10. / 86400.;
+
+void Pointing::jdutc2jdut1(const double jd_utc[2], double jd_ut1[2]) {
+  if (ut1_valid_.covers(jd_utc[1], jd_utc[0], dut1_)) {
+    jd_ut1[0] = jd_utc[0] + ut1_off0_;
+    jd_ut1[1] = jd_utc[1] + ut1_off1_;
+    return;
+  }
+
+  // Always answer exactly; the cache is only ever an accelerator for the
+  // samples that follow.
+  eraUtcut1(jd_utc[0], jd_utc[1], dut1_, &jd_ut1[0], &jd_ut1[1]);
+
+  // Rebuild it for the interior of this day. UT1 - UTC is dut1 minus the
+  // TAI - UTC step, and that step only moves at a leap second, which
+  // falls at midnight -- so if the offset agrees at both ends of the
+  // interior it is constant across the whole of it. When it does not, the
+  // day has a leap second in it and gets no cache at all.
+  const double day = std::floor(jd_utc[0] + jd_utc[1] + 0.5);
+  const double lo = day - 0.5 - jd_utc[0] + kUt1Margin;
+  const double hi = day + 0.5 - jd_utc[0] - kUt1Margin;
+  double a[2], b[2];
+  eraUtcut1(jd_utc[0], lo, dut1_, &a[0], &a[1]);
+  eraUtcut1(jd_utc[0], hi, dut1_, &b[0], &b[1]);
+
+  if (a[0] - jd_utc[0] == b[0] - jd_utc[0] && a[1] - lo == b[1] - hi) {
+    ut1_off0_ = a[0] - jd_utc[0];
+    ut1_off1_ = a[1] - lo;
+    ut1_valid_.set(lo, hi, jd_utc[0], dut1_);
+  } else {
+    ut1_valid_.clear();  // the day has a leap second in it
+  }
+}
+
 double Pointing::gmst(double ctime) {
   double jd_utc[2];
   ctime2jd(ctime, jd_utc);
-  const double mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
+
+  // UTC -> UT1 happens in both accuracy modes, unlike the C, whose 'low'
+  // path hands UTC to eraGmst00 for UT1 and so discards dut1 entirely --
+  // silently undoing a bulletin the caller went to the trouble of loading.
+  // The cache is what makes keeping it affordable: the offset is fixed
+  // within the day, so 'low' pays about 2 ns a sample for the term that
+  // dominates this calculation, and the transforms apply it in both modes
+  // already (update_erot reaches the same conversion with no accuracy gate).
+  if (state(Rate::dut1, false).check(ctime))
+    dut1_ = bulletin_.interp(jd2mjd(jd_utc[0]) + jd_utc[1]).dut1;
+  double jd_ut1[2];
+  jdutc2jdut1(jd_utc, jd_ut1);
 
   double g;
   if (opt_.accuracy == 0) {
-    if (state(Rate::dut1, false).check(ctime))
-      dut1_ = bulletin_.interp(mjd_utc).dut1;
-    g = ctime2gmst(ctime, dut1_, opt_.accuracy);
+    double jd_tt[2];
+    ctime2jdtt(ctime, jd_tt);
+    g = eraGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
   } else {
-    g = ctime2gmst(ctime, 0, opt_.accuracy);
+    // 'low' gives up only the TT conversion, which is the whole of the
+    // remaining cost. GMST reads TT through the precession polynomial
+    // alone, so the 69 s error that represents is worth 0.1 mas.
+    g = eraGmst00(jd_ut1[0], jd_ut1[1], jd_ut1[0], jd_ut1[1]);
   }
   return std::fmod(rad2deg(g) / 15.0, 24.);
 }
@@ -400,7 +440,7 @@ void Pointing::azelpsi2quat(double az, double el, double psi, double pitch,
   if (state(Rate::wobble, false).should_apply()) mul_left(q_wobble_, q);
 
   if (state(Rate::erot, false).check(ctime)) {
-    jdutc2jdut1(jd_utc, dut1_, jd_ut1);
+    jdutc2jdut1(jd_utc, jd_ut1);
     q_erot_ = erot_quat(jd_ut1);
   }
   if (state(Rate::erot, false).should_apply()) mul_left(q_erot_, q);
@@ -445,7 +485,7 @@ void Pointing::quat2azel(const Quat &q_in, double lon, double lat,
   }
 
   if (state(Rate::erot, true).check(ctime)) {
-    jdutc2jdut1(jd_utc, dut1_, jd_ut1);
+    jdutc2jdut1(jd_utc, jd_ut1);
     q_erot_inv_ = erot_quat(jd_ut1).inv();
   }
   if (state(Rate::erot, true).should_apply()) mul_left(q_erot_inv_, q);

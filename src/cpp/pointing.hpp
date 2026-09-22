@@ -140,6 +140,13 @@ class Pointing {
   UpdateState &state(Rate r, bool inv);
   const UpdateState &state(Rate r, bool inv) const;
 
+  // UTC -> UT1, with the conversion cached for the day. The offset it
+  // applies is fixed within a calendar day while the Earth rotation angle
+  // it feeds changes every sample, and eraUtcut1 is 52 ns against
+  // eraEra00's 9.6, so recomputing it per sample dominates the cost of
+  // the whole correction.
+  void jdutc2jdut1(const double jd_utc[2], double jd_ut1[2]);
+
   void apply_refraction(double ctime, Quat &q, bool inv);
   void apply_diurnal_aberration(double ctime, double lat, Quat &q, bool inv);
   void apply_annual_aberration(double ctime, Quat &q, bool inv);
@@ -177,6 +184,11 @@ class Pointing {
 
   double ref_delta_ = 0.;
   double dut1_ = 0.;
+
+  // The cached UT1 - UTC, valid while jd_utc[1] is inside the window at
+  // this jd_utc[0] and this dut1_. Starts empty.
+  ValidWindow ut1_valid_;
+  double ut1_off0_ = 0., ut1_off1_ = 0.;
 };
 
 }  // namespace qp

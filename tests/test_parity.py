@@ -187,6 +187,10 @@ class TestPointing:
         q.azel2radec(1.0, 2.0, 3.0, AZ, EL, PITCH, ROLL, LON, LAT, CTIME)
         assert q.get("mean_aber") == before
 
+    # Exact at accuracy-low too, but only because CTIME loads no bulletin
+    # and lands on an ordinary day. Widen it across a leap second, or give
+    # it a dut1, and the two part company by design --
+    # TestLowAccuracyKeepsDut1 is where that is pinned.
     def test_gmst(self, mod, options):
         ref = qp(qpoint, **options).gmst(CTIME)
         got = qp(mod, **options).gmst(CTIME)
@@ -196,6 +200,223 @@ class TestPointing:
         ref = qp(qpoint, **options).lmst(CTIME, LON)
         got = qp(mod, **options).lmst(CTIME, LON)
         assert_identical(ref, got, "lmst")
+
+
+# UTC -> UT1 is cached per day in qpoint2, so the cases that matter are
+# the ones the fixtures above never reach: a leap second, midnight, and a
+# dut1 that changes from one day to the next.
+LEAP_2016 = 1483142400.0  # 2016-12-31 00:00:00 UTC, leap second at its end
+LEAP_2015 = 1435622400.0  # 2015-06-30 00:00:00 UTC
+MIDNIGHT = 1483228800.0  # 2017-01-01 00:00:00 UTC
+
+# Kept small on purpose: these are about which instants are visited, not
+# how many, and the suite is otherwise a second and a half.
+UT1_SPANS = [
+    pytest.param(LEAP_2016 + np.arange(0, 2 * 86400, 60.0), id="leap-2016"),
+    pytest.param(LEAP_2015 + np.arange(0, 2 * 86400, 60.0), id="leap-2015"),
+    pytest.param(MIDNIGHT + np.arange(-30.0, 30.0, 0.05), id="midnight"),
+    pytest.param(
+        MIDNIGHT
+        + np.array(
+            [-11.0, -10.001, -10.0, -9.999, -1.0, 0.0, 1.0, 9.999, 10.0, 10.001, 11.0]
+        ),
+        id="cache-margin",
+    ),
+    pytest.param(1418662800.0 + np.arange(0, 6 * 86400, 120.0), id="six-days"),
+    pytest.param(
+        np.ascontiguousarray(
+            np.sort(
+                np.random.default_rng(3).uniform(LEAP_2016, LEAP_2016 + 3 * 86400, 5000)
+            )[::-1]
+        ),
+        id="backwards",
+    ),
+]
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+@pytest.mark.parametrize("ctime", UT1_SPANS)
+class TestUt1Caching:
+    """
+    qpoint2 caches UT1 - UTC for the interior of a calendar day, which is
+    exact because the offset only steps at a leap second and those fall at
+    midnight. The awkward part is that a leap-second day is 86401 seconds
+    long, so ERFA still calls the instant 86400 seconds in "that day,
+    fraction 1.0" while ctime / 86400 has already rolled over -- the two
+    disagree about the date for exactly one second. The cache stays ten
+    seconds clear of midnight to avoid it, and these spans check that.
+    """
+
+    @staticmethod
+    def _bore(mod, ctime):
+        n = len(ctime)
+        q = qp(mod)
+        return np.asarray(
+            q.azel2bore(
+                np.linspace(0.0, 360.0, n),
+                np.full(n, 45.0),
+                None,
+                None,
+                np.full(n, 165.7),
+                np.full(n, -77.6),
+                np.ascontiguousarray(ctime),
+            )
+        )
+
+    def test_azel2bore(self, mod, ctime):
+        assert_identical(self._bore(qpoint, ctime), self._bore(mod, ctime), "azel2bore")
+
+    def test_bore2azel(self, mod, ctime):
+        """The inverse corrections take the other call site."""
+        n = len(ctime)
+        out = []
+        for m in (qpoint, mod):
+            q = qp(m)
+            qb = self._bore(m, ctime)
+            out.append(
+                tuple(
+                    q.bore2azel(
+                        qb,
+                        np.full(n, 165.7),
+                        np.full(n, -77.6),
+                        np.ascontiguousarray(ctime),
+                    )
+                )
+            )
+        assert_identical(out[0], out[1], "bore2azel")
+
+    def test_gmst(self, mod, ctime):
+        ct = np.ascontiguousarray(ctime)
+        assert_identical(qp(qpoint).gmst(ct), qp(mod).gmst(ct), "gmst")
+
+    def test_with_a_daily_bulletin(self, mod, ctime):
+        """dut1 changing day to day has to invalidate the cache."""
+        rng = np.random.default_rng(0)
+        nd = 500
+        mjd0 = 57000
+        dut1 = np.ascontiguousarray(rng.uniform(-0.5, 0.5, nd))
+        x = np.ascontiguousarray(rng.uniform(-0.3, 0.3, nd))
+        y = np.ascontiguousarray(rng.uniform(-0.3, 0.3, nd))
+        n = len(ctime)
+        out = []
+        for m in (qpoint, mod):
+            q = qp(m, rate_dut1="always")
+            if m is qpoint:
+                from qpoint._libqpoint import libqp
+
+                libqp.qp_set_iers_bulletin_a(q._memory, mjd0, mjd0 + nd - 1, dut1, x, y)
+            else:
+                q.set_bulletin_a(mjd0, mjd0 + nd - 1, dut1, x, y)
+            out.append(
+                np.asarray(
+                    q.azel2bore(
+                        np.linspace(0.0, 360.0, n),
+                        np.full(n, 45.0),
+                        None,
+                        None,
+                        np.full(n, 165.7),
+                        np.full(n, -77.6),
+                        np.ascontiguousarray(ctime),
+                    )
+                )
+            )
+        assert_identical(out[0], out[1], "azel2bore with a daily bulletin")
+
+
+# A flat bulletin, so the dut1 a test asks for is the dut1 every sample
+# gets and the expected error is a number rather than a range. The span
+# covers 2014-12 to 2017-09, which is both leap seconds below.
+BULLETIN_MJD0 = 57000
+BULLETIN_NDAY = 1000
+DUT1 = 0.4  # a realistic UT1 - UTC; leap seconds hold it inside +-0.9
+
+
+def load_flat_bulletin(q, mod, dut1):
+    """Load a constant-dut1 bulletin through each package's own entry point."""
+    d = np.ascontiguousarray(np.full(BULLETIN_NDAY, float(dut1)))
+    z = np.ascontiguousarray(np.zeros(BULLETIN_NDAY))
+    mjd1 = BULLETIN_MJD0 + BULLETIN_NDAY - 1
+    if mod is qpoint:
+        from qpoint._libqpoint import libqp
+
+        libqp.qp_set_iers_bulletin_a(q._memory, BULLETIN_MJD0, mjd1, d, z, z)
+    else:
+        q.set_bulletin_a(BULLETIN_MJD0, mjd1, d, z, z)
+    return q
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestLowAccuracyKeepsDut1:
+    """
+    qpoint2 applies dut1 to gmst and lmst in both accuracy modes. qpoint
+    applies it only under 'high': its low path hands UTC to eraGmst00 for
+    UT1, which discards whatever bulletin was loaded -- 6 arcsec of Earth
+    rotation at a typical dut1, and up to 13.5 given the leap-second bound.
+
+    That stopped being a speed/accuracy trade when the day cache landed.
+    UTC -> UT1 is now around 2 ns a sample, so 'low' keeps it and gives up
+    only the TT conversion, which is the whole of the remaining cost and is
+    worth 0.1 mas -- GMST reads TT through the precession polynomial alone.
+
+    The flag means something narrower everywhere else: accuracy selects the
+    nutation series, and the transforms apply dut1 in both modes already,
+    because update_erot reaches the same conversion with no accuracy gate.
+    So this only ever showed up in gmst and lmst.
+
+    A leap-second day is the second half of it, and needs no bulletin at
+    all: the C maps its 86401 seconds onto 86400, drifting by up to a full
+    second of rotation across the day.
+    """
+
+    # One leap-second day, sampled through it so the drift is visible.
+    CTIME = np.ascontiguousarray(LEAP_2015 + np.arange(0.0, 86400.0, 600.0))
+
+    def gmst(self, mod, accuracy, dut1=DUT1):
+        q = qp(mod, accuracy=accuracy, rate_dut1="always")
+        load_flat_bulletin(q, mod, dut1)
+        return np.asarray(q.gmst(self.CTIME))
+
+    @staticmethod
+    def arcsec(a, b):
+        """Separation in arcsec of Earth rotation; gmst is in hours."""
+        return np.abs(np.asarray(a) - np.asarray(b)) * 15.0 * 3600.0
+
+    def test_low_tracks_high(self, mod):
+        """Only the TT term is given up: a tenth of a milliarcsecond."""
+        d = self.arcsec(self.gmst(mod, "low"), self.gmst(mod, "high"))
+        assert d.max() < 1e-3
+
+    def test_qpoint_low_discards_the_bulletin(self, mod):
+        """
+        The reference really does behave the other way, so this divergence
+        cannot go stale by qpoint quietly growing the same fix.
+        """
+        d = self.arcsec(self.gmst(qpoint, "low"), self.gmst(qpoint, "high"))
+        # The dut1 term, ~6 arcsec, on every sample rather than at worst.
+        assert d.min() > 0.9 * DUT1 * 15.0
+
+    def test_high_accuracy_is_untouched(self, mod):
+        """The divergence is confined to the low path."""
+        assert_identical(self.gmst(qpoint, "high"), self.gmst(mod, "high"), "gmst high")
+
+    def test_the_leap_second_day_needs_no_bulletin(self, mod):
+        """
+        With dut1 == 0 the two still part company across a leap-second day,
+        by up to a second of rotation, and qpoint2 is the one that agrees
+        with its own high path.
+        """
+        ref = self.gmst(mod, "high", dut1=0.0)
+        assert self.arcsec(self.gmst(mod, "low", dut1=0.0), ref).max() < 1e-3
+        assert self.arcsec(self.gmst(qpoint, "low", dut1=0.0), ref).max() > 1.0
+
+    def test_lmst_follows_gmst(self, mod):
+        """lmst is gmst plus a longitude, so it inherits the whole thing."""
+        out = []
+        for m in (qpoint, mod):
+            q = qp(m, accuracy="low", rate_dut1="always")
+            load_flat_bulletin(q, m, DUT1)
+            out.append(np.asarray(q.lmst(self.CTIME, 165.7)))
+        assert self.arcsec(*out).min() > 0.9 * DUT1 * 15.0
 
 
 OMEGA = np.random.default_rng(0).normal(size=(3, N)) * 0.01

@@ -56,6 +56,39 @@ class UpdateState {
   double ctime_last_ = -1;
 };
 
+// The domain over which a cached value stays valid: x in [lo, hi), for
+// the pair of keys it was computed at.
+//
+// Not an UpdateState, because the two answer different questions.
+// UpdateState asks how long ago a correction was last recomputed, which
+// is a rate the caller trades against accuracy. This asks whether the
+// value is still exactly right, which is not negotiable -- the UT1 - UTC
+// offset is constant for the interior of a calendar day at a given dut1
+// and steps at a leap second, and no interval expresses that.
+class ValidWindow {
+ public:
+  constexpr bool covers(double x, double key0, double key1) const {
+    return x >= lo_ && x < hi_ && key0 == key0_ && key1 == key1_;
+  }
+
+  constexpr void set(double lo, double hi, double key0, double key1) {
+    lo_ = lo;
+    hi_ = hi;
+    key0_ = key0;
+    key1_ = key1;
+  }
+
+  // Empty, so covers() is false whatever it is asked.
+  constexpr void clear() {
+    lo_ = 1.;
+    hi_ = 0.;
+  }
+
+ private:
+  double lo_ = 1., hi_ = 0.;
+  double key0_ = 0., key1_ = 0.;
+};
+
 enum class Rate {
   daber = 0,
   lonlat,
