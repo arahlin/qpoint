@@ -1374,3 +1374,134 @@ class TestRadecpaQuatBroadcast:
     def test_scalar_inputs_squeeze_to_quat(self, qp):
         q = qp.radecpa2quat(0.0, 0.0, 0.0)
         assert q.shape == (4,)
+
+
+# ---------------------------------------------------------------------------
+# Option and rate behaviour, as opposed to the values round-tripping
+# ---------------------------------------------------------------------------
+
+
+class TestMeanAberIsRestored:
+    """
+    The azel*2radec* family forces mean aberration on for the duration of
+    the call. Whatever the caller set has to survive it.
+    """
+
+    def test_azel2radec_puts_it_back(self):
+        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+        q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
+        assert q.get("mean_aber") is False
+
+    def test_azelpsi2radec_puts_it_back(self):
+        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+        q.azelpsi2radec(1.0, 2.0, 3.0, 45.0, 45.0, 10.0, None, None, LON, LAT, CTIME)
+        assert q.get("mean_aber") is False
+
+    def test_it_is_still_on_where_the_caller_asked_for_it(self):
+        q = qpoint.QPoint(mean_aber=True, accuracy="low")
+        q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
+        assert q.get("mean_aber") is True
+
+
+class TestRateCaching:
+    """
+    A rate says how often a correction is recomputed. Only the values
+    round-tripping is covered elsewhere; this is what the rates do.
+    """
+
+    # two samples 200 days apart, so a frozen correction is visible
+    TIMES = CTIME + np.array([0.0, 200.0 * 86400.0])
+
+    def radec(self, **kwargs):
+        q = qpoint.QPoint(mean_aber=True, **kwargs)
+        az, el = np.array([10.0, 10.0]), np.array([45.0, 45.0])
+        q_bore = q.azel2bore(az, el, None, None, LON, LAT, self.TIMES)
+        ra, dec, _, _ = q.bore2radec(q.det_offset(0.0, 0.0, 0.0), self.TIMES, q_bore)
+        return np.asarray(ra).copy()
+
+    def test_never_differs_from_always(self):
+        assert not np.allclose(
+            self.radec(rate_npb="never"), self.radec(rate_npb="always")
+        )
+
+    def test_once_is_computed_at_the_first_sample(self):
+        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+        assert np.isclose(once[0], always[0])
+
+    def test_once_is_then_frozen(self):
+        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+        assert not np.isclose(once[1], always[1])
+
+
+class TestFastPix:
+    """
+    fast_pix skips the angle round trip and takes the pixel from the
+    pointing vector. Away from the poles the two agree exactly.
+    """
+
+    @pytest.mark.parametrize("order", ["ring", "nest"])
+    @pytest.mark.parametrize("fast_math", [False, True])
+    def test_quat2pixpa_fast_path(self, order, fast_math):
+        """
+        quat2pixpa has its own copy of the fast path, separate from the
+        one bore2pix takes. Crossed with the pixel ordering and with
+        fast_math, because the fast path picks the ordering itself and
+        computes the angle with whichever trig is configured.
+
+        The exact poles are included to reach the branch where cos^2(b)
+        underflows and the angle has to come from the quaternion instead.
+        There the fast path and the angle path disagree about the *pixel*
+        on purpose -- the angle path's cos(theta) rounds to 1 and throws
+        the azimuth away -- so the pixel is compared outside that cap
+        only, and the angle merely has to be finite.
+        """
+        dec = np.array([90.0, -90.0, 89.99, -89.99, 80.0, 0.0, -45.0, 12.0])
+        ra = np.linspace(0.0, 300.0, len(dec))
+        pa_in = np.linspace(-150.0, 150.0, len(dec))
+        got = {}
+        for fast in (False, True):
+            q = qpoint.QPoint(
+                mean_aber=True,
+                accuracy="low",
+                fast_pix=fast,
+                pix_order=order,
+                fast_math=fast_math,
+            )
+            pix, pa = q.quat2pixpa(q.radecpa2quat(ra, dec, pa_in), nside=64)
+            got[fast] = (np.asarray(pix).copy(), np.asarray(pa).copy())
+        settled = np.abs(dec) <= 89.99
+        assert np.array_equal(got[False][0][settled], got[True][0][settled])
+        assert np.all(np.isfinite(got[True][1]))
+
+    def test_same_pixels_as_the_angle_path(self):
+        pix = {}
+        for fast in (False, True):
+            q = qpoint.QPoint(mean_aber=True, accuracy="low", fast_pix=fast)
+            q_bore = q.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+            out = q.bore2pix(q.det_offset(1.0, 2.0, 30.0), CTIMES, q_bore, nside=64)
+            pix[fast] = np.asarray(out[0] if isinstance(out, tuple) else out).copy()
+        assert np.array_equal(pix[False], pix[True])
+
+
+class TestBulletinARange:
+    def test_a_lookup_outside_the_table_returns_zeros(self):
+        """
+        Every caller in the C ignores the error return and uses the
+        values, so an out-of-range date has to leave them at zero rather
+        than raise.
+        """
+        dut1, x, y = qpoint.QPoint().get_bulletin_a(20000.0)
+        assert (dut1, x, y) == (0.0, 0.0, 0.0)
+
+
+class TestPrintMemory:
+    def test_it_prints_the_state(self, capfd):
+        """
+        print_memory writes from the C, so the file descriptor has to be
+        captured rather than sys.stdout. It flushes itself, which is what
+        makes the output readable here rather than after the test.
+        """
+        qpoint.QPoint(accuracy="low").print_memory()
+        out = capfd.readouterr().out
+        assert "QPOINT MEMORY" in out
+        assert "accuracy" in out
