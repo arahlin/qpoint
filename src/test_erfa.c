@@ -1,6 +1,7 @@
 #include "erfa.h"
 
 #include <stdio.h>
+#include <string.h>
 
 static int verbose = 0;
 
