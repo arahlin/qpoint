@@ -786,6 +786,12 @@ class QPoint(object):
         are defined assuming the boresight is pointed toward the horizon, and
         that the boresight polarization axis is along the horizontal.
 
+        The coordinates returned are ICRS, not the J2000 mean equator and
+        equinox: the precession-nutation step is built from `eraXys06a`,
+        whose CIP coordinates are referred to the GCRS and carry the frame
+        bias with them. The two frames differ by about 23 mas, and the same
+        applies to every other entry point returning ra/dec.
+
         Arguments
         ---------
         delta_az : float
@@ -1505,7 +1511,7 @@ class QPoint(object):
         Rotate a quaternion from one coordinate system to another.
         Supported coordinates:
 
-        C: celestial (equatorial) coordinates
+        C: celestial (equatorial, ICRS) coordinates
         G: galactic coordinates
 
         Arguments
@@ -1561,7 +1567,7 @@ class QPoint(object):
         input arguments must be broadcastable to the same shape.
         Supported coordinates:
 
-        C: celestial (equatorial) coordinates
+        C: celestial (equatorial, ICRS) coordinates
         G: galactic coordinates
 
         Arguments
@@ -1709,8 +1715,8 @@ class QPoint(object):
         Rotate a polarized 3-x-npix map from one coordinate system to another.
         Supported coordinates:
 
-        C = celestial (equatorial J2000)
-        G = galactic
+        C = celestial (equatorial, ICRS)
+        G = galactic (IAU 1958, as realized from ICRS by Hipparcos)
 
         Arguments
         ---------
