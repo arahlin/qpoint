@@ -1108,9 +1108,13 @@
 <span class="sd">        proj : array_like</span>
 <span class="sd">            Projection matrix, of shape (N*(N+1)/2, npix).</span>
 <span class="sd">            If None, obtained from the depo.</span>
-<span class="sd">        mode : {None, 1, -1, 2, -2, inf, -inf, 'fro'}, optional</span>
-<span class="sd">            condition number order.  See `numpy.linalg.cond`.</span>
-<span class="sd">            Default: None (2-norm from SVD)</span>
+<span class="sd">        mode : {None, 'eigh', 1, -1, 2, -2, inf, -inf, 'fro'}, optional</span>
+<span class="sd">            How to compute the condition number.  Any order accepted by</span>
+<span class="sd">            `numpy.linalg.cond` uses that norm, via an SVD.  'eigh' uses</span>
+<span class="sd">            the symmetric eigenvalues instead, which is faster but not a</span>
+<span class="sd">            drop-in: for a nearly singular pixel the smallest eigenvalue</span>
+<span class="sd">            is rounding noise, so the ratio can differ from the SVD by</span>
+<span class="sd">            tens of percent.  Default: None (2-norm from SVD)</span>
 <span class="sd">        partial : bool, optional</span>
 <span class="sd">            If True, the map is not checked to ensure a proper healpix nside.</span>
 
@@ -1125,27 +1129,47 @@
             <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">"proj"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"missing proj"</span><span class="p">)</span>
-        <span class="n">proj</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">nmap</span> <span class="o">=</span> <span class="n">check_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
+        <span class="c1"># Not copied: nothing below writes to it. The normalization is</span>
+        <span class="c1"># applied to the hit columns pulled out of it, which is a fresh</span>
+        <span class="c1"># small array -- at nside 512 a full-sky proj is 150 MB and a real</span>
+        <span class="c1"># scan hits a fraction of a percent of it.</span>
+        <span class="n">proj</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">nmap</span> <span class="o">=</span> <span class="n">check_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
         <span class="n">nproj</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
 
         <span class="c1"># normalize</span>
         <span class="n">m</span> <span class="o">=</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
-        <span class="n">proj</span><span class="p">[:,</span> <span class="n">m</span><span class="p">]</span> <span class="o">/=</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span>
-        <span class="n">proj</span><span class="p">[:,</span> <span class="o">~</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="n">cond</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
 
-        <span class="c1"># return if unpolarized</span>
+        <span class="c1"># return if unpolarized. Hits-normalized, so a 1x1 matrix is its</span>
+        <span class="c1"># own hit count over itself; written as the division rather than</span>
+        <span class="c1"># as 1.0 so a degenerate hit count gives what it always gave.</span>
         <span class="k">if</span> <span class="n">nmap</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">cond</span><span class="p">[</span><span class="n">sel</span><span class="p">]</span> <span class="o">=</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">sel</span><span class="p">]</span> <span class="o">/</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">sel</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">cond</span>
 
         <span class="c1"># projection matrix indices</span>
         <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nmap</span><span class="p">,</span> <span class="n">nmap</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
         <span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">nmap</span><span class="p">)</span>
         <span class="n">idx</span><span class="p">[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span><span class="n">ctri</span><span class="p">,</span> <span class="n">rtri</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nproj</span><span class="p">)</span>
 
-        <span class="c1"># calculate for each pixel</span>
-        <span class="n">proj</span><span class="p">[:,</span> <span class="o">~</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">cond</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">proj</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
-        <span class="n">cond</span><span class="p">[</span><span class="o">~</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="c1"># Calculate for the hit pixels only. An unhit pixel's condition</span>
+        <span class="c1"># number is infinite by definition, and a full-sky map of a real</span>
+        <span class="c1"># scan is almost all unhit -- 21k of 3.1M for an hour of one patch</span>
+        <span class="c1"># -- so computing it everywhere and then overwriting is nearly all</span>
+        <span class="c1"># of the cost. Each pixel's matrix is independent, so the answer</span>
+        <span class="c1"># for the ones that are kept is unchanged. The unhit columns are</span>
+        <span class="c1"># left alone rather than blanked for the same reason: mats reads</span>
+        <span class="c1"># only the hit ones and cond starts at inf.</span>
+        <span class="n">mats</span> <span class="o">=</span> <span class="p">(</span><span class="n">proj</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">]</span> <span class="o">/</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">sel</span><span class="p">])[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"eigh"</span><span class="p">:</span>
+            <span class="c1"># A projection matrix is symmetric and positive semi-definite,</span>
+            <span class="c1"># so its singular values are the moduli of its eigenvalues.</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">mats</span><span class="p">))</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+                <span class="n">cond</span><span class="p">[</span><span class="n">sel</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">w</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cond</span><span class="p">[</span><span class="n">sel</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">mats</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
         <span class="c1"># threshold at machine precision</span>
         <span class="n">cond</span><span class="p">[</span><span class="n">cond</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
         <span class="k">return</span> <span class="n">cond</span></div>
@@ -1165,6 +1189,7 @@
         <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">cond</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">cond_thresh</span><span class="o">=</span><span class="mf">1e6</span><span class="p">,</span>
+        <span class="n">cond_mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">method</span><span class="o">=</span><span class="s2">"exact"</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1204,7 +1229,14 @@
 <span class="sd">        cond_thresh : scalar, optional</span>
 <span class="sd">            A threshold to place on the condition number to exclude pixels</span>
 <span class="sd">            prior to solving.  Reduce this to avoid `LinAlgError` due to</span>
-<span class="sd">            singular matrices.</span>
+<span class="sd">            singular matrices.  If None, the condition number is not</span>
+<span class="sd">            computed at all and no pixel is excluded for it, which is the</span>
+<span class="sd">            bulk of the cost of solving a map -- only do this where the</span>
+<span class="sd">            matrices are known to be invertible, since a singular one will</span>
+<span class="sd">            raise `LinAlgError` for the whole map.</span>
+<span class="sd">        cond_mode : optional</span>
+<span class="sd">            Passed to :meth:`proj_cond` as `mode` when the condition number</span>
+<span class="sd">            has to be computed.  'eigh' is the cheaper approximate route.</span>
 <span class="sd">        method : string, optional</span>
 <span class="sd">            Map inversion method.  If "exact", invert the pointing matrix directly</span>
 <span class="sd">            If "cho", use Cholesky decomposition to solve.  Default: "exact".</span>
@@ -1239,7 +1271,9 @@
             <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">"proj"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"missing proj"</span><span class="p">)</span>
-        <span class="n">pcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_proj</span> <span class="k">else</span> <span class="n">copy</span>
+        <span class="c1"># proj is written only where it is returned, so where it is not</span>
+        <span class="c1"># there is nothing to protect the caller's array from.</span>
+        <span class="n">pcopy</span> <span class="o">=</span> <span class="n">copy</span> <span class="k">if</span> <span class="n">return_proj</span> <span class="k">else</span> <span class="kc">False</span>
         <span class="n">proj</span><span class="p">,</span> <span class="n">pnside</span><span class="p">,</span> <span class="n">nmap</span> <span class="o">=</span> <span class="n">check_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">pcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pnside</span> <span class="o">!=</span> <span class="n">nside</span> <span class="ow">or</span> <span class="n">nmap</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vec</span><span class="p">):</span>
@@ -1248,7 +1282,9 @@
 
         <span class="c1"># deal with mask</span>
         <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vec</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="c1"># the hit pixels are the whole mask; no need for a ones array</span>
+            <span class="c1"># and a second pass to and it away</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">mcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_mask</span> <span class="k">else</span> <span class="n">copy</span>
             <span class="n">mask</span><span class="p">,</span> <span class="n">mnside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">mcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
@@ -1277,21 +1313,28 @@
         <span class="c1"># Cholesky one used to see only the hits mask, and cho_factor</span>
         <span class="c1"># succeeds on a rank-deficient matrix rather than raising, so a</span>
         <span class="c1"># one- or two-hit pixel came back with whatever it produced.</span>
-        <span class="k">if</span> <span class="n">cond</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_cond</span><span class="p">(</span><span class="n">proj</span><span class="o">=</span><span class="n">proj</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
-        <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">cond</span> <span class="o">&lt;</span> <span class="n">cond_thresh</span>
+        <span class="k">if</span> <span class="n">cond</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cond_thresh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj_cond</span><span class="p">(</span><span class="n">proj</span><span class="o">=</span><span class="n">proj</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">cond_mode</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cond</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">cond</span> <span class="o">&lt;</span> <span class="n">cond_thresh</span>
 
         <span class="c1"># solve</span>
         <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"exact"</span><span class="p">:</span>
-            <span class="n">vec</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">proj</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nmap</span><span class="p">)[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="c1"># Solve where there is something to solve. Everything else used</span>
+            <span class="c1"># to be handed an identity matrix to invert, which for a</span>
+            <span class="c1"># full-sky map of a real scan is almost every pixel.</span>
+            <span class="n">sel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
             <span class="c1"># numpy 2 requires b (ie vec) to have shape (..., M, K) not (..., M).</span>
             <span class="c1"># Use K = 1 with np.newaxis.</span>
-            <span class="n">vec</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span>
-                <span class="n">proj</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">vec</span><span class="o">.</span><span class="n">transpose</span><span class="p">()[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+            <span class="n">vec</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span>
+                <span class="n">proj</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">vec</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
             <span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
             <span class="n">vec</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill</span>
-            <span class="n">proj</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="c1"># Only worth doing to a proj the caller gets back; otherwise it</span>
+            <span class="c1"># is a throwaway copy and this is a pass over the whole map.</span>
+            <span class="k">if</span> <span class="n">return_proj</span><span class="p">:</span>
+                <span class="n">proj</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="n">vec</span><span class="p">,)</span> <span class="o">+</span> <span class="n">return_proj</span> <span class="o">*</span> <span class="p">(</span><span class="n">proj</span><span class="p">,)</span> <span class="o">+</span> <span class="n">return_mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">mask</span><span class="p">,)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1301,21 +1344,37 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unrecognized method </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">))</span>
 
         <span class="c1"># slow method, loop over pixels</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">cho_factor</span><span class="p">,</span> <span class="n">cho_solve</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinAlgError</span><span class="p">,</span> <span class="n">cho_factor</span><span class="p">,</span> <span class="n">cho_solve</span>
 
-        <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">vec</span><span class="o">.</span><span class="n">T</span><span class="p">)):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
-                <span class="n">proj</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">vec</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill</span>
-                <span class="k">continue</span>
+        <span class="c1"># Only the pixels worth solving, as above. This used to expand</span>
+        <span class="c1"># proj[idx] for the whole map -- an (nmap, nmap, npix) temporary --</span>
+        <span class="c1"># and then walk all of it in Python to skip the masked ones, which</span>
+        <span class="c1"># for a full-sky map of a real scan is almost every pixel.</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">vec</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill</span>
+        <span class="k">if</span> <span class="n">return_proj</span><span class="p">:</span>
+            <span class="n">proj</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">mats</span> <span class="o">=</span> <span class="n">proj</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">jj</span><span class="p">,</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sel</span><span class="p">):</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">mats</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">vec</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">cho_solve</span><span class="p">(</span><span class="n">cho_factor</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="n">v</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-            <span class="k">except</span><span class="p">:</span>
+                <span class="c1"># cho_factor overwrites A, which is why proj takes the</span>
+                <span class="c1"># decomposition from it afterwards rather than from proj</span>
+                <span class="n">vec</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">cho_solve</span><span class="p">(</span><span class="n">cho_factor</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="n">vec</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">],</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># LinAlgError is the factorization giving up on a matrix that is</span>
+            <span class="c1"># not positive definite; ValueError is cho_factor refusing one</span>
+            <span class="c1"># that holds an inf or a nan. Both mean this pixel cannot be</span>
+            <span class="c1"># solved, and both used to be caught by a bare except, which</span>
+            <span class="c1"># also swallowed KeyboardInterrupt.</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">LinAlgError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
                 <span class="n">mask</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="n">proj</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">vec</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill</span>
+                <span class="k">if</span> <span class="n">return_proj</span><span class="p">:</span>
+                    <span class="n">proj</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">proj</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">return_proj</span><span class="p">:</span>
+                    <span class="n">proj</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">]</span>
 
         <span class="c1"># return</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="n">vec</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="n">proj</span><span class="p">,)</span> <span class="o">*</span> <span class="n">return_proj</span> <span class="o">+</span> <span class="p">(</span><span class="n">mask</span><span class="p">,)</span> <span class="o">*</span> <span class="n">return_mask</span>
@@ -1447,7 +1506,9 @@
             <span class="n">proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depo</span><span class="p">[</span><span class="s2">"proj"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">proj</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"missing proj"</span><span class="p">)</span>
-        <span class="n">pcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_proj</span> <span class="k">else</span> <span class="n">copy</span>
+        <span class="c1"># proj is only read here, so where it is not returned there is</span>
+        <span class="c1"># nothing to protect the caller's array from.</span>
+        <span class="n">pcopy</span> <span class="o">=</span> <span class="n">copy</span> <span class="k">if</span> <span class="n">return_proj</span> <span class="k">else</span> <span class="kc">False</span>
         <span class="n">proj</span><span class="p">,</span> <span class="n">pnside</span><span class="p">,</span> <span class="n">nmap</span> <span class="o">=</span> <span class="n">check_proj</span><span class="p">(</span><span class="n">proj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">pcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pnside</span> <span class="o">!=</span> <span class="n">nside</span> <span class="ow">or</span> <span class="n">nmap</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">map_in</span><span class="p">):</span>
@@ -1456,7 +1517,9 @@
 
         <span class="c1"># deal with mask</span>
         <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">map_in</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="c1"># the hit pixels are the whole mask; no need for a ones array</span>
+            <span class="c1"># and a second pass to and it away</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">proj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">mcopy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">return_mask</span> <span class="k">else</span> <span class="n">copy</span>
             <span class="n">mask</span><span class="p">,</span> <span class="n">mnside</span> <span class="o">=</span> <span class="n">check_map</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">mcopy</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">partial</span><span class="p">)</span>
@@ -1476,7 +1539,13 @@
             <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nmap</span><span class="p">,</span> <span class="n">nmap</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
             <span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">nmap</span><span class="p">)</span>
             <span class="n">idx</span><span class="p">[</span><span class="n">rtri</span><span class="p">,</span> <span class="n">ctri</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span><span class="n">ctri</span><span class="p">,</span> <span class="n">rtri</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nproj</span><span class="p">)</span>
-            <span class="n">map_in</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ij...,j...-&gt;i..."</span><span class="p">,</span> <span class="n">proj</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">map_in</span><span class="p">)</span>
+            <span class="c1"># Only the masked-in pixels, as solve_map does: proj[idx]</span>
+            <span class="c1"># across the whole map is an (nmap, nmap, npix) temporary, and</span>
+            <span class="c1"># every pixel it computes outside the mask is then overwritten.</span>
+            <span class="n">sel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="n">map_in</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                <span class="s2">"ij...,j...-&gt;i..."</span><span class="p">,</span> <span class="n">proj</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">][</span><span class="n">idx</span><span class="p">],</span> <span class="n">map_in</span><span class="p">[:,</span> <span class="n">sel</span><span class="p">]</span>
+            <span class="p">)</span>
             <span class="n">map_in</span><span class="p">[:,</span> <span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill</span>
 
         <span class="c1"># return</span>
