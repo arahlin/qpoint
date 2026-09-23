@@ -149,7 +149,7 @@ class Pointing {
 
   void apply_refraction(double ctime, Quat &q, bool inv);
   void apply_diurnal_aberration(double ctime, double lat, Quat &q, bool inv);
-  void apply_annual_aberration(double ctime, Quat &q, bool inv);
+  void apply_aaber_defl(double ctime, Quat &q, bool inv);
 
   // The polarization half of quat2radec, shared with quat2pix. By value
   // for the reason quat2radec is: it is handed a Quat the caller already
@@ -181,6 +181,8 @@ class Pointing {
   bool dipole_init_ = false;
 
   Vec3 beta_earth_{}, beta_rot_{};
+  Vec3 e_sun_{};      // unit vector sun -> observer
+  double em_sun_ = 0.;  // distance sun -> observer, AU
 
   double ref_delta_ = 0.;
   double dut1_ = 0.;

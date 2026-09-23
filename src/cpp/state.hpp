@@ -97,6 +97,7 @@ enum class Rate {
   erot,
   npb,
   aaber,
+  defl,
   ref,
   COUNT,
 };
@@ -119,6 +120,7 @@ inline constexpr std::array<RateDesc, kNumRates> kRates = {{
     {"erot", kDoAlways},
     {"npb", 10.},
     {"aaber", 100.},
+    {"defl", kDoNever},
     {"ref", kDoNever},
 }};
 
@@ -128,6 +130,7 @@ inline constexpr std::array<UpdateState, kNumRates> kInitialRateStates = {{
     UpdateState(kRates[2].def), UpdateState(kRates[3].def),
     UpdateState(kRates[4].def), UpdateState(kRates[5].def),
     UpdateState(kRates[6].def), UpdateState(kRates[7].def),
+    UpdateState(kRates[8].def),
 }};
 
 struct Weather {

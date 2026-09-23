@@ -58,6 +58,7 @@ extern "C" {
     qp_state_t state_erot;      // earth's rotation
     qp_state_t state_npb;       // nutation, precession, frame bias
     qp_state_t state_aaber;     // annual aberration
+    qp_state_t state_defl;      // solar light deflection
     qp_state_t state_ref;       // refraction
 
     // update inverse state
@@ -68,6 +69,7 @@ extern "C" {
     qp_state_t state_erot_inv;      // earth's rotation
     qp_state_t state_npb_inv;       // nutation, precession, frame bias
     qp_state_t state_aaber_inv;     // annual aberration
+    qp_state_t state_defl_inv;      // solar light deflection
     qp_state_t state_ref_inv;       // refraction
 
     // state data
@@ -91,6 +93,8 @@ extern "C" {
     int dipole_init;          // q_dipole initialized?
     vec3_t beta_earth;        // earth orbital velocity
     vec3_t beta_rot;          // earth rotational velocity
+    vec3_t e_sun;             // unit vector sun -> observer
+    double em_sun;            // distance sun -> observer, AU
     qp_bulletina_t bulletinA; // bulletin A data
 
     // options
@@ -156,6 +160,7 @@ extern "C" {
   RATEFUNC(erot)
   RATEFUNC(npb)
   RATEFUNC(aaber)
+  RATEFUNC(defl)
   RATEFUNC(ref)
   RATEFUNC(daber_inv)
   RATEFUNC(lonlat_inv)
@@ -164,6 +169,7 @@ extern "C" {
   RATEFUNC(erot_inv)
   RATEFUNC(npb_inv)
   RATEFUNC(aaber_inv)
+  RATEFUNC(defl_inv)
   RATEFUNC(ref_inv)
 
   /* per-option functions */
@@ -273,11 +279,10 @@ extern "C" {
      v = (R(q)*z) x beta, angle = |v|, qa = quat(-angle,v) */
   void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv, int fast);
 
-  /* Calculate earth orbital velocity vector as fraction of speed of light */
-  void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta);
-
-  /* Apply annual aberration correction to given quaternion */
-  void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q, int inv);
+  /* Apply annual aberration and solar light deflection to the given
+     quaternion. One function because they share the eraEpv00 call, the
+     pointing vector and, where fast_aber allows, the rotation itself. */
+  void qp_apply_aaber_defl(qp_memory_t *mem, double ctime, quat_t q, int inv);
 
   /* Apply diurnal aberration correction to given quaternion */
   void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
