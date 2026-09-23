@@ -97,6 +97,11 @@ the earth (lon/lat) and UTC time.  Input vectors must be
 numpy-array-like and broadcastable to the same shape. Detector offsets
 are defined assuming the boresight is pointed toward the horizon, and
 that the boresight polarization axis is along the horizontal.</p>
+<p>The coordinates returned are ICRS, not the J2000 mean equator and
+equinox: the precession-nutation step is built from <cite>eraXys06a</cite>,
+whose CIP coordinates are referred to the GCRS and carry the frame
+bias with them. The two frames differ by about 23 mas, and the same
+applies to every other entry point returning ra/dec.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -830,7 +835,7 @@ correction term at the beginning of each chunk.</p>
 <dd><p>Rotate coordinates from one coordinate system to another. Vectorized,
 input arguments must be broadcastable to the same shape.
 Supported coordinates:</p>
-<p>C: celestial (equatorial) coordinates
+<p>C: celestial (equatorial, ICRS) coordinates
 G: galactic coordinates</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -874,8 +879,8 @@ and will be processed prior to calculation.</p>
 <span class="sig-name descname"><span class="pre">rotate_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">map_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['C',</span> <span class="pre">'G']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_pix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.rotate_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.rotate_map" title="Link to this definition">¶</a></dt>
 <dd><p>Rotate a polarized 3-x-npix map from one coordinate system to another.
 Supported coordinates:</p>
-<p>C = celestial (equatorial J2000)
-G = galactic</p>
+<p>C = celestial (equatorial, ICRS)
+G = galactic (IAU 1958, as realized from ICRS by Hipparcos)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -902,7 +907,7 @@ and will be processed prior to calculation.</p>
 <span class="sig-name descname"><span class="pre">rotate_quat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['C',</span> <span class="pre">'G']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qpoint/qpoint_class.html#QPoint.rotate_quat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qpoint.qpoint_class.QPoint.rotate_quat" title="Link to this definition">¶</a></dt>
 <dd><p>Rotate a quaternion from one coordinate system to another.
 Supported coordinates:</p>
-<p>C: celestial (equatorial) coordinates
+<p>C: celestial (equatorial, ICRS) coordinates
 G: galactic coordinates</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

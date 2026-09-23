@@ -878,6 +878,12 @@
 <span class="sd">        are defined assuming the boresight is pointed toward the horizon, and</span>
 <span class="sd">        that the boresight polarization axis is along the horizontal.</span>
 
+<span class="sd">        The coordinates returned are ICRS, not the J2000 mean equator and</span>
+<span class="sd">        equinox: the precession-nutation step is built from `eraXys06a`,</span>
+<span class="sd">        whose CIP coordinates are referred to the GCRS and carry the frame</span>
+<span class="sd">        bias with them. The two frames differ by about 23 mas, and the same</span>
+<span class="sd">        applies to every other entry point returning ra/dec.</span>
+
 <span class="sd">        Arguments</span>
 <span class="sd">        ---------</span>
 <span class="sd">        delta_az : float</span>
@@ -1624,7 +1630,7 @@
 <span class="sd">        Rotate a quaternion from one coordinate system to another.</span>
 <span class="sd">        Supported coordinates:</span>
 
-<span class="sd">        C: celestial (equatorial) coordinates</span>
+<span class="sd">        C: celestial (equatorial, ICRS) coordinates</span>
 <span class="sd">        G: galactic coordinates</span>
 
 <span class="sd">        Arguments</span>
@@ -1683,7 +1689,7 @@
 <span class="sd">        input arguments must be broadcastable to the same shape.</span>
 <span class="sd">        Supported coordinates:</span>
 
-<span class="sd">        C: celestial (equatorial) coordinates</span>
+<span class="sd">        C: celestial (equatorial, ICRS) coordinates</span>
 <span class="sd">        G: galactic coordinates</span>
 
 <span class="sd">        Arguments</span>
@@ -1840,8 +1846,8 @@
 <span class="sd">        Rotate a polarized 3-x-npix map from one coordinate system to another.</span>
 <span class="sd">        Supported coordinates:</span>
 
-<span class="sd">        C = celestial (equatorial J2000)</span>
-<span class="sd">        G = galactic</span>
+<span class="sd">        C = celestial (equatorial, ICRS)</span>
+<span class="sd">        G = galactic (IAU 1958, as realized from ICRS by Hipparcos)</span>
 
 <span class="sd">        Arguments</span>
 <span class="sd">        ---------</span>
