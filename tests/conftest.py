@@ -12,10 +12,53 @@ ordinary suite stays fast and the benchmark code still gets collected,
 which is enough to catch it going stale.
 """
 
+import os
+import subprocess
+import sys
 import threading
 import time
 
 import pytest
+
+
+def openmp_runtime():
+    """
+    The OpenMP runtime the extension is linked against, or None.
+
+    There is nothing in the C library to ask, so this reads the linkage
+    of the built extension. It is worth knowing: without OpenMP the
+    threading tests still pass, because one thread trivially agrees with
+    itself, so a build that quietly lost its parallelism would look no
+    different from one that kept it.
+    """
+    from qpoint._libqpoint import libqp
+
+    path = getattr(libqp, "_name", None)
+    if not path or not os.path.exists(path):
+        return None
+    cmd = ["ldd", path] if sys.platform.startswith("linux") else ["otool", "-L", path]
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        name = line.split()[0] if line.split() else ""
+        # libgomp is gcc's, libomp/libiomp LLVM's; "omp" alone matches
+        # libSystem on macOS
+        if any(k in name.lower() for k in ("gomp", "libomp", "iomp")):
+            return os.path.basename(name)
+    return None
+
+
+@pytest.fixture(scope="session")
+def omp_runtime():
+    return openmp_runtime()
+
+
+def pytest_report_header(config):
+    """Say so in the header, so a run's parallelism is never a guess."""
+    rt = openmp_runtime()
+    return "openmp: {}".format(rt if rt else "not linked (threading tests are serial)")
 
 
 def pytest_addoption(parser):
