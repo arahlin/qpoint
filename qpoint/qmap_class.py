@@ -1237,7 +1237,7 @@ class QMap(QPoint):
             raise ValueError("Unrecognized method {}".format(method))
 
         # slow method, loop over pixels
-        from scipy.linalg import cho_factor, cho_solve
+        from scipy.linalg import LinAlgError, cho_factor, cho_solve
 
         # Only the pixels worth solving, as above. This used to expand
         # proj[idx] for the whole map -- an (nmap, nmap, npix) temporary --
@@ -1255,7 +1255,12 @@ class QMap(QPoint):
                 # cho_factor overwrites A, which is why proj takes the
                 # decomposition from it afterwards rather than from proj
                 vec[:, ii] = cho_solve(cho_factor(A, False, True), vec[:, ii], True)
-            except:
+            # LinAlgError is the factorization giving up on a matrix that is
+            # not positive definite; ValueError is cho_factor refusing one
+            # that holds an inf or a nan. Both mean this pixel cannot be
+            # solved, and both used to be caught by a bare except, which
+            # also swallowed KeyboardInterrupt.
+            except (LinAlgError, ValueError):
                 mask[ii] = False
                 vec[:, ii] = fill
                 if return_proj:
