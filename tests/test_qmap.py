@@ -1,5 +1,8 @@
 """Tests for qpoint.QMap mapmaking class and helper functions."""
 
+import os
+import sys
+
 import numpy as np
 import pytest
 import qpoint
@@ -938,6 +941,21 @@ class TestNumThreads:
         (vec_one, one), (vec_four, four) = self.run(1), self.run(4)
         assert np.allclose(one, four, rtol=1e-10, atol=1e-12)
         assert np.allclose(vec_one, vec_four, rtol=1e-10, atol=1e-12)
+
+    def test_the_build_is_threaded_where_it_should_be(self, omp_runtime):
+        """
+        Everything above passes on a serial build, because one thread
+        agrees with itself, so none of it would notice parallelism going
+        missing. On the platform that is supposed to have it, say so.
+
+        Linux only, and only under CI: Apple clang ships no OpenMP
+        runtime, and linking LLVM's collides with the one healpy bundles,
+        so macOS is deliberately serial. A developer's Linux box without
+        libgomp is their business; the runners are not.
+        """
+        if not (os.environ.get("CI") and sys.platform.startswith("linux")):
+            pytest.skip("only pinned for CI on Linux")
+        assert omp_runtime, "expected an OpenMP build; the threading tests are vacuous"
 
 
 # ---------------------------------------------------------------------------
