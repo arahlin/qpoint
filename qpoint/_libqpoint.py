@@ -284,6 +284,28 @@ setargs("qp_reset_inv_rates", arg=qp_memory_t_p)
 
 setargs("qp_get_error_string", arg=qp_memory_t_p, res=ct.c_char_p)
 
+# Drives the C constructors and copy helpers from C. They are public API
+# that nothing here calls -- this module builds qp_det_t, qp_point_t and
+# qp_map_t itself, field by field through the struct mirrors above -- so
+# the test suite reaches them only through this. See tests/test_selftest.py.
+setargs("qp_selftest", arg=(ct.c_char_p, ct.c_size_t), res=ct.c_int)
+
+
+def selftest():
+    """
+    Run the C-side self-test of the constructor and copy API.
+
+    Returns
+    -------
+    msg : str or None
+        None if every check passed, otherwise which one failed.
+    """
+    buf = ct.create_string_buffer(512)
+    if libqp.qp_selftest(buf, len(buf)):
+        return buf.value.decode()
+    return None
+
+
 setargs(
     "qp_azel2radec",
     arg=(

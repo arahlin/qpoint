@@ -16,6 +16,9 @@ src = [
     "src/qpoint.c",
     "src/quaternion.c",
     "src/sincos.c",
+    # exercises the C constructors the ctypes layer never calls; see
+    # tests/test_selftest.py
+    "src/qp_selftest.c",
 ]
 
 extra_args = ["-O3", "-Wall", "-std=c99", "-fPIC"]
