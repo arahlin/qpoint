@@ -1,3 +1,5 @@
+from glob import glob
+
 from setuptools import setup, find_packages, Extension
 from extension_helpers import add_openmp_flags_if_available
 
@@ -18,7 +20,18 @@ src = [
 
 extra_args = ["-O3", "-Wall", "-std=c99", "-fPIC"]
 
-ext_qp = Extension("qpoint.libqpoint", src, extra_compile_args=extra_args)
+# Headers are not sources, and setuptools judges an extension stale by
+# comparing it against sources + depends only. Without them listed here a
+# header-only edit rebuilds nothing at all, says nothing about it, and
+# leaves you testing the previous build. The cost is that changing one
+# header rebuilds the whole extension: distutils has no per-object
+# staleness check, so once build_extension decides to run it recompiles
+# every source.
+headers = sorted(glob("src/*.h"))
+
+ext_qp = Extension(
+    "qpoint.libqpoint", src, depends=headers, extra_compile_args=extra_args
+)
 
 # add openmp support if possible
 add_openmp_flags_if_available(ext_qp)
