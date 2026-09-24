@@ -215,13 +215,22 @@ qp_point_t * qp_init_point(size_t n, int time, int pol) {
 
   pnt->n = n;
 
-  pnt->ctime_init = QP_ARR_MALLOC_1D;
-  if (time)
+  /* the flag has to follow the allocation, not precede it: qp_free_point
+     frees whatever is marked MALLOC_1D, so setting it unconditionally
+     left free() looking at a pointer this function never assigned. */
+  pnt->ctime_init = 0;
+  pnt->ctime = NULL;
+  if (time) {
     pnt->ctime = malloc(n * sizeof(double));
+    pnt->ctime_init = QP_ARR_MALLOC_1D;
+  }
 
-  pnt->q_hwp_init = QP_ARR_MALLOC_1D;
-  if (pol)
+  pnt->q_hwp_init = 0;
+  pnt->q_hwp = NULL;
+  if (pol) {
     pnt->q_hwp = malloc(n * sizeof(quat_t));
+    pnt->q_hwp_init = QP_ARR_MALLOC_1D;
+  }
 
   pnt->q_bore_init = QP_ARR_MALLOC_1D;
   pnt->q_bore = malloc(n * sizeof(quat_t));
