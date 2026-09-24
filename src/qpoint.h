@@ -123,30 +123,6 @@ extern "C" {
   extern const int QP_DO_ONCE;
   extern const int QP_DO_NEVER;
 
-  /* Set correction rates for each state, in seconds; control accuracy and speed
-     Use above macros to allow states to be applied always, once or never. */
-  void qp_set_rates(qp_memory_t *mem,
-		    double daber_rate,
-		    double lonlat_rate,
-		    double wobble_rate,
-		    double dut1_rate,
-		    double erot_rate,
-		    double npb_rate,
-		    double aaber_rate,
-		    double ref_rate);
-
-  /* Set correction rates for each inverse state, in seconds; control accuracy and speed
-     Use above macros to allow states to be applied always, once or never. */
-  void qp_set_inv_rates(qp_memory_t *mem,
-			double daber_rate,
-			double lonlat_rate,
-			double wobble_rate,
-			double dut1_rate,
-			double erot_rate,
-			double npb_rate,
-			double aaber_rate,
-			double ref_rate);
-
   /* reset counters so that all corrections are recalculated at next sample */
   void qp_reset_rates(qp_memory_t *mem);
   void qp_reset_inv_rates(qp_memory_t *mem);
@@ -191,20 +167,6 @@ extern "C" {
   RATEFUNC(ref_inv)
 
   /* per-option functions */
-  void qp_set_options(qp_memory_t *mem,
-		      int accuracy,
-		      int mean_aber,
-		      int fast_aber,
-		      int fast_math,
-		      int polconv,
-		      int pix_order,
-                      int interp_pix,
-                      int fast_pix,
-                      int error_missing,
-                      int nan_missing,
-                      int interp_missing,
-		      int num_threads);
-
 #define OPTIONFUNC(opt)                                 \
   void qp_set_opt_##opt(qp_memory_t *mem, int val);     \
   int qp_get_opt_##opt(qp_memory_t *mem);
@@ -225,9 +187,6 @@ extern "C" {
 #endif
 
   /* Set weather data */
-  void qp_set_weather(qp_memory_t *mem, double temperature, double pressure,
-		      double humidity, double frequency);
-
 #define WEATHFUNC(param)                                        \
   void qp_set_weather_##param(qp_memory_t *mem, double val);    \
   double qp_get_weather_##param(qp_memory_t *mem);

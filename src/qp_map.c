@@ -148,14 +148,6 @@ void qp_init_detarr_tod_from_array(qp_detarr_t *dets, double **tod,
   }
 }
 
-void qp_init_detarr_tod_from_array_1d(qp_detarr_t *dets, double *tod,
-                                      size_t n_chunk, int copy) {
-  for (size_t ii = 0; ii < dets->n; ii++) {
-    qp_init_det_tod_from_array(dets->arr + ii, tod + ii * n_chunk,
-                               n_chunk, copy);
-  }
-}
-
 void qp_init_detarr_flag(qp_detarr_t *dets, size_t n) {
   for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_flag(dets->arr + ii, n);
@@ -169,14 +161,6 @@ void qp_init_detarr_flag_from_array(qp_detarr_t *dets, uint8_t **flag,
   }
 }
 
-void qp_init_detarr_flag_from_array_1d(qp_detarr_t *dets, uint8_t *flag,
-                                       size_t n_chunk, int copy) {
-  for (size_t ii = 0; ii < dets->n; ii++) {
-    qp_init_det_flag_from_array(dets->arr + ii, flag + ii * n_chunk,
-                                n_chunk, copy);
-  }
-}
-
 void qp_init_detarr_weights(qp_detarr_t *dets, size_t n) {
   for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_weights(dets->arr + ii, n);
@@ -187,14 +171,6 @@ void qp_init_detarr_weights_from_array(qp_detarr_t *dets, double **weights,
                                        size_t n, int copy) {
   for (size_t ii = 0; ii < dets->n; ii++) {
     qp_init_det_weights_from_array(dets->arr + ii, weights[ii], n, copy);
-  }
-}
-
-void qp_init_detarr_weights_from_array_1d(qp_detarr_t *dets, double *weights,
-                                          size_t n_chunk, int copy) {
-  for (size_t ii = 0; ii < dets->n; ii++) {
-    qp_init_det_weights_from_array(dets->arr + ii, weights + ii * n_chunk,
-                                   n_chunk, copy);
   }
 }
 
@@ -429,106 +405,6 @@ qp_map_t * qp_init_map_from_arrays(double **vec, double **proj, size_t nside,
   }
   map->proj1d_init = 0;
   map->proj1d = NULL;
-
-  map->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
-  return map;
-}
-
-qp_map_t *
-qp_init_map_from_arrays_1d(double *vec, double *proj, size_t nside, size_t npix,
-                           qp_vec_mode vec_mode, qp_proj_mode proj_mode, int copy) {
-  if (copy) {
-    qp_map_t *map = qp_init_map(nside, npix, vec_mode, proj_mode);
-
-    if (map->num_vec)
-      for (size_t ii = 0; ii < map->num_vec; ii++)
-        memcpy(map->vec[ii], vec + ii * map->npix, map->npix * sizeof(double));
-    if (map->num_proj)
-      for (size_t ii = 0; ii < map->num_proj; ii++)
-        memcpy(map->proj[ii], proj + ii * map->npix, map->npix * sizeof(double));
-
-    return map;
-  }
-
-  qp_map_t *map = malloc(sizeof(*map));
-
-  map->nside = nside;
-  map->npix = (npix == 0) ? nside2npix(nside) : (long) npix;
-  map->partial = (npix > 0);
-  map->pixinfo_init = 0;
-  map->pixinfo = NULL;
-  map->pixhash_init = 0;
-  map->pixhash = NULL;
-
-  qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
-  map->vec_mode = vec_mode;
-  map->proj_mode = proj_mode;
-
-  if (map->num_vec) {
-    map->vec = malloc(map->num_vec * sizeof(double *));
-    for (size_t ii = 0; ii < map->num_vec; ii++)
-      map->vec[ii] = vec + ii * map->npix;
-    map->vec_init = QP_ARR_MALLOC_1D;
-  } else {
-    map->vec_init = 0;
-  }
-  map->vec1d_init = 0;
-  map->vec1d = NULL;
-
-  if (map->num_proj) {
-    map->proj = malloc(map->num_proj * sizeof(double *));
-    for (size_t ii = 0; ii < map->num_proj; ii++)
-      map->proj[ii] = proj + ii * map->npix;
-    map->proj_init = QP_ARR_MALLOC_1D;
-  } else {
-    map->proj_init = 0;
-  }
-  map->proj1d_init = 0;
-  map->proj1d = NULL;
-
-  map->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
-  return map;
-}
-
-qp_map_t * qp_init_map_1d(size_t nside, size_t npix, qp_vec_mode vec_mode,
-                          qp_proj_mode proj_mode) {
-  qp_map_t *map = malloc(sizeof(*map));
-
-  map->nside = nside;
-  map->npix = (npix == 0) ? nside2npix(nside) : (long) npix;
-  map->partial = (npix > 0);
-  map->pixinfo_init = 0;
-  map->pixinfo = NULL;
-  map->pixhash_init = 0;
-  map->pixhash = NULL;
-
-  qp_num_maps(vec_mode, proj_mode, &map->num_vec, &map->num_proj);
-
-  map->vec_mode = vec_mode;
-  if (map->num_vec) {
-    map->vec1d = calloc(map->num_vec * map->npix, sizeof(double));
-    map->vec1d_init = QP_ARR_MALLOC_1D;
-    map->vec = malloc(map->num_vec * sizeof(double *));
-    for (size_t ii = 0; ii < map->num_vec; ii++)
-      map->vec[ii] = map->vec1d + ii * map->npix;
-    map->vec_init = QP_ARR_MALLOC_1D;
-  } else {
-    map->vec1d_init = 0;
-    map->vec_init = 0;
-  }
-
-  map->proj_mode = proj_mode;
-  if (map->num_proj) {
-    map->proj1d = calloc(map->num_proj * map->npix, sizeof(double));
-    map->proj1d_init = QP_ARR_MALLOC_1D;
-    map->proj = malloc(map->num_proj * sizeof(double *));
-    for (size_t ii = 0; ii < map->num_proj; ii++)
-      map->proj[ii] = map->proj1d + ii * map->npix;
-    map->proj_init = QP_ARR_MALLOC_1D;
-  } else {
-    map->proj1d_init = 0;
-    map->proj_init = 0;
-  }
 
   map->init = QP_STRUCT_INIT | QP_STRUCT_MALLOC;
   return map;

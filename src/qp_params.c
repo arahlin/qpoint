@@ -236,44 +236,6 @@ void qp_print_memory(qp_memory_t *mem) {
   fflush(stdout);
 }
 
-void qp_set_rates(qp_memory_t *mem,
-		  double daber_rate,
-		  double lonlat_rate,
-		  double wobble_rate,
-		  double dut1_rate,
-		  double erot_rate,
-		  double npb_rate,
-		  double aaber_rate,
-		  double ref_rate) {
-  qp_set_rate_daber (mem, daber_rate);
-  qp_set_rate_lonlat(mem, lonlat_rate);
-  qp_set_rate_wobble(mem, wobble_rate);
-  qp_set_rate_dut1  (mem, dut1_rate);
-  qp_set_rate_erot  (mem, erot_rate);
-  qp_set_rate_npb   (mem, npb_rate);
-  qp_set_rate_aaber (mem, aaber_rate);
-  qp_set_rate_ref   (mem, ref_rate);
-}
-
-void qp_set_inv_rates(qp_memory_t *mem,
-		      double daber_rate,
-		      double lonlat_rate,
-		      double wobble_rate,
-		      double dut1_rate,
-		      double erot_rate,
-		      double npb_rate,
-		      double aaber_rate,
-		      double ref_rate) {
-  qp_set_rate_daber_inv (mem, daber_rate);
-  qp_set_rate_lonlat_inv(mem, lonlat_rate);
-  qp_set_rate_wobble_inv(mem, wobble_rate);
-  qp_set_rate_dut1_inv  (mem, dut1_rate);
-  qp_set_rate_erot_inv  (mem, erot_rate);
-  qp_set_rate_npb_inv   (mem, npb_rate);
-  qp_set_rate_aaber_inv (mem, aaber_rate);
-  qp_set_rate_ref_inv   (mem, ref_rate);
-}
-
 void qp_reset_rates(qp_memory_t *mem) {
   qp_reset_rate_daber (mem);
   qp_reset_rate_lonlat(mem);
@@ -360,44 +322,6 @@ OPTIONFUNCD(fast_pix)
 OPTIONFUNCD(error_missing)
 OPTIONFUNCD(nan_missing)
 OPTIONFUNCD(interp_missing)
-
-void qp_set_options(qp_memory_t *mem,
-		    int accuracy,
-		    int mean_aber,
-		    int fast_aber,
-		    int fast_math,
-		    int polconv,
-		    int pix_order,
-                    int interp_pix,
-                    int fast_pix,
-                    int error_missing,
-                    int nan_missing,
-                    int interp_missing,
-		    int num_threads) {
-  qp_set_opt_accuracy      (mem, accuracy);
-  qp_set_opt_mean_aber     (mem, mean_aber);
-  qp_set_opt_fast_aber     (mem, fast_aber);
-  qp_set_opt_fast_math     (mem, fast_math);
-  qp_set_opt_polconv       (mem, polconv);
-  qp_set_opt_pix_order     (mem, pix_order);
-  qp_set_opt_interp_pix    (mem, interp_pix);
-  qp_set_opt_fast_pix      (mem, fast_pix);
-  qp_set_opt_error_missing (mem, error_missing);
-  qp_set_opt_nan_missing   (mem, nan_missing);
-  qp_set_opt_interp_missing(mem, interp_missing);
-#ifndef ENABLE_LITE
-  qp_set_opt_num_threads   (mem, num_threads);
-#endif
-}
-
-// update all ref_data parameters
-void qp_set_weather(qp_memory_t *mem, double temperature, double pressure,
-		    double humidity, double frequency) {
-  qp_set_weather_temperature(mem, temperature);
-  qp_set_weather_pressure   (mem, pressure);
-  qp_set_weather_humidity   (mem, humidity);
-  qp_set_weather_frequency  (mem, frequency);
-}
 
 // set/get refraction parameters
 #define WEATHFUNCD(param)				      \
