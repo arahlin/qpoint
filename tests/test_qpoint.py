@@ -256,11 +256,70 @@ class TestBulletinA:
             q.load_bulletin_a(path, columns=["mjd", "dut1", "x"])
 
 
-class TestResetRates:
-    def test_reset_rates(self, qp):
-        qp.reset_rates()
+# Derived from the package rather than written out, so a rate added later
+# is covered without anyone remembering to add it here.
+FORWARD_RATES = sorted(
+    k for k in qpoint.QPoint().get("rates") if not k.endswith("_inv")
+)
 
-    def test_reset_inv_rates(self, qp):
+
+class TestResetRates:
+    """
+    reset_rates has to put back every correction, not most of them.
+
+    The tests here used to just call it and assert nothing, which is how a
+    rate reached the parameter list while being left out of the reset:
+    qpoint enumerates them one at a time and qpoint2 loops over all of
+    them, so only qpoint could be incomplete. rate_defl was exactly that,
+    and reset_rates carried the previous chunk's sun position into the
+    next one -- which matters because the documented use is to call it at
+    the start of each scan chunk.
+
+    The rates are read off the package, so this keeps holding as new ones
+    appear.
+    """
+
+    N = 5
+    AZ = np.linspace(10, 340, N)
+    EL = np.linspace(30, 80, N)
+    LONS = np.full(N, LON)
+    LATS = np.full(N, LAT)
+    T1 = np.full(N, CTIME)
+    # half a year on: every slowly-varying correction has moved a long way
+    T2 = T1 + 180 * 86400.0
+
+    def radec(self, mod, ctime, warm=None, **kwargs):
+        q = mod.QPoint(mean_aber=True, **kwargs)
+        args = (0.0, 0.0, 0.0, self.AZ, self.EL, None, None, self.LONS, self.LATS)
+        if warm is not None:
+            q.azel2radec(*args, warm)
+            q.reset_rates()
+        return np.asarray(q.azel2radec(*args, ctime))
+
+    @pytest.mark.parametrize("rate", FORWARD_RATES)
+    def test_reset_leaves_it_as_good_as_new(self, mod, rate):
+        """
+        With one rate pinned to 'once' the correction is computed at the
+        first sample and frozen, so a stale cache is visible: after
+        reset_rates the answer has to match a freshly built QPoint.
+        """
+        fresh = self.radec(mod, self.T2, **{rate: "once"})
+        reused = self.radec(mod, self.T2, warm=self.T1, **{rate: "once"})
+        assert np.array_equal(fresh, reused), rate
+
+    @pytest.mark.parametrize("rate", ["rate_npb", "rate_defl"])
+    def test_and_the_comparison_can_fail(self, mod, rate):
+        """
+        The teeth: without the reset these two really do carry the stale
+        correction forward, so the assertion above is not vacuous.
+        """
+        q = mod.QPoint(mean_aber=True, **{rate: "once"})
+        args = (0.0, 0.0, 0.0, self.AZ, self.EL, None, None, self.LONS, self.LATS)
+        q.azel2radec(*args, self.T1)
+        stale = np.asarray(q.azel2radec(*args, self.T2))
+        assert not np.array_equal(self.radec(mod, self.T2, **{rate: "once"}), stale)
+
+    def test_reset_inv_rates_runs(self, qp):
         qp.reset_inv_rates()
 
 

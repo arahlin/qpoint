@@ -21,6 +21,7 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_erot  , QP_DO_ALWAYS);
   qp_init_state(&mem->state_npb   , 10);
   qp_init_state(&mem->state_aaber , 100);
+  qp_init_state(&mem->state_defl  , QP_DO_NEVER);
   qp_init_state(&mem->state_ref   , QP_DO_NEVER);
   qp_init_state(&mem->state_daber_inv , QP_DO_ALWAYS);
   qp_init_state(&mem->state_lonlat_inv, QP_DO_ALWAYS);
@@ -29,6 +30,7 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_erot_inv  , QP_DO_ALWAYS);
   qp_init_state(&mem->state_npb_inv   , 10);
   qp_init_state(&mem->state_aaber_inv , 100);
+  qp_init_state(&mem->state_defl_inv  , QP_DO_NEVER);
   qp_init_state(&mem->state_ref_inv   , QP_DO_NEVER);
   mem->accuracy = 0;
   mem->mean_aber = 1;
@@ -107,6 +109,7 @@ RATEFUNCD(dut1)
 RATEFUNCD(erot)
 RATEFUNCD(npb)
 RATEFUNCD(aaber)
+RATEFUNCD(defl)
 RATEFUNCD(ref)
 RATEFUNCD(daber_inv)
 RATEFUNCD(lonlat_inv)
@@ -115,6 +118,7 @@ RATEFUNCD(dut1_inv)
 RATEFUNCD(erot_inv)
 RATEFUNCD(npb_inv)
 RATEFUNCD(aaber_inv)
+RATEFUNCD(defl_inv)
 RATEFUNCD(ref_inv)
 
 void qp_print_quat(const char *tag, quat_t q) {
@@ -204,6 +208,9 @@ void qp_print_memory(qp_memory_t *mem) {
   qp_print_state_mp(thread, "aaber", &mem->state_aaber);
   qp_print_state_mp(thread, "aaber inv", &mem->state_aaber_inv);
   qp_print_vec3_mp(thread, "aaber beta earth", mem->beta_earth);
+  qp_print_state_mp(thread, "defl", &mem->state_defl);
+  qp_print_state_mp(thread, "defl inv", &mem->state_defl_inv);
+  qp_print_vec3_mp(thread, "defl e sun", mem->e_sun);
 
   printf("[%d]  gal init: %s\n", thread, mem->gal_init ? "yes" : "no");
   qp_print_quat_mp(thread, "gal", mem->q_gal);
@@ -244,6 +251,7 @@ void qp_reset_rates(qp_memory_t *mem) {
   qp_reset_rate_erot  (mem);
   qp_reset_rate_npb   (mem);
   qp_reset_rate_aaber (mem);
+  qp_reset_rate_defl  (mem);
   qp_reset_rate_ref   (mem);
 }
 
@@ -255,6 +263,7 @@ void qp_reset_inv_rates(qp_memory_t *mem) {
   qp_reset_rate_erot_inv  (mem);
   qp_reset_rate_npb_inv   (mem);
   qp_reset_rate_aaber_inv (mem);
+  qp_reset_rate_defl_inv  (mem);
   qp_reset_rate_ref_inv   (mem);
 }
 

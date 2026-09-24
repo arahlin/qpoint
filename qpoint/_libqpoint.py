@@ -69,6 +69,7 @@ class qp_memory_t(ct.Structure):
         ("state_erot", qp_state_t),
         ("state_npb", qp_state_t),
         ("state_aaber", qp_state_t),
+        ("state_defl", qp_state_t),
         ("state_ref", qp_state_t),
         ("state_daber_inv", qp_state_t),
         ("state_lonlat_inv", qp_state_t),
@@ -77,6 +78,7 @@ class qp_memory_t(ct.Structure):
         ("state_erot_inv", qp_state_t),
         ("state_npb_inv", qp_state_t),
         ("state_aaber_inv", qp_state_t),
+        ("state_defl_inv", qp_state_t),
         ("state_ref_inv", qp_state_t),
         ("weather", qp_weather_t),
         ("ref_delta", ct.c_double),
@@ -98,6 +100,8 @@ class qp_memory_t(ct.Structure):
         ("dipole_init", ct.c_int),
         ("beta_earth", ct.c_double * 3),
         ("beta_rot", ct.c_double * 3),
+        ("e_sun", ct.c_double * 3),
+        ("em_sun", ct.c_double),
         ("bulletinA", qp_bulletina_t),
         ("accuracy", ct.c_int),
         ("mean_aber", ct.c_int),
@@ -912,7 +916,7 @@ def check_get_state(state):
     return state
 
 
-states = ["lonlat", "npb", "erot", "daber", "aaber", "wobble", "dut1", "ref"]
+states = ["lonlat", "npb", "erot", "daber", "aaber", "defl", "wobble", "dut1", "ref"]
 inv_states = [k + "_inv" for k in states]
 state_funcs = dict()
 for s in states + inv_states:

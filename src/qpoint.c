@@ -189,12 +189,6 @@ void qp_aberration(quat_t q, vec3_t beta, quat_t qa, int inv, int fast) {
   }
 }
 
-void qp_earth_orbital_beta(double jd_tdb[2], vec3_t beta) {
-  double pvb[2][3];
-  eraEpv00(jd_tdb[0], jd_tdb[1], pvb, pvb);
-  for (int i = 0; i < 3; i++) beta[i] = pvb[1][i]/C_AUD;
-}
-
 void qp_lonlat_quat(double lon, double lat, quat_t q) {
   Quaternion_r3(q, M_PI);
   Quaternion_r2_mul(M_PI_2 - deg2rad(lat), q);
@@ -312,22 +306,90 @@ void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
   }
 }
 
-void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q, int inv) {
-  quat_t q_aber;
-  double jd_tt[2];
+/* Annual aberration and solar light deflection, together.
 
-  if (qp_check_update(&mem->state_aaber, ctime)) {
+   They share everything worth sharing. One eraEpv00 gives the earth's
+   barycentric velocity and its heliocentric position both; at 7.8 us a
+   call that is the single most expensive thing in the chain, and with
+   both rates on 'always' computing it twice doubled the cost of the
+   whole transform. One extraction of the pointing vector serves both.
+   And both corrections are tiny rotations, so their rotation vectors can
+   be summed and turned into one quaternion rather than two.
+
+   Summing drops the commutator of the two rotations, which is
+   |aberration| * |deflection| = 1e-4 * 5e-7 rad, about 0.002 uas. With
+   deflection off the sum is the aberration vector untouched, so that
+   path stays bit-for-bit what it was before deflection existed.
+
+   Exact aberration (fast_aber off) is not a small-angle rotation and
+   keeps its own quaternion, applied first, with the deflection then
+   seeing the aberrated direction as it did when the two were separate. */
+void qp_apply_aaber_defl(qp_memory_t *mem, double ctime, quat_t q, int inv) {
+  /* both, and not short-circuited: check_update records the time */
+  int up_ab = qp_check_update(&mem->state_aaber, ctime);
+  int up_df = qp_check_update(&mem->state_defl, ctime);
+
+  if (up_ab || up_df) {
+    double jd_tt[2], pvh[2][3], pvb[2][3];
     ctime2jdtt(ctime, jd_tt);
-    qp_earth_orbital_beta(jd_tt, mem->beta_earth);
+    eraEpv00(jd_tt[0], jd_tt[1], pvh, pvb);
+    if (up_ab)
+      for (int i = 0; i < 3; i++) mem->beta_earth[i] = pvb[1][i]/C_AUD;
+    if (up_df) {
+      mem->em_sun = vec3_norm(pvh[0]);
+      for (int i = 0; i < 3; i++) mem->e_sun[i] = pvh[0][i] / mem->em_sun;
+    }
   }
-  if (qp_check_apply(&mem->state_aaber)) {
-    qp_aberration(q, mem->beta_earth, q_aber, inv, mem->fast_aber);
-    Quaternion_mul_left(q_aber, q);
-#ifdef DEBUG
-    qp_print_quat(inv ? "aaber inv" : "aaber", q_aber);
-    qp_print_quat(inv ? "state aaber inv" : "state aaber", q);
-#endif
+
+  int ab = qp_check_apply(&mem->state_aaber);
+  int df = qp_check_apply(&mem->state_defl);
+  if (!ab && !df) return;
+
+  vec3_t u;
+  Quaternion_to_matrix_col3(q, u);
+
+  if (ab && !mem->fast_aber) {
+    quat_t qa;
+    vec3_t na;
+    if (inv)
+      vec3_cross_product(na, mem->beta_earth, u);
+    else
+      vec3_cross_product(na, u, mem->beta_earth);
+    Quaternion_rot(qa, -asin(vec3_norm(na)), na);
+    Quaternion_mul_left(qa, q);
+    ab = 0;
+    if (!df) return;
+    Quaternion_to_matrix_col3(q, u);
   }
+
+  vec3_t n;
+  if (ab) {
+    if (inv)
+      vec3_cross_product(n, mem->beta_earth, u);
+    else
+      vec3_cross_product(n, u, mem->beta_earth);
+  } else {
+    n[0] = n[1] = n[2] = 0.;
+  }
+  if (df) {
+    vec3_t u1, nd;
+    eraLdsun(u, mem->e_sun, mem->em_sun, u1);
+    if (inv)
+      vec3_cross_product(nd, u1, u);
+    else
+      vec3_cross_product(nd, u, u1);
+    for (int i = 0; i < 3; i++) n[i] += nd[i];
+  }
+
+  /* always the small-angle form: aberration is 1e-4 rad and deflection
+     5e-7, so the cubic term dropped is below 1e-12 rad */
+  quat_t qd;
+  double sa_2 = 0.5*vec3_norm(n);
+  qd[0] = 1. - 0.5*sa_2*sa_2;
+  qd[1] = -0.5*n[0];
+  qd[2] = -0.5*n[1];
+  qd[3] = -0.5*n[2];
+  Quaternion_mul_left(qd, q);
 }
 
 void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double pitch,
@@ -452,8 +514,9 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
 
   // apply annual aberration
   // ~20 arcsec max
+  // ...and the sun's light bending, ~20 mas, which shares the call
   if (mem->mean_aber)
-    qp_apply_annual_aberration(mem, ctime, q, 0);
+    qp_apply_aaber_defl(mem, ctime, q, 0);
 
 #ifdef DEBUG
   qp_print_quat("state final", q);
@@ -506,8 +569,8 @@ void qp_quat2azel(qp_memory_t *mem, quat_t q_in, double lon, double lat, double 
   qp_print_quat("state init", q);
 #endif
 
-  // apply annual aberration
-  qp_apply_annual_aberration(mem, ctime, q, 1);
+  // apply annual aberration and solar light deflection
+  qp_apply_aaber_defl(mem, ctime, q, 1);
 
   // apply nutation/precession/frame bias correction
   if (qp_check_update(&mem->state_npb_inv, ctime)) {
@@ -648,7 +711,7 @@ void qp_bore2det(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,
   Quaternion_mul_left(q_bore, q_det);
 
   if (!mem->mean_aber)
-    qp_apply_annual_aberration(mem, ctime, q_det, 0);
+    qp_apply_aaber_defl(mem, ctime, q_det, 0);
 }
 
 void qp_bore2det_hwp(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore,

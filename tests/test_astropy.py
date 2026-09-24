@@ -26,7 +26,13 @@ pytest.importorskip("astropy")
 qpoint2 = pytest.importorskip("qpoint2")
 
 from astropy import units as u  # noqa: E402
-from astropy.coordinates import AltAz, EarthLocation, ICRS, SkyCoord  # noqa: E402
+from astropy.coordinates import (  # noqa: E402
+    AltAz,
+    EarthLocation,
+    get_sun,
+    ICRS,
+    SkyCoord,
+)
 from astropy.time import Time  # noqa: E402
 from astropy.utils import iers  # noqa: E402
 
@@ -41,18 +47,20 @@ EL = np.linspace(30, 80, N)
 PRESSURE, TEMPERATURE, HUMIDITY, FREQUENCY = 1000.0, 0.0, 0.0, 150.0
 OBSWL = (299792458.0 / (FREQUENCY * 1e9)) * u.m
 
-# Room above what the comparisons actually show, which is 14 mas -- and
-# that is one term rather than an accumulation. astropy removes the Sun's
-# gravitational light deflection to recover the catalogue position, and
-# qpoint does not model it at all, so qpoint's answer sits that far away
-# from the Sun. Put the term back and the two agree to 0.8 mas, which is
-# the real precision of everything qpoint does model.
+# Room above what the comparisons actually show, which is 0.8 mas once
+# make_qpoint has switched everything on.
 #
-# The size goes as 4.07 mas * cot(elongation / 2): 4 mas at 90 degrees
-# from the Sun, 15 at 30, 78 at 6. These fixtures run 32 to 99 degrees,
-# so the tolerance has to clear ~14 mas and still catch a term going
-# missing. A tenth of an arcsecond does both.
-TOL_ARCSEC = 0.1
+# It used to be 14 mas, and that was a single term: the Sun's
+# gravitational light deflection, which astropy removes to recover the
+# catalogue position. qpoint can model it now (rate_defl), so what is
+# left is the genuine disagreement between two implementations.
+#
+# A tenth of an arcsecond would be a hundred times looser than that.
+# Five mas clears the worst comparison by about six and is tight enough
+# that a term going missing shows up at once -- leaving deflection at its
+# default of never puts azel2radec back at 14 mas and radec2azel at 43,
+# both of which TestLightDeflection asserts.
+TOL_ARCSEC = 0.005
 
 
 # Both packages are checked against astropy, not only against each other.
@@ -100,11 +108,19 @@ def make_qpoint(mod, inverse=True, **kwargs):
     The dut1 and wobble rates default to never, so the table is
     otherwise read and then ignored, and the inverse transforms are
     switched separately from the forward ones.
+
+    Solar light deflection defaults to never for a different reason --
+    it is a speed trade rather than missing data -- but it has to be on
+    for the same purpose, since astropy applies it and it is 14 mas.
     """
-    rates = dict(rate_dut1="always", rate_wobble="always")
+    rates = dict(rate_dut1="always", rate_wobble="always", rate_defl=100)
     if inverse:
-        rates.update(rate_dut1_inv="always", rate_wobble_inv="always")
-    return mod.QPoint(update_iers=True, **rates, **kwargs)
+        rates.update(
+            rate_dut1_inv="always", rate_wobble_inv="always", rate_defl_inv=100
+        )
+    # caller wins, so a test can put one of these back to its default
+    rates.update(kwargs)
+    return mod.QPoint(update_iers=True, **rates)
 
 
 def separation(ra, dec, reference):
@@ -366,3 +382,116 @@ class TestSiderealTime:
         worst = self.arcsec(mod.QPoint().gmst(CTIME), self.astropy_gmst()).max()
         assert worst > TOL_ARCSEC
         assert worst < 0.9 * 15.0  # leap seconds bound |dut1| < 0.9 s
+
+
+class TestLightDeflection:
+    """
+    The sun bends the incoming ray, and both packages model it.
+
+    This is what the tolerance above is really resting on. Before the term
+    was added the two implementations disagreed by 14 mas going out and 43
+    mas coming back, and all of it was this -- so switching it off has to
+    reproduce exactly that. Showing the residual is small proves nothing
+    on its own; showing it is small *because* of a term with the right
+    size and the right functional form is the point.
+    """
+
+    def radec(self, mod, rate):
+        q = make_qpoint(mod, rate_defl=rate, rate_defl_inv=rate, pressure=0)
+        return q.azel2radec(
+            0.0, 0.0, 0.0, AZ, EL, None, None, LON, LAT, CTIME, return_pa=True
+        )[:2]
+
+    def reference(self, location, obstime):
+        return AltAz(
+            az=AZ * u.deg,
+            alt=EL * u.deg,
+            obstime=obstime,
+            location=location,
+            pressure=0 * u.hPa,
+        ).transform_to(ICRS())
+
+    def test_off_by_default(self, mod):
+        """
+        It is opt-in: ~20 mas against about 10% of azel2bore. Callers who
+        want it say so, and both packages agree on that.
+        """
+        assert mod.QPoint().get("rate_defl") == "never"
+        assert mod.QPoint().get("rate_defl_inv") == "never"
+
+    def test_forward_needs_it_to_agree_with_astropy(self, mod, location, obstime):
+        ref = self.reference(location, obstime)
+        with_it = separation(*self.radec(mod, 100), ref).max()
+        without = separation(*self.radec(mod, "never"), ref).max()
+        assert with_it < TOL_ARCSEC
+        assert without > 2 * TOL_ARCSEC, "turning it off must actually matter"
+        assert 0.010 < without < 0.020, "and by the ~14 mas it is worth here"
+
+    def test_inverse_needs_it_too(self, mod, location, obstime):
+        """
+        The inverse carried the larger error of the two, 43 mas, because
+        there the term is applied rather than removed.
+        """
+        sky = SkyCoord(
+            ra=np.linspace(20, 300, N) * u.deg,
+            dec=np.linspace(-80, -20, N) * u.deg,
+            frame="icrs",
+        )
+        ref = sky.transform_to(
+            AltAz(obstime=obstime, location=location, pressure=0 * u.hPa)
+        )
+        got = []
+        for rate in (100, "never"):
+            q = make_qpoint(mod, rate_defl=rate, rate_defl_inv=rate, pressure=0)
+            az, el = q.radec2azel(
+                sky.ra.deg, sky.dec.deg, np.zeros(N), LON, LAT, CTIME
+            )[:2]
+            here = SkyCoord(
+                az=np.asarray(az) * u.deg,
+                alt=np.asarray(el) * u.deg,
+                frame=AltAz(obstime=obstime, location=location),
+            )
+            got.append(here.separation(ref).to_value(u.arcsec).max())
+        assert got[0] < TOL_ARCSEC
+        assert 0.035 < got[1] < 0.050
+
+    def test_it_matches_erfa_exactly(self, mod, obstime):
+        """
+        The size and direction of the term, against ERFA's own routine.
+
+        This is the reference rather than the textbook
+        4.07 mas / tan(elongation / 2), because that needs the elongation
+        and `get_sun` hands back a GCRS position *with distance*: compare
+        it to an ICRS coordinate and astropy dutifully applies parallax,
+        which for a body one au away swings the direction by ~80 degrees.
+        eraLdsun takes the sun-to-observer vector directly and sidesteps
+        all of it.
+        """
+        erfa = pytest.importorskip("erfa")
+        on, off = self.radec(mod, 100), self.radec(mod, "never")
+        jd1, jd2 = obstime.tt.jd1, obstime.tt.jd2
+
+        def unit(ra, dec):
+            ra, dec = np.deg2rad(np.asarray(ra, float)), np.deg2rad(
+                np.asarray(dec, float)
+            )
+            return np.array(
+                [np.cos(dec) * np.cos(ra), np.cos(dec) * np.sin(ra), np.sin(dec)]
+            )
+
+        got = unit(*on)
+        base = unit(*off)
+        for i in range(N):
+            pvh, _ = erfa.epv00(jd1[i], jd2[i])
+            ph = np.asarray(pvh["p"])
+            em = np.linalg.norm(ph)
+            # eraLdsun bends a catalogue direction into the observed one.
+            # `got` is the corrected (catalogue) position and `base` the
+            # uncorrected one, so bending `got` has to reproduce `base`.
+            # That pins the direction and the sign, not merely the size.
+            want = erfa.ldsun(got[:, i], ph / em, em)
+            # 2 asin(|a-b|/2): stable where arccos of a dot product is not
+            sep = (
+                np.rad2deg(2 * np.arcsin(np.linalg.norm(base[:, i] - want) / 2)) * 3.6e6
+            )
+            assert sep < 0.01, "sample {}: {} mas from eraLdsun".format(i, sep)

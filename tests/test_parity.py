@@ -25,6 +25,8 @@ OPTIONS = [
     pytest.param({"fast_math": True}, id="fast-math"),
     pytest.param({"fast_aber": False}, id="slow-aber"),
     pytest.param({"mean_aber": False}, id="per-det-aber"),
+    pytest.param({"rate_defl": 100}, id="defl"),
+    pytest.param({"rate_defl": "always"}, id="defl-always"),
     pytest.param({"polconv": "iau"}, id="polconv-iau"),
 ]
 

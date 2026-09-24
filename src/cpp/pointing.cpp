@@ -124,14 +124,6 @@ Quat wobble_quat(const double jd_tt[2], double xp, double yp) {
   return q;
 }
 
-Vec3 earth_orbital_beta(const double jd_tdb[2]) {
-  double pvb[2][3];
-  eraEpv00(jd_tdb[0], jd_tdb[1], pvb, pvb);
-  Vec3 beta;
-  for (int i = 0; i < 3; i++) beta[i] = pvb[1][i] / kCAud;
-  return beta;
-}
-
 // qp_aberration: v = (R(q)*z) x beta, angle = |v|, qa = quat(-angle, v)
 Quat aberration(const Quat &q, const Vec3 &beta, bool inv, bool fast) {
   const Vec3 u = q.col3();
@@ -382,17 +374,75 @@ void Pointing::apply_diurnal_aberration(double ctime, double lat, Quat &q,
   }
 }
 
-void Pointing::apply_annual_aberration(double ctime, Quat &q, bool inv) {
-  UpdateState &st = state(Rate::aaber, false);
-  if (st.check(ctime)) {
-    double jd_tt[2];
+// Annual aberration and solar light deflection, together.
+//
+// They share everything worth sharing. One eraEpv00 gives the earth's
+// barycentric velocity and its heliocentric position both; at 7.8 us a call
+// that is the most expensive thing in the chain, and with both rates on
+// 'always' computing it twice doubled the cost of the whole transform. One
+// extraction of the pointing vector serves both. And both corrections are
+// tiny rotations, so their rotation vectors are summed and turned into one
+// quaternion rather than two.
+//
+// Summing drops the commutator of the two, |aberration| * |deflection| =
+// 1e-4 * 5e-7 rad, about 0.002 uas. With deflection off the sum is the
+// aberration vector untouched, so that path stays bit-for-bit what it was
+// before deflection existed.
+//
+// Exact aberration (fast_aber off) is not a small-angle rotation and keeps
+// its own quaternion, applied first, the deflection then seeing the
+// aberrated direction as it did when the two were separate.
+void Pointing::apply_aaber_defl(double ctime, Quat &q, bool inv) {
+  UpdateState &st_ab = state(Rate::aaber, false);
+  UpdateState &st_df = state(Rate::defl, false);
+  // both, and not short-circuited: check() records the time
+  const bool up_ab = st_ab.check(ctime);
+  const bool up_df = st_df.check(ctime);
+
+  if (up_ab || up_df) {
+    double jd_tt[2], pvh[2][3], pvb[2][3];
     ctime2jdtt(ctime, jd_tt);
-    beta_earth_ = earth_orbital_beta(jd_tt);
+    eraEpv00(jd_tt[0], jd_tt[1], pvh, pvb);
+    if (up_ab)
+      for (int i = 0; i < 3; i++) beta_earth_[i] = pvb[1][i] / kCAud;
+    if (up_df) {
+      Vec3 ph;
+      for (int i = 0; i < 3; i++) ph[i] = pvh[0][i];
+      em_sun_ = ph.norm();
+      for (int i = 0; i < 3; i++) e_sun_[i] = ph[i] / em_sun_;
+    }
   }
-  if (st.should_apply()) {
-    const Quat q_aber = aberration(q, beta_earth_, inv, opt_.fast_aber);
-    mul_left(q_aber, q);
+
+  bool ab = st_ab.should_apply();
+  const bool df = st_df.should_apply();
+  if (!ab && !df) return;
+
+  Vec3 u = q.col3();
+
+  if (ab && !opt_.fast_aber) {
+    const Vec3 na = inv ? cross(beta_earth_, u) : cross(u, beta_earth_);
+    mul_left(Quat::rot(-std::asin(na.norm()), na), q);
+    ab = false;
+    if (!df) return;
+    u = q.col3();
   }
+
+  Vec3 n{};
+  if (ab) n = inv ? cross(beta_earth_, u) : cross(u, beta_earth_);
+  if (df) {
+    double p[3] = {u[0], u[1], u[2]};
+    double es[3] = {e_sun_[0], e_sun_[1], e_sun_[2]};
+    double p1[3];
+    eraLdsun(p, es, em_sun_, p1);
+    const Vec3 u1{{p1[0], p1[1], p1[2]}};
+    const Vec3 nd = inv ? cross(u1, u) : cross(u, u1);
+    for (int i = 0; i < 3; i++) n[i] += nd[i];
+  }
+
+  // always the small-angle form: aberration is 1e-4 rad and deflection
+  // 5e-7, so the cubic term dropped is below 1e-12 rad
+  const double sa_2 = 0.5 * n.norm();
+  mul_left({{1. - 0.5 * sa_2 * sa_2, -0.5 * n[0], -0.5 * n[1], -0.5 * n[2]}}, q);
 }
 
 // ---------------------------------------------------------------------------
@@ -452,7 +502,8 @@ void Pointing::azelpsi2quat(double az, double el, double psi, double pitch,
   if (state(Rate::npb, false).should_apply()) mul_left(q_npb_, q);
 
   // ~20 arcsec max
-  if (opt_.mean_aber) apply_annual_aberration(ctime, q, false);
+  // ...and the sun's light bending, ~20 mas, which shares the call
+  if (opt_.mean_aber) apply_aaber_defl(ctime, q, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -465,7 +516,7 @@ void Pointing::quat2azel(const Quat &q_in, double lon, double lat,
   Quat q = q_in;
   ctime2jd(ctime, jd_utc);
 
-  apply_annual_aberration(ctime, q, true);
+  apply_aaber_defl(ctime, q, true);
 
   if (state(Rate::npb, true).check(ctime)) {
     ctime2jdtt(ctime, jd_tt);
@@ -647,7 +698,7 @@ double Pointing::dipole(double ctime, double ra, double dec) const {
 Quat Pointing::bore2det(const Quat &q_off, double ctime, const Quat &q_bore) {
   Quat q_det = q_off;
   mul_left(q_bore, q_det);
-  if (!opt_.mean_aber) apply_annual_aberration(ctime, q_det, false);
+  if (!opt_.mean_aber) apply_aaber_defl(ctime, q_det, false);
   return q_det;
 }
 
