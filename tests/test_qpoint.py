@@ -14,9 +14,23 @@ EL = 32.0 * np.ones(N)
 CTIMES = CTIME + np.arange(N, dtype=float)
 
 
+qpoint2 = pytest.importorskip("qpoint2")
+
+# The two packages implement the same API over different cores, so every
+# behavioural test here runs against both. Where they are meant to differ
+# the test says so; tests/test_parity.py is what pins them to the same
+# numbers, and this is what pins each to the documented behaviour.
+IMPLS = [qpoint, qpoint2]
+
+
+@pytest.fixture(params=IMPLS, ids=lambda m: m.__name__)
+def mod(request):
+    return request.param
+
+
 @pytest.fixture
-def qp():
-    return qpoint.QPoint(mean_aber=True, accuracy="low")
+def qp(mod):
+    return mod.QPoint(mean_aber=True, accuracy="low")
 
 
 # ---------------------------------------------------------------------------
@@ -25,18 +39,18 @@ def qp():
 
 
 class TestInit:
-    def test_default_init(self):
-        q = qpoint.QPoint()
+    def test_default_init(self, mod):
+        q = mod.QPoint()
         assert q is not None
 
-    def test_kwargs_in_init(self):
-        q = qpoint.QPoint(accuracy="low", fast_math=True, mean_aber=True)
+    def test_kwargs_in_init(self, mod):
+        q = mod.QPoint(accuracy="low", fast_math=True, mean_aber=True)
         assert q.get("accuracy") == "low"
         assert q.get("fast_math") is True
         assert q.get("mean_aber") is True
 
-    def test_del(self):
-        q = qpoint.QPoint()
+    def test_del(self, mod):
+        q = mod.QPoint()
         del q  # should not raise
 
 
@@ -46,11 +60,26 @@ class TestInit:
 
 
 class TestSetGet:
-    def test_get_all_returns_nested_dict(self, qp):
+    def test_get_all_is_grouped(self, qp):
+        """
+        Both packages group their parameters under 'rates', 'options',
+        'weather' and 'params', rather than returning one flat dict, so a
+        caller can hand a whole group to set().
+        """
         state = qp.get()
-        assert isinstance(state, dict)
-        for key in ("rates", "options", "weather", "params"):
-            assert key in state
+        assert list(state) == ["rates", "options", "weather", "params"]
+        assert all(isinstance(group, dict) for group in state.values())
+        assert "rate_npb" in state["rates"]
+        assert "accuracy" in state["options"]
+        # the parameters live in the groups, not beside them
+        assert "accuracy" not in state
+
+    def test_get_all_round_trips_through_set(self, qp):
+        """Each group is accepted back by set(), which is the point of it."""
+        state = qp.get()
+        for group in state.values():
+            qp.set(**group)
+        assert qp.get() == state
 
     def test_get_group_rates(self, qp):
         rates = qp.get("rates")
@@ -149,8 +178,16 @@ class TestSetGet:
         qp.set(ref_delta=0.05)
         assert qp.get("ref_delta") == pytest.approx(0.05)
 
-    def test_set_unknown_key_ignored(self, qp):
-        qp.set(nonexistent_key=123)  # should not raise
+    def test_unknown_key(self, qp, mod):
+        """
+        qpoint ignores a name it does not recognize; qpoint2 treats the
+        parameter list as closed and raises. test_parity.py explains why.
+        """
+        if mod is qpoint:
+            qp.set(nonexistent_key=123)
+        else:
+            with pytest.raises(KeyError):
+                qp.set(nonexistent_key=123)
 
     def test_get_unknown_key_raises(self, qp):
         with pytest.raises(KeyError):
@@ -185,8 +222,8 @@ class TestBulletinA:
         np.savetxt(path, np.column_stack([col[c] for c in order]), fmt="%.6f")
         return str(path)
 
-    def test_round_trip(self, tmp_path):
-        q = qpoint.QPoint()
+    def test_round_trip(self, mod, tmp_path):
+        q = mod.QPoint()
         path = self._write(tmp_path, self.COLUMNS)
         mjd, dut1, x, y = q.load_bulletin_a(path)
         assert mjd[0] == self.MJD0
@@ -194,26 +231,26 @@ class TestBulletinA:
         assert np.allclose(x, self.VALUES["x"])
         assert np.allclose(y, self.VALUES["y"])
 
-    def test_stored_values_are_not_rotated(self, tmp_path):
-        q = qpoint.QPoint()
+    def test_stored_values_are_not_rotated(self, mod, tmp_path):
+        q = mod.QPoint()
         q.load_bulletin_a(self._write(tmp_path, self.COLUMNS))
         got = q.get_bulletin_a(self.MJD0 + 10)
         assert np.allclose(
             got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
         )
 
-    def test_a_reordered_file(self, tmp_path):
+    def test_a_reordered_file(self, mod, tmp_path):
         """What the columns argument is for."""
         order = ["x", "mjd", "y", "dut1"]
-        q = qpoint.QPoint()
+        q = mod.QPoint()
         q.load_bulletin_a(self._write(tmp_path, order), columns=order)
         got = q.get_bulletin_a(self.MJD0 + 10)
         assert np.allclose(
             got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
         )
 
-    def test_missing_columns_raise(self, tmp_path):
-        q = qpoint.QPoint()
+    def test_missing_columns_raise(self, mod, tmp_path):
+        q = mod.QPoint()
         path = self._write(tmp_path, self.COLUMNS)
         with pytest.raises(KeyError):
             q.load_bulletin_a(path, columns=["mjd", "dut1", "x"])
@@ -409,11 +446,23 @@ class TestBore2Radec:
         _, sindec, _, _ = qp.bore2radec(q_off, CTIMES, q_bore, sindec=True)
         assert np.all(np.abs(sindec) <= 1.0 + 1e-10)
 
-    def test_sindec_with_return_pa_raises(self, qp):
+    def test_sindec_with_return_pa(self, qp, mod):
+        """
+        The C has no entry point taking both, so qpoint refuses the
+        combination. qpoint2's dec and polarization outputs are
+        independent axes, so it answers.
+        """
         q_bore = self._make_bore(qp)
         q_off = self._make_qoff(qp)
-        with pytest.raises(ValueError):
-            qp.bore2radec(q_off, CTIMES, q_bore, sindec=True, return_pa=True)
+        if mod is qpoint:
+            with pytest.raises(ValueError):
+                qp.bore2radec(q_off, CTIMES, q_bore, sindec=True, return_pa=True)
+        else:
+            sindec, pa = qp.bore2radec(
+                q_off, CTIMES, q_bore, sindec=True, return_pa=True
+            )[1:3]
+            assert np.all(np.abs(np.asarray(sindec)) <= 1.0)
+            assert np.asarray(pa).shape == np.asarray(sindec).shape
 
     def test_pa_consistent_with_sincos(self, qp):
         q_bore = self._make_bore(qp)
@@ -442,25 +491,26 @@ class TestBore2Radec:
         ra, dec, pa = qp.bore2radec(q_off, CTIMES, q_bore, q_hwp=q_hwp, return_pa=True)
         assert pa.shape == (N,)
 
-    def test_ctime_none_with_mean_aber(self):
-        qp = qpoint.QPoint(mean_aber=True, accuracy="low")
+    def test_ctime_none_with_mean_aber(self, mod):
+        qp = mod.QPoint(mean_aber=True, accuracy="low")
         q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
         q_off = qp.det_offset(0.0, 0.0, 0.0)
         ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, None, q_bore)
         assert ra.shape == (N,)
 
-    def test_ctime_none_without_mean_aber_raises(self):
-        qp = qpoint.QPoint(mean_aber=False, accuracy="low")
+    def test_ctime_none_without_mean_aber_raises(self, mod):
+        qp = mod.QPoint(mean_aber=False, accuracy="low")
         q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
         q_off = qp.det_offset(0.0, 0.0, 0.0)
         with pytest.raises(ValueError):
             qp.bore2radec(q_off, None, q_bore)
 
-    def test_single_sample_scalar_output(self, qp):
-        q_bore = qp.azel2bore(AZ[:1], EL[:1], None, None, LON, LAT, CTIMES[:1])
+    def test_true_scalars_give_scalars(self, qp):
+        """Scalar in, scalar out -- nothing supplied an axis to keep."""
+        q_bore = qp.azel2bore(AZ[0], EL[0], None, None, LON, LAT, CTIMES[0])
         q_off = qp.det_offset(0.0, 0.0, 0.0)
-        ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, CTIMES[:1], q_bore)
-        assert np.isscalar(ra) or ra.ndim == 0
+        ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, CTIMES[0], q_bore[0])
+        assert np.isscalar(ra) or np.asarray(ra).ndim == 0
 
 
 # ---------------------------------------------------------------------------
@@ -1262,7 +1312,7 @@ class TestAzel2RadecBroadcast:
         assert np.allclose(dec1, dec2, atol=1e-12)
 
     def test_single_sample_output_shape(self, qp):
-        # azel2radec always returns arrays (no scalar squeeze for n=1).
+        """A length-one input keeps its axis; it is an array, not a scalar."""
         ra, dec, s, c = qp.azel2radec(
             0, 0, 0, AZ[:1], EL[:1], None, None, LON, LAT, CTIMES[:1]
         )
@@ -1387,18 +1437,18 @@ class TestMeanAberIsRestored:
     the call. Whatever the caller set has to survive it.
     """
 
-    def test_azel2radec_puts_it_back(self):
-        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+    def test_azel2radec_puts_it_back(self, mod):
+        q = mod.QPoint(mean_aber=False, accuracy="low")
         q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
         assert q.get("mean_aber") is False
 
-    def test_azelpsi2radec_puts_it_back(self):
-        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+    def test_azelpsi2radec_puts_it_back(self, mod):
+        q = mod.QPoint(mean_aber=False, accuracy="low")
         q.azelpsi2radec(1.0, 2.0, 3.0, 45.0, 45.0, 10.0, None, None, LON, LAT, CTIME)
         assert q.get("mean_aber") is False
 
-    def test_it_is_still_on_where_the_caller_asked_for_it(self):
-        q = qpoint.QPoint(mean_aber=True, accuracy="low")
+    def test_it_is_still_on_where_the_caller_asked_for_it(self, mod):
+        q = mod.QPoint(mean_aber=True, accuracy="low")
         q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
         assert q.get("mean_aber") is True
 
@@ -1412,24 +1462,28 @@ class TestRateCaching:
     # two samples 200 days apart, so a frozen correction is visible
     TIMES = CTIME + np.array([0.0, 200.0 * 86400.0])
 
-    def radec(self, **kwargs):
-        q = qpoint.QPoint(mean_aber=True, **kwargs)
+    def radec(self, mod, **kwargs):
+        q = mod.QPoint(mean_aber=True, **kwargs)
         az, el = np.array([10.0, 10.0]), np.array([45.0, 45.0])
         q_bore = q.azel2bore(az, el, None, None, LON, LAT, self.TIMES)
         ra, dec, _, _ = q.bore2radec(q.det_offset(0.0, 0.0, 0.0), self.TIMES, q_bore)
         return np.asarray(ra).copy()
 
-    def test_never_differs_from_always(self):
+    def test_never_differs_from_always(self, mod):
         assert not np.allclose(
-            self.radec(rate_npb="never"), self.radec(rate_npb="always")
+            self.radec(mod, rate_npb="never"), self.radec(mod, rate_npb="always")
         )
 
-    def test_once_is_computed_at_the_first_sample(self):
-        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+    def test_once_is_computed_at_the_first_sample(self, mod):
+        once, always = self.radec(mod, rate_npb="once"), self.radec(
+            mod, rate_npb="always"
+        )
         assert np.isclose(once[0], always[0])
 
-    def test_once_is_then_frozen(self):
-        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+    def test_once_is_then_frozen(self, mod):
+        once, always = self.radec(mod, rate_npb="once"), self.radec(
+            mod, rate_npb="always"
+        )
         assert not np.isclose(once[1], always[1])
 
 
@@ -1437,11 +1491,15 @@ class TestFastPix:
     """
     fast_pix skips the angle round trip and takes the pixel from the
     pointing vector. Away from the poles the two agree exactly.
+
+    Both packages are held to that much. TestFastPixIsExact, below, holds
+    qpoint2 to more: the polarization angles agree bit for bit as well,
+    which the C cannot manage.
     """
 
     @pytest.mark.parametrize("order", ["ring", "nest"])
     @pytest.mark.parametrize("fast_math", [False, True])
-    def test_quat2pixpa_fast_path(self, order, fast_math):
+    def test_quat2pixpa_fast_path(self, mod, order, fast_math):
         """
         quat2pixpa has its own copy of the fast path, separate from the
         one bore2pix takes. Crossed with the pixel ordering and with
@@ -1460,7 +1518,7 @@ class TestFastPix:
         pa_in = np.linspace(-150.0, 150.0, len(dec))
         got = {}
         for fast in (False, True):
-            q = qpoint.QPoint(
+            q = mod.QPoint(
                 mean_aber=True,
                 accuracy="low",
                 fast_pix=fast,
@@ -1473,10 +1531,10 @@ class TestFastPix:
         assert np.array_equal(got[False][0][settled], got[True][0][settled])
         assert np.all(np.isfinite(got[True][1]))
 
-    def test_same_pixels_as_the_angle_path(self):
+    def test_same_pixels_as_the_angle_path(self, mod):
         pix = {}
         for fast in (False, True):
-            q = qpoint.QPoint(mean_aber=True, accuracy="low", fast_pix=fast)
+            q = mod.QPoint(mean_aber=True, accuracy="low", fast_pix=fast)
             q_bore = q.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
             out = q.bore2pix(q.det_offset(1.0, 2.0, 30.0), CTIMES, q_bore, nside=64)
             pix[fast] = np.asarray(out[0] if isinstance(out, tuple) else out).copy()
@@ -1484,24 +1542,282 @@ class TestFastPix:
 
 
 class TestBulletinARange:
-    def test_a_lookup_outside_the_table_returns_zeros(self):
+    def test_a_lookup_outside_the_table_returns_zeros(self, mod):
         """
         Every caller in the C ignores the error return and uses the
         values, so an out-of-range date has to leave them at zero rather
         than raise.
         """
-        dut1, x, y = qpoint.QPoint().get_bulletin_a(20000.0)
+        dut1, x, y = mod.QPoint().get_bulletin_a(20000.0)
         assert (dut1, x, y) == (0.0, 0.0, 0.0)
 
 
 class TestPrintMemory:
-    def test_it_prints_the_state(self, capfd):
+    def test_it_prints_the_state(self, mod, capfd):
         """
         print_memory writes from the C, so the file descriptor has to be
         captured rather than sys.stdout. It flushes itself, which is what
         makes the output readable here rather than after the test.
         """
-        qpoint.QPoint(accuracy="low").print_memory()
+        mod.QPoint(accuracy="low").print_memory()
         out = capfd.readouterr().out
-        assert "QPOINT MEMORY" in out
+        # the two head their dumps differently
+        assert "QPOINT MEMORY" in out or "qpoint2 Pointing" in out
         assert "accuracy" in out
+
+
+# ---------------------------------------------------------------------------
+# qpoint2 only
+#
+# These name the package instead of taking the mod fixture, because they
+# describe behaviour qpoint does not have: fast_pix is checked against the
+# two-step path it approximates rather than against the C, qp_settings has
+# no counterpart at all, and the zero-copy contract is a qpoint2 guarantee
+# -- qpoint's ctypes layer copies freely. They are here rather than in
+# test_parity.py because none of them compares the two packages.
+# ---------------------------------------------------------------------------
+
+FAST_PIX_ORDERS = [
+    pytest.param("ring", id="ring"),
+    pytest.param("nest", id="nest"),
+]
+
+FP_NSIDE = 128
+FP_N = 50
+FP_CTIME = CTIME + np.arange(FP_N, dtype=float)
+FP_RA = np.linspace(0.0, 350.0, FP_N)
+FP_DEC = np.linspace(-80.0, 80.0, FP_N)
+FP_PA = np.linspace(-170.0, 170.0, FP_N)
+FP_AZ = np.linspace(0.0, 360.0, FP_N)
+FP_EL = np.linspace(30.0, 70.0, FP_N)
+FP_LON = np.full(FP_N, LON)
+FP_LAT = np.full(FP_N, LAT)
+
+
+def fp_bore(**options):
+    """A qpoint2 QPoint and a boresight quaternion to go with it."""
+    q = qpoint2.QPoint(**options)
+    qb = q.azel2bore(FP_AZ, FP_EL, None, None, FP_LON, FP_LAT, FP_CTIME)
+    return q, np.asarray(qb)
+
+
+def same(expected, actual, label):
+    """
+    Exact equality, NaNs in matching slots included. A fast path is held
+    to the slow one bit for bit, so a tolerance would defeat the purpose.
+    """
+    if not isinstance(expected, tuple):
+        expected, actual = (expected,), (actual,)
+    assert len(expected) == len(actual), "{}: arity differs".format(label)
+    for i, (e, a) in enumerate(zip(expected, actual)):
+        e, a = np.asarray(e), np.asarray(a)
+        assert e.shape == a.shape, "{}[{}] shape differs".format(label, i)
+        eq = np.array_equal(e, a, equal_nan=np.issubdtype(e.dtype, np.floating))
+        assert eq, "{}[{}] differs".format(label, i)
+
+
+class TestFastPixIsExact:
+    """
+    fast_pix takes the pixel straight from the pointing vector instead of
+    going round through ra/dec, so the thing it has to agree with is that
+    two-step path -- quat2radec then radec2pix -- and not the C, whose own
+    fast path is the less accurate of the two.
+
+    qpoint derives cos^2(b) for the polarization angle as
+    (1 - vec[2]**2) / 4, which cancels catastrophically approaching a pole
+    and is then divided by, costing 2e-10 in sin2psi and cos2psi within a
+    degree of one. qpoint2 takes it from the quaternion, as the slow path
+    does, which makes the two identical. The pixel itself was never
+    affected.
+    """
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    @pytest.mark.parametrize(
+        "kwargs",
+        [pytest.param({}, id="pol"), pytest.param({"pol": False}, id="no-pol")],
+    )
+    def test_quat2pix(self, order, kwargs):
+        """fast_pix=False is the two-step path, taken inside quat2pix."""
+        q = qpoint2.QPoint(pix_order=order)
+        quat = q.radecpa2quat(FP_RA, FP_DEC, FP_PA)
+        slow = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=False, **kwargs)
+        fast = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=True, **kwargs)
+        same(tuple(slow), tuple(fast), "quat2pix fast vs two-step")
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_quat2pixpa_against_the_public_two_step(self, order):
+        """Here the two steps are separately reachable, so spell them out."""
+        q = qpoint2.QPoint(pix_order=order)
+        quat = q.radecpa2quat(FP_RA, FP_DEC, FP_PA)
+        ra, dec, pa = q.quat2radecpa(quat)
+        want = (np.asarray(q.radec2pix(ra, dec, nside=FP_NSIDE)), np.asarray(pa))
+        got = tuple(q.quat2pixpa(quat, nside=FP_NSIDE, fast_pix=True))
+        same(want, got, "quat2pixpa fast vs quat2radecpa+radec2pix")
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="pol"),
+            pytest.param({"pol": False}, id="no-pol"),
+            pytest.param({"return_pa": True}, id="pa"),
+        ],
+    )
+    def test_bore2pix(self, order, kwargs):
+        q, qb = fp_bore(pix_order=order)
+        off = q.det_offset(1.0, 2.0, 3.0)
+        slow = q.bore2pix(off, FP_CTIME, qb, nside=FP_NSIDE, fast_pix=False, **kwargs)
+        fast = q.bore2pix(off, FP_CTIME, qb, nside=FP_NSIDE, fast_pix=True, **kwargs)
+        same(tuple(slow), tuple(fast), "bore2pix fast vs two-step")
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_near_the_poles(self, order):
+        """
+        Where the cancellation bit: the old form lost 2e-10 in sin2psi and
+        cos2psi within a degree of a pole, and more the closer it got.
+        Those are exact now, at the pole itself included.
+
+        The pixel is a separate matter. Taking it from the pointing vector
+        rather than from ra/dec is the whole point of fast_pix, and within
+        about a microdegree of a pole the two routes land on adjacent
+        pixels -- 0 against 1 at nside 128. No choice of cos^2(b) changes
+        that, so the pixel is only required to match outside that sliver.
+        """
+        dec = np.array([90.0, -90.0, 89.999999, -89.999999, 89.99, -89.99, 89.9, 89.0])
+        ra = np.linspace(0.0, 350.0, len(dec))
+        pa = np.linspace(-170.0, 170.0, len(dec))
+        q = qpoint2.QPoint(pix_order=order)
+        quat = q.radecpa2quat(ra, dec, pa)
+        pix_s, sin_s, cos_s = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=False)
+        pix_f, sin_f, cos_f = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=True)
+        same((sin_s, cos_s), (sin_f, cos_f), "pol angle at the poles")
+        settled = np.abs(dec) <= 89.99
+        same(
+            np.asarray(pix_s)[settled],
+            np.asarray(pix_f)[settled],
+            "pixel away from the pole sliver",
+        )
+
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_the_fast_path_is_the_better_one_at_the_pole(self, order):
+        """
+        Inside theta < 2.1e-8 rad the two disagree, and it is the slow path
+        that is wrong: its cos(theta) rounds to exactly 1, which throws the
+        azimuth away and dumps every direction into pixel 0. The vector
+        keeps x and y, so fast_pix still lands in the right quadrant.
+
+        Hence no attempt to force agreement in there -- doing that would
+        mean adopting the worse answer. The azimuths here sit inside the
+        quadrants rather than on their boundaries, where the assignment is
+        a tie-break and tells you nothing.
+        """
+        ra = np.array(
+            [
+                15.0,
+                45.0,
+                75.0,
+                105.0,
+                135.0,
+                165.0,
+                195.0,
+                225.0,
+                255.0,
+                285.0,
+                315.0,
+                345.0,
+            ]
+        )
+        pa = np.full(len(ra), 17.0)
+        q = qpoint2.QPoint(pix_order=order)
+
+        def pix(theta, fast):
+            dec = np.full(len(ra), 90.0 - np.degrees(theta))
+            quat = q.radecpa2quat(ra, dec, pa)
+            return np.asarray(q.quat2pix(quat, nside=FP_NSIDE, fast_pix=fast)[0])
+
+        # far enough out that no rounding is in play, so this is the truth
+        want = pix(1e-3, False)
+        assert len(np.unique(want)) == 4, "expected one pixel per quadrant"
+        same(want, pix(1e-3, True), "quadrants away from the pole")
+
+        for theta in (2e-8, 1e-8, 1e-12):
+            same(want, pix(theta, True), "fast_pix in the cap")
+            assert np.all(pix(theta, False) == want[0]), "slow path collapses"
+
+
+class TestQpSettingsIsPublic:
+    """
+    The per-call parameter decorator is exported, so a subclass adding a
+    method gets the same keyword handling as the built-in ones.
+    """
+
+    def subclass(self):
+        class MyPoint(qpoint2.QPoint):
+            @qpoint2.qp_settings
+            def scan(self, ctime, offset=0.0):
+                return self.gmst(ctime) + offset
+
+        return MyPoint()
+
+    def test_importable_from_the_package(self):
+        assert qpoint2.qp_settings is not None
+        assert "qp_settings" in qpoint2.__all__
+
+    def test_parameters_are_applied_and_restored(self):
+        q = self.subclass()
+        before = q.get("accuracy")
+        assert q.scan(CTIME, accuracy="low") != q.scan(CTIME)
+        assert q.get("accuracy") == before
+
+    def test_the_methods_own_arguments_still_reach_it(self):
+        q = self.subclass()
+        assert q.scan(CTIME, offset=1.0) == q.scan(CTIME) + 1.0
+        assert q.scan(CTIME, offset=1.0, accuracy="low") == (
+            q.scan(CTIME, accuracy="low") + 1.0
+        )
+
+    def test_an_unknown_keyword_is_reported(self):
+        with pytest.raises(TypeError):
+            self.subclass().scan(CTIME, nonsense=1)
+
+    def test_defaults_apply_under_the_caller(self):
+        class Defaulted(qpoint2.QPoint):
+            @qpoint2.qp_settings(accuracy="low")
+            def which(self):
+                return self.get_param("accuracy")
+
+        q = Defaulted()
+        assert q.which() == "low"
+        assert q.which(accuracy="high") == "high"
+        assert q.get("accuracy") == qpoint2.QPoint().get("accuracy")
+
+
+class TestZeroCopyContract:
+    """
+    qpoint2 never copies sample data. Arguments go straight from Python to
+    the binding layer, which validates and rejects rather than converting.
+    qpoint is not held to this: its ctypes layer copies freely.
+    """
+
+    @pytest.mark.parametrize(
+        "bad, exc",
+        [
+            pytest.param(np.ones(3, dtype=np.float32), TypeError, id="wrong-dtype"),
+            pytest.param(np.ones(3, dtype=np.int64), TypeError, id="int-dtype"),
+            pytest.param(np.ones((3, 2))[:, 0], ValueError, id="non-contiguous"),
+            pytest.param(np.ones((2, 3)), ValueError, id="wrong-rank"),
+        ],
+    )
+    def test_rejects_rather_than_converts(self, bad, exc):
+        """An existing array is never copied behind the caller's back."""
+        ok = np.ones(3)
+        with pytest.raises(exc):
+            qpoint2.QPoint().det_offset(bad, ok, ok)
+
+    def test_error_names_the_argument(self):
+        with pytest.raises(TypeError, match="delta_el"):
+            qpoint2.QPoint().det_offset(np.ones(3), np.ones(3, dtype=np.float32), 0.0)
+
+    def test_length_mismatch_is_rejected(self):
+        with pytest.raises(ValueError, match="length"):
+            qpoint2.QPoint().det_offset(np.ones(3), np.ones(5), 0.0)

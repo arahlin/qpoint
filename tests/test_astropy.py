@@ -11,11 +11,11 @@ also never reach the network: the IERS tables ship with astropy, and the
 auto-download that would otherwise fetch newer ones is switched off for
 the duration.
 
-qpoint gets its Earth orientation data through `QPoint(update_iers=True)`,
-which reads astropy's own table and hands it to `set_iers_bulletin_a`. So
-both sides are working from the same numbers by construction, and the
-comparison is of the transforms rather than of what each believes the
-Earth was doing.
+Each package gets its Earth orientation data through
+`QPoint(update_iers=True)`, which reads astropy's own table and installs
+it as a Bulletin A. So every side is working from the same numbers
+by construction, and the comparison is of the transforms rather than of
+what each believes the Earth was doing.
 """
 
 import numpy as np
@@ -23,6 +23,7 @@ import pytest
 import qpoint
 
 pytest.importorskip("astropy")
+qpoint2 = pytest.importorskip("qpoint2")
 
 from astropy import units as u  # noqa: E402
 from astropy.coordinates import AltAz, EarthLocation, ICRS, SkyCoord  # noqa: E402
@@ -54,6 +55,15 @@ OBSWL = (299792458.0 / (FREQUENCY * 1e9)) * u.m
 TOL_ARCSEC = 0.1
 
 
+# Both packages are checked against astropy, not only against each other.
+IMPLS = [qpoint, qpoint2]
+
+
+@pytest.fixture(params=IMPLS, ids=lambda m: m.__name__)
+def mod(request):
+    return request.param
+
+
 @pytest.fixture(scope="module", autouse=True)
 def no_download():
     """
@@ -73,16 +83,16 @@ def location():
 
 
 @pytest.fixture(scope="module")
-def obstime():
+def obstime(no_download):
     return Time(CTIME, format="unix", scale="utc")
 
 
-def make_qpoint(inverse=True, **kwargs):
+def make_qpoint(mod, inverse=True, **kwargs):
     """
     A QPoint using the same Earth orientation data as astropy.
 
     `update_iers` does the loading: it calls update_bulletin_a, which
-    reads astropy's IERS table and passes it to set_iers_bulletin_a.
+    reads astropy's IERS table and installs it as a Bulletin A.
     Without it the two disagree by the size of those terms, which is
     seconds of arc -- real, but a comparison of Earth orientation data
     rather than of the transforms built on it.
@@ -94,7 +104,7 @@ def make_qpoint(inverse=True, **kwargs):
     rates = dict(rate_dut1="always", rate_wobble="always")
     if inverse:
         rates.update(rate_dut1_inv="always", rate_wobble_inv="always")
-    return qpoint.QPoint(update_iers=True, **rates, **kwargs)
+    return mod.QPoint(update_iers=True, **rates, **kwargs)
 
 
 def separation(ra, dec, reference):
@@ -103,7 +113,7 @@ def separation(ra, dec, reference):
 
 
 class TestAzel2Radec:
-    def test_matches_astropy(self, location, obstime):
+    def test_matches_astropy(self, mod, location, obstime):
         reference = AltAz(
             az=AZ * u.deg,
             alt=EL * u.deg,
@@ -112,13 +122,13 @@ class TestAzel2Radec:
             pressure=0 * u.hPa,
         ).transform_to(ICRS())
 
-        q = make_qpoint(pressure=0)
+        q = make_qpoint(mod, pressure=0)
         ra, dec = q.azel2radec(
             0.0, 0.0, 0.0, AZ, EL, None, None, LON, LAT, CTIME, return_pa=True
         )[:2]
         assert separation(ra, dec, reference).max() < TOL_ARCSEC
 
-    def test_matches_astropy_through_refraction(self, location, obstime):
+    def test_matches_astropy_through_refraction(self, mod, location, obstime):
         """
         Both bend the incoming ray for the same atmosphere. Elevations
         here stay above 30 degrees, where the two refraction models have
@@ -136,6 +146,7 @@ class TestAzel2Radec:
         ).transform_to(ICRS())
 
         q = make_qpoint(
+            mod,
             pressure=PRESSURE,
             temperature=TEMPERATURE,
             humidity=HUMIDITY,
@@ -166,8 +177,8 @@ class TestRadec2Azel:
             frame=AltAz(obstime=obstime, location=location),
         )
 
-    def test_matches_astropy(self, location, obstime):
-        q = make_qpoint(pressure=0)
+    def test_matches_astropy(self, mod, location, obstime):
+        q = make_qpoint(mod, pressure=0)
         az, el = q.radec2azel(
             self.SKY["ra"], self.SKY["dec"], np.zeros(N), LON, LAT, CTIME
         )[:2]
@@ -177,13 +188,13 @@ class TestRadec2Azel:
             < TOL_ARCSEC
         )
 
-    def test_the_inverse_rates_are_switched_separately(self, location, obstime):
+    def test_the_inverse_rates_are_switched_separately(self, mod, location, obstime):
         """
         Setting rate_dut1 and rate_wobble alone leaves the inverse
         transform without polar motion, which is a quarter of an
         arcsecond and easy to mistake for noise.
         """
-        q = make_qpoint(inverse=False, pressure=0)
+        q = make_qpoint(mod, inverse=False, pressure=0)
         az, el = q.radec2azel(
             self.SKY["ra"], self.SKY["dec"], np.zeros(N), LON, LAT, CTIME
         )[:2]
@@ -201,7 +212,7 @@ class TestWithoutEarthOrientationData:
     caller who never loads a bulletin gives up: arcseconds, not degrees.
     """
 
-    def test_the_disagreement_is_seconds_of_arc(self, location, obstime):
+    def test_the_disagreement_is_seconds_of_arc(self, mod, location, obstime):
         reference = AltAz(
             az=AZ * u.deg,
             alt=EL * u.deg,
@@ -210,7 +221,7 @@ class TestWithoutEarthOrientationData:
             pressure=0 * u.hPa,
         ).transform_to(ICRS())
 
-        q = qpoint.QPoint(pressure=0)
+        q = mod.QPoint(pressure=0)
         ra, dec = q.azel2radec(
             0.0, 0.0, 0.0, AZ, EL, None, None, LON, LAT, CTIME, return_pa=True
         )[:2]
@@ -261,10 +272,10 @@ class TestGalacticRotation:
             l=np.rad2deg(lon) * u.deg, b=np.rad2deg(lat) * u.deg, frame="galactic"
         )
 
-    def test_radec2gal_matches_erfa(self):
+    def test_radec2gal_matches_erfa(self, mod):
         # radec2gal is in-place by default, so these are copies rather
         # than the arrays the class holds.
-        lon, lat = qpoint.QPoint().radec2gal(
+        lon, lat = mod.QPoint().radec2gal(
             self.SKY["ra"].copy(), self.SKY["dec"].copy()
         )[:2]
         got = SkyCoord(
@@ -274,10 +285,10 @@ class TestGalacticRotation:
             got.separation(self.erfa_reference()).to_value(u.uas).max() < self.TOL_UAS
         )
 
-    def test_gal2radec_matches_erfa(self):
+    def test_gal2radec_matches_erfa(self, mod):
         """The inverse, taken back to where it started."""
         gal = self.erfa_reference()
-        ra, dec = qpoint.QPoint().gal2radec(
+        ra, dec = mod.QPoint().gal2radec(
             gal.l.to_value(u.deg).copy(), gal.b.to_value(u.deg).copy()
         )[:2]
         want = SkyCoord(
@@ -288,12 +299,12 @@ class TestGalacticRotation:
         )
         assert got.separation(want).to_value(u.uas).max() < self.TOL_UAS
 
-    def test_astropy_differs_by_the_frame_bias(self):
+    def test_astropy_differs_by_the_frame_bias(self, mod):
         """
         Pinned so the 25 mas is on the record as a convention difference
         rather than found later and mistaken for an error in qpoint.
         """
-        lon, lat = qpoint.QPoint().radec2gal(
+        lon, lat = mod.QPoint().radec2gal(
             self.SKY["ra"].copy(), self.SKY["dec"].copy()
         )[:2]
         got = SkyCoord(
@@ -329,11 +340,11 @@ class TestSiderealTime:
         """Separation in arcsec of Earth rotation, wrapped at 24 hours."""
         return np.abs((np.asarray(got) - ref + 12.0) % 24.0 - 12.0) * 15.0 * 3600.0
 
-    def test_gmst_matches_astropy(self):
-        q = make_qpoint(inverse=False)
+    def test_gmst_matches_astropy(self, mod):
+        q = make_qpoint(mod, inverse=False)
         assert self.arcsec(q.gmst(CTIME), self.astropy_gmst()).max() < TOL_ARCSEC
 
-    def test_lmst_matches_astropy(self):
+    def test_lmst_matches_astropy(self, mod):
         """
         Longitude enters here and nowhere else, so this is what pins its
         sign: a flipped one leaves gmst untouched.
@@ -343,15 +354,15 @@ class TestSiderealTime:
             .sidereal_time("mean", longitude=LON * u.deg)
             .to_value(u.hourangle)
         )
-        q = make_qpoint(inverse=False)
+        q = make_qpoint(mod, inverse=False)
         assert self.arcsec(q.lmst(CTIME, LON), ref).max() < TOL_ARCSEC
 
-    def test_without_the_bulletin_it_is_off_by_dut1(self):
+    def test_without_the_bulletin_it_is_off_by_dut1(self, mod):
         """
         The same point TestWithoutEarthOrientationData makes for the
         coordinate transforms: what the Earth orientation data is worth
         here is seconds of arc, and it is exactly the dut1 term.
         """
-        worst = self.arcsec(qpoint.QPoint().gmst(CTIME), self.astropy_gmst()).max()
+        worst = self.arcsec(mod.QPoint().gmst(CTIME), self.astropy_gmst()).max()
         assert worst > TOL_ARCSEC
         assert worst < 0.9 * 15.0  # leap seconds bound |dut1| < 0.9 s
