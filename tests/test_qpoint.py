@@ -1602,3 +1602,86 @@ class TestInverseRatesAreIndependent:
         got_az, got_el, _ = q.bore2azel(q_bore, lon, lat, ct)
         assert np.abs(np.asarray(got_az) % 360 - az % 360).max() < 1e-5
         assert np.abs(np.asarray(got_el) - 45.0).max() < 1e-5
+
+
+class TestRateStateSentinel:
+    """
+    An un-updated rate state is marked with NAN, not with a negative time.
+
+    `qp_check_update` used to read `ctime_last <= 0` as "never updated",
+    and that sentinel is also a legitimate ctime -- 1970 or earlier, odd
+    but not illegal. The two could not be told apart, so a run at
+    non-positive ctime disabled every rate cache instead of filling it:
+    every sample looked uninitialised, so every sample recomputed every
+    correction, the high-accuracy nutation series included.
+
+    `'once'` was worse: its "already done" guard was spelled
+    `ctime_last > 0`, which a negative ctime never satisfies, so the state
+    fell through to the uninitialised branch and recomputed on every
+    sample -- the opposite of what was asked for.
+    """
+
+    N = 60
+
+    def bore(self, ctime, **kwargs):
+        n = len(ctime)
+        q = qpoint.QPoint(**kwargs)
+        out = np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, n),
+                np.full(n, 45.0),
+                None,
+                None,
+                np.full(n, LON),
+                np.full(n, LAT),
+                np.ascontiguousarray(ctime),
+            )
+        )
+        # keep q alive until after the read: its __del__ frees the struct
+        return out, q._memory.contents.state_npb.ctime_last
+
+    @pytest.mark.parametrize(
+        "label, ctime",
+        [
+            ("positive", CTIME + np.arange(N) * 5.0),
+            ("negative", -50000.0 + np.arange(N) * 5.0),
+            ("straddling zero", -150.0 + np.arange(N) * 5.0),
+        ],
+        ids=lambda v: v if isinstance(v, str) else "",
+    )
+    def test_once_freezes_whatever_the_epoch(self, label, ctime):
+        """
+        The decisive one: at non-positive ctime `once` used to behave like
+        `always`, because its guard could never fire.
+        """
+        once, _ = self.bore(ctime, rate_npb="once")
+        always, _ = self.bore(ctime, rate_npb="always")
+        ten, _ = self.bore(ctime, rate_npb=10)
+        assert not np.array_equal(once, always)
+        assert not np.array_equal(once, ten)
+
+    def test_a_fresh_state_is_nan(self):
+        q = qpoint.QPoint()
+        assert np.isnan(q._memory.contents.state_npb.ctime_last)
+
+    def test_a_reset_returns_it_to_nan(self):
+        q = qpoint.QPoint()
+        ct = CTIME + np.arange(self.N) * 5.0
+        q.azel2bore(
+            np.linspace(0, 90, self.N),
+            np.full(self.N, 45.0),
+            None,
+            None,
+            np.full(self.N, LON),
+            np.full(self.N, LAT),
+            np.ascontiguousarray(ct),
+        )
+        assert not np.isnan(q._memory.contents.state_npb.ctime_last)
+        q.reset_rates()
+        assert np.isnan(q._memory.contents.state_npb.ctime_last)
+
+    def test_the_state_records_the_real_time(self):
+        """Including a negative one, rather than being stuck at a sentinel."""
+        ctime = -50000.0 + np.arange(self.N) * 5.0
+        _, last = self.bore(ctime, rate_npb="once")
+        assert last == ctime[0]
