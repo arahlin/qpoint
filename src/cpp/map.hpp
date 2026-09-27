@@ -3,7 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
+#include <vector>
 
+#include "error.hpp"
 #include "pixinfo.hpp"
 #include "quat.hpp"
 #include "span.hpp"
@@ -32,6 +34,65 @@ class PixHash {
 
  private:
   std::unordered_map<long, long> map_;
+};
+
+// A thread-local accumulator's index: pixel -> slot, so a private copy is
+// proportional to the coverage rather than to the map. Only worth it where
+// the map dwarfs what one thread can touch; want_compact() decides.
+class PixAccum {
+ public:
+  explicit PixAccum(std::size_t cap) : cap_(cap) {}
+
+  // Slot for a pixel, assigning the next free one if it is new.
+  long slot(long pix) {
+    const auto it = slot_.find(pix);
+    if (it != slot_.end()) return it->second;
+    // cap_ bounds the distinct pixels a thread can reach, so this is a
+    // guard against the bound being computed wrongly, not a real case.
+    if (slot_.size() >= cap_) throw QpMapError("PixAccum: out of slots");
+    const long s = static_cast<long>(slot_.size());
+    slot_.emplace(pix, s);
+    return s;
+  }
+
+  // Calls f(pixel, slot) for everything the thread touched.
+  template <class Fn>
+  void for_each(Fn &&f) const {
+    for (const auto &kv : slot_) f(kv.first, kv.second);
+  }
+
+  std::size_t size() const { return slot_.size(); }
+
+ private:
+  std::unordered_map<long, long> slot_;
+  std::size_t cap_;
+};
+
+// Records which pixels a thread-local accumulator wrote, so merging visits
+// those rather than scanning every row for nonzero entries.
+class PixTouch {
+ public:
+  explicit PixTouch(std::size_t npix) : bits_((npix + 63) / 64, 0) {}
+
+  void set(long pix) {
+    const std::size_t p = static_cast<std::size_t>(pix);
+    bits_[p >> 6] |= std::uint64_t(1) << (p & 63);
+  }
+
+  // Calls f(pix) for each recorded pixel, ascending.
+  template <class Fn>
+  void for_each(Fn &&f) const {
+    for (std::size_t w = 0; w < bits_.size(); ++w) {
+      std::uint64_t b = bits_[w];
+      while (b) {
+        f(static_cast<long>(w * 64 + __builtin_ctzll(b)));
+        b &= b - 1;  // clear the lowest set bit
+      }
+    }
+  }
+
+ private:
+  std::vector<std::uint64_t> bits_;
 };
 
 enum class VecMode {
@@ -138,6 +199,13 @@ struct Map {
   const PixHash *pixhash = nullptr;
   const PixInfo *pixinfo = nullptr;
 
+  // Both are set only on a thread-local accumulator, and never together:
+  // touched records the pixels a directly-indexed accumulator wrote, and
+  // accum both assigns and records the slots of a compact one. Null
+  // everywhere else, including on the map the caller passed in.
+  PixTouch *touched = nullptr;
+  PixAccum *accum = nullptr;
+
   double *vrow(std::size_t i) const { return vec + i * npix; }
   double *prow(std::size_t i) const { return proj + i * npix; }
 
@@ -164,6 +232,14 @@ void map2tod1(Pointing &mem, const Det &det, const PointData &pnt,
               const Map &map);
 
 // Merge a thread-local map into the shared one.
-void add_map(Map &map, const Map &local);
+// Merge local into map. Given the pixels local recorded while
+// accumulating, only those are visited; without them the whole map is
+// scanned to find the nonzero entries.
+void add_map(Map &map, const Map &local, const PixTouch *touched = nullptr);
+
+// Merge a compact accumulator, whose rows are indexed by slot rather than
+// by pixel. The index knows which pixel each slot belongs to, so this is
+// proportional to what the thread touched.
+void add_map(Map &map, const Map &local, const PixAccum &accum);
 
 }  // namespace qp
