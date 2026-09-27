@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 import qpoint
+from qpoint._libqpoint import libqp
 
 # Reference observing parameters
 CTIME = 1418662800.0  # 2014-12-15 12:00 UTC
@@ -1891,3 +1892,152 @@ class TestRateStateSentinel:
         ctime = -50000.0 + np.arange(self.N) * 5.0
         _, last = self.bore(ctime, rate_npb="once")
         assert last == ctime[0]
+
+
+# ---------------------------------------------------------------------------
+# the UTC -> UT1 day cache
+# ---------------------------------------------------------------------------
+
+# 2015-07-01 00:00:00 UTC, the instant after that year's leap second.
+LEAP_2015 = 1435708800.0
+
+# Every correction recomputed per sample, so the day cache is the only thing
+# a run of samples reuses. Without this the rate caches dominate: with
+# rate_npb at its default of 10 s, samples a second apart share one
+# nutation series and a fresh QPoint per sample does not, which looks like
+# a caching bug and is not one.
+ALL_RATES = dict(
+    rate_npb="always",
+    rate_aaber="always",
+    rate_daber="always",
+    rate_lonlat="always",
+    rate_erot="always",
+    rate_wobble="always",
+)
+
+UT1_SPANS = {
+    "ordinary day": CTIME + np.arange(0, 86400, 3600.0),
+    "across midnight": CTIME + np.arange(43000, 44200, 120.0),
+    "leap second day": LEAP_2015 - 86400.0 + np.arange(0, 86401, 3600.0),
+    # the margin itself: the cache stops ten seconds short of midnight
+    "margin edges": LEAP_2015
+    - 86400.0
+    + np.array([0.0, 9.0, 10.0, 11.0, 86389.0, 86390.0, 86400.0]),
+    "leap second crossing": LEAP_2015 + np.arange(-5, 5, 0.5),
+    "one second apart": CTIME + np.arange(0, 20, 1.0),
+    "100 Hz": CTIME + np.arange(0, 2, 0.01),
+    "backwards": CTIME + np.arange(86400, 0, -3600.0),
+}
+
+
+class TestUt1Caching:
+    """
+    UT1 - UTC is cached for the interior of a calendar day, which is exact:
+    the offset steps only at a leap second, and those fall at midnight.
+
+    The awkward part is that a leap-second UTC day is 86401 seconds long, so
+    ERFA and ctime / 86400 disagree about the date for one second. The cache
+    stays ten seconds clear of midnight rather than reason about it, and a day
+    with a leap second in it gets no cache.
+
+    Being exact is the claim, so every test here compares an accumulating run
+    against the same samples computed one at a time on a fresh QPoint.
+    """
+
+    @staticmethod
+    def warm(ctime, **kwargs):
+        q = qpoint.QPoint(**dict(ALL_RATES, **kwargs))
+        n = len(ctime)
+        return np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, n),
+                np.full(n, 45.0),
+                None,
+                None,
+                np.full(n, LON),
+                np.full(n, LAT),
+                np.ascontiguousarray(ctime),
+            )
+        )
+
+    @staticmethod
+    def cold(ctime, **kwargs):
+        n = len(ctime)
+        az = np.linspace(0, 90, n)
+        out = [
+            np.asarray(
+                qpoint.QPoint(**dict(ALL_RATES, **kwargs)).azel2bore(
+                    az[i], 45.0, None, None, LON, LAT, ctime[i]
+                )
+            )
+            for i in range(n)
+        ]
+        return np.asarray(out).reshape(n, 4)
+
+    @pytest.mark.parametrize(
+        "span", sorted(UT1_SPANS), ids=lambda s: s.replace(" ", "-")
+    )
+    def test_the_cache_changes_nothing(self, span):
+        ctime = UT1_SPANS[span]
+        assert np.array_equal(self.warm(ctime), self.cold(ctime))
+
+    @pytest.mark.parametrize("accuracy", ["high", "low"])
+    def test_in_both_accuracy_modes(self, accuracy):
+        ctime = UT1_SPANS["leap second day"]
+        assert np.array_equal(
+            self.warm(ctime, accuracy=accuracy), self.cold(ctime, accuracy=accuracy)
+        )
+
+    def test_a_dut1_that_changes_daily(self):
+        """
+        The cache keys on dut1 as well as the day, so a bulletin that steps
+        from one day to the next has to invalidate it rather than carry an
+        offset across the boundary.
+        """
+        nday = 6
+        mjd0 = 57200
+        dut1 = np.ascontiguousarray(np.linspace(-0.4, 0.4, nday))
+        zeros = np.ascontiguousarray(np.zeros(nday))
+
+        def go(ctime, cold):
+            def build():
+                q = qpoint.QPoint(rate_dut1="always", **ALL_RATES)
+                libqp.qp_set_iers_bulletin_a(
+                    q._memory, mjd0, mjd0 + nday - 1, dut1, zeros, zeros
+                )
+                return q
+
+            n = len(ctime)
+            az = np.linspace(0, 90, n)
+            if not cold:
+                return np.asarray(
+                    build().azel2bore(
+                        az,
+                        np.full(n, 45.0),
+                        None,
+                        None,
+                        np.full(n, LON),
+                        np.full(n, LAT),
+                        np.ascontiguousarray(ctime),
+                    )
+                )
+            return np.asarray(
+                [
+                    np.asarray(
+                        build().azel2bore(az[i], 45.0, None, None, LON, LAT, ctime[i])
+                    )
+                    for i in range(n)
+                ]
+            ).reshape(n, 4)
+
+        ctime = LEAP_2015 + np.arange(0, 5 * 86400.0, 7200.0)
+        assert np.array_equal(go(ctime, False), go(ctime, True))
+
+    def test_the_cache_starts_empty(self):
+        """
+        A fresh QPoint must not answer from an uninitialized window, which
+        is what lo > hi is for.
+        """
+        q = qpoint.QPoint()
+        cache = q._memory.contents.ut1_cache
+        assert cache.lo > cache.hi
