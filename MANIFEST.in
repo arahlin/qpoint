@@ -3,4 +3,4 @@ exclude .pre-commit-config.yaml
 
 recursive-include docs *.rst *.pdf *.txt
 recursive-include examples *
-recursive-include src LICENSE* *.c *.h
+recursive-include src LICENSE* *.c *.h *.cpp *.hpp
