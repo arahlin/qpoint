@@ -1,14 +1,14 @@
 """
-qpoint against astropy.
+qpoint and qpoint2 against astropy.
 
-Everything else in this suite checks qpoint against itself; these check it
-against an independent implementation, so a shared mistake has to be made
-twice to survive.
+Everything else in this suite checks a package against itself; these check
+it against an independent implementation, so a shared mistake has to be
+made twice to survive.
 
 astropy is not a test dependency, so these skip where it is absent, and
-they never reach the network. qpoint gets its Earth orientation data
-through QPoint(update_iers=True), which reads astropy's own table, so both
-sides work from the same numbers and the comparison is of the transforms.
+they never reach the network. Each package gets its Earth orientation data
+through QPoint(update_iers=True), which reads astropy's own table, so every
+side works from the same numbers and the comparison is of the transforms.
 """
 
 import numpy as np
@@ -16,6 +16,7 @@ import pytest
 import qpoint
 
 pytest.importorskip("astropy")
+qpoint2 = pytest.importorskip("qpoint2")
 
 from astropy import units as u  # noqa: E402
 from astropy.coordinates import AltAz, EarthLocation, ICRS, SkyCoord  # noqa: E402
@@ -38,6 +39,15 @@ OBSWL = (299792458.0 / (FREQUENCY * 1e9)) * u.m
 # astropy applies; leaving that off puts azel2radec back at 14 mas and
 # radec2azel at 43, which TestLightDeflection asserts.
 TOL_ARCSEC = 0.005
+
+
+# Both packages are checked against astropy, not only against each other.
+IMPLS = [qpoint, qpoint2]
+
+
+@pytest.fixture(params=IMPLS, ids=lambda m: m.__name__)
+def mod(request):
+    return request.param
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -67,7 +77,7 @@ def obstime(no_download):
     return Time(CTIME, format="unix", scale="utc")
 
 
-def make_qpoint(inverse=True, **kwargs):
+def make_qpoint(mod, inverse=True, **kwargs):
     """
     A QPoint using the same Earth orientation data as astropy.
 
@@ -87,7 +97,7 @@ def make_qpoint(inverse=True, **kwargs):
         )
     # caller wins, so a test can put one of these back to its default
     rates.update(kwargs)
-    return qpoint.QPoint(update_iers=True, **rates)
+    return mod.QPoint(update_iers=True, **rates)
 
 
 def separation(ra, dec, reference):
@@ -96,7 +106,7 @@ def separation(ra, dec, reference):
 
 
 class TestAzel2Radec:
-    def test_matches_astropy(self, location, obstime):
+    def test_matches_astropy(self, mod, location, obstime):
         reference = AltAz(
             az=AZ * u.deg,
             alt=EL * u.deg,
@@ -105,13 +115,13 @@ class TestAzel2Radec:
             pressure=0 * u.hPa,
         ).transform_to(ICRS())
 
-        q = make_qpoint(pressure=0)
+        q = make_qpoint(mod, pressure=0)
         ra, dec = q.azel2radec(
             0.0, 0.0, 0.0, AZ, EL, None, None, LON, LAT, CTIME, return_pa=True
         )[:2]
         assert separation(ra, dec, reference).max() < TOL_ARCSEC
 
-    def test_matches_astropy_through_refraction(self, location, obstime):
+    def test_matches_astropy_through_refraction(self, mod, location, obstime):
         """
         Both bend the incoming ray for the same atmosphere. Elevations
         here stay above 30 degrees, where the two refraction models have
@@ -129,6 +139,7 @@ class TestAzel2Radec:
         ).transform_to(ICRS())
 
         q = make_qpoint(
+            mod,
             pressure=PRESSURE,
             temperature=TEMPERATURE,
             humidity=HUMIDITY,
@@ -159,8 +170,8 @@ class TestRadec2Azel:
             frame=AltAz(obstime=obstime, location=location),
         )
 
-    def test_matches_astropy(self, location, obstime):
-        q = make_qpoint(pressure=0)
+    def test_matches_astropy(self, mod, location, obstime):
+        q = make_qpoint(mod, pressure=0)
         az, el = q.radec2azel(
             self.SKY["ra"], self.SKY["dec"], np.zeros(N), LON, LAT, CTIME
         )[:2]
@@ -170,13 +181,13 @@ class TestRadec2Azel:
             < TOL_ARCSEC
         )
 
-    def test_the_inverse_rates_are_switched_separately(self, location, obstime):
+    def test_the_inverse_rates_are_switched_separately(self, mod, location, obstime):
         """
         Setting rate_dut1 and rate_wobble alone leaves the inverse
         transform without polar motion, which is a quarter of an
         arcsecond and easy to mistake for noise.
         """
-        q = make_qpoint(inverse=False, pressure=0)
+        q = make_qpoint(mod, inverse=False, pressure=0)
         az, el = q.radec2azel(
             self.SKY["ra"], self.SKY["dec"], np.zeros(N), LON, LAT, CTIME
         )[:2]
@@ -194,7 +205,7 @@ class TestWithoutEarthOrientationData:
     caller who never loads a bulletin gives up: arcseconds, not degrees.
     """
 
-    def test_the_disagreement_is_seconds_of_arc(self, location, obstime):
+    def test_the_disagreement_is_seconds_of_arc(self, mod, location, obstime):
         reference = AltAz(
             az=AZ * u.deg,
             alt=EL * u.deg,
@@ -203,7 +214,7 @@ class TestWithoutEarthOrientationData:
             pressure=0 * u.hPa,
         ).transform_to(ICRS())
 
-        q = qpoint.QPoint(pressure=0)
+        q = mod.QPoint(pressure=0)
         ra, dec = q.azel2radec(
             0.0, 0.0, 0.0, AZ, EL, None, None, LON, LAT, CTIME, return_pa=True
         )[:2]
@@ -310,11 +321,11 @@ class TestSiderealTime:
         """Separation in arcsec of Earth rotation, wrapped at 24 hours."""
         return np.abs((np.asarray(got) - ref + 12.0) % 24.0 - 12.0) * 15.0 * 3600.0
 
-    def test_gmst_matches_astropy(self):
-        q = make_qpoint(inverse=False)
+    def test_gmst_matches_astropy(self, mod):
+        q = make_qpoint(mod, inverse=False)
         assert self.arcsec(q.gmst(CTIME), self.astropy_gmst()).max() < TOL_ARCSEC
 
-    def test_lmst_matches_astropy(self):
+    def test_lmst_matches_astropy(self, mod):
         """
         Longitude enters here and nowhere else, so this is what pins its
         sign: a flipped one leaves gmst untouched.
@@ -324,31 +335,31 @@ class TestSiderealTime:
             .sidereal_time("mean", longitude=LON * u.deg)
             .to_value(u.hourangle)
         )
-        q = make_qpoint(inverse=False)
+        q = make_qpoint(mod, inverse=False)
         assert self.arcsec(q.lmst(CTIME, LON), ref).max() < TOL_ARCSEC
 
-    def test_without_the_bulletin_it_is_off_by_dut1(self):
+    def test_without_the_bulletin_it_is_off_by_dut1(self, mod):
         """
         The same point TestWithoutEarthOrientationData makes for the
         coordinate transforms: what the Earth orientation data is worth
         here is seconds of arc, and it is exactly the dut1 term.
         """
-        worst = self.arcsec(qpoint.QPoint().gmst(CTIME), self.astropy_gmst()).max()
+        worst = self.arcsec(mod.QPoint().gmst(CTIME), self.astropy_gmst()).max()
         assert worst > TOL_ARCSEC
         assert worst < 0.9 * 15.0  # leap seconds bound |dut1| < 0.9 s
 
 
 class TestLightDeflection:
     """
-    The sun bends the incoming ray, and qpoint models it now. This is
+    The sun bends the incoming ray, and both packages model it. This is
     what the tolerance above rests on: switching the term off has to
     reproduce the old 14 mas and 43 mas exactly, a small residual proving
     nothing unless it is small because of a term of the right size and
     direction.
     """
 
-    def radec(self, rate):
-        q = make_qpoint(rate_defl=rate, rate_defl_inv=rate, pressure=0)
+    def radec(self, mod, rate):
+        q = make_qpoint(mod, rate_defl=rate, rate_defl_inv=rate, pressure=0)
         return q.azel2radec(
             0.0, 0.0, 0.0, AZ, EL, None, None, LON, LAT, CTIME, return_pa=True
         )[:2]
@@ -362,23 +373,23 @@ class TestLightDeflection:
             pressure=0 * u.hPa,
         ).transform_to(ICRS())
 
-    def test_off_by_default(self):
+    def test_off_by_default(self, mod):
         """
         It is opt-in: ~20 mas against about 10% of azel2bore. Callers who
-        want it say so.
+        want it say so, and both packages agree on that.
         """
-        assert qpoint.QPoint().get("rate_defl") == "never"
-        assert qpoint.QPoint().get("rate_defl_inv") == "never"
+        assert mod.QPoint().get("rate_defl") == "never"
+        assert mod.QPoint().get("rate_defl_inv") == "never"
 
-    def test_forward_needs_it_to_agree_with_astropy(self, location, obstime):
+    def test_forward_needs_it_to_agree_with_astropy(self, mod, location, obstime):
         ref = self.reference(location, obstime)
-        with_it = separation(*self.radec(100), ref).max()
-        without = separation(*self.radec("never"), ref).max()
+        with_it = separation(*self.radec(mod, 100), ref).max()
+        without = separation(*self.radec(mod, "never"), ref).max()
         assert with_it < TOL_ARCSEC
         assert without > 2 * TOL_ARCSEC, "turning it off must actually matter"
         assert 0.010 < without < 0.020, "and by the ~14 mas it is worth here"
 
-    def test_inverse_needs_it_too(self, location, obstime):
+    def test_inverse_needs_it_too(self, mod, location, obstime):
         """
         The inverse carried the larger error of the two, 43 mas, because
         there the term is applied rather than removed.
@@ -393,7 +404,7 @@ class TestLightDeflection:
         )
         got = []
         for rate in (100, "never"):
-            q = make_qpoint(rate_defl=rate, rate_defl_inv=rate, pressure=0)
+            q = make_qpoint(mod, rate_defl=rate, rate_defl_inv=rate, pressure=0)
             az, el = q.radec2azel(
                 sky.ra.deg, sky.dec.deg, np.zeros(N), LON, LAT, CTIME
             )[:2]
@@ -406,7 +417,7 @@ class TestLightDeflection:
         assert got[0] < TOL_ARCSEC
         assert 0.035 < got[1] < 0.050
 
-    def test_it_matches_erfa_exactly(self, obstime):
+    def test_it_matches_erfa_exactly(self, mod, obstime):
         """
         The size and direction of the term, against ERFA's own routine rather
         than the textbook 4.07 mas / tan(elongation / 2): that needs the
@@ -416,7 +427,7 @@ class TestLightDeflection:
         directly.
         """
         erfa = pytest.importorskip("erfa")
-        on, off = self.radec(100), self.radec("never")
+        on, off = self.radec(mod, 100), self.radec(mod, "never")
         jd1, jd2 = obstime.tt.jd1, obstime.tt.jd2
 
         def unit(ra, dec):

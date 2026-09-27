@@ -124,6 +124,44 @@ inline void r3_mul(double angle, Quat &q) {
   q[3] = c * b[3] + s * b[0];
 }
 
+// Spherical interpolation between two unit quaternions, as QuaternionSlerp
+// in src/quaternion.c: the endpoints with the shorter arc taken, and the
+// angle between them. alpha comes from the chord, which is well conditioned
+// at any angle; equal endpoints give alpha = 0, and at() then returns q0.
+struct Slerp {
+  Quat q0{}, q1{};
+  double alpha = 0., sin_alpha = 0.;
+
+  Slerp() = default;
+
+  Slerp(const Quat &a, const Quat &b) : q0(a), q1(b) {
+    const double cos_alpha =
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    if (cos_alpha < 0.) {
+      q1[0] = -q1[0];
+      q1[1] = -q1[1];
+      q1[2] = -q1[2];
+      q1[3] = -q1[3];
+    }
+    double chord2 = 0.;
+    for (int i = 0; i != 4; ++i) {
+      const double d = q1[i] - q0[i];
+      chord2 += d * d;
+    }
+    const double half = std::sqrt(chord2) / 2.;
+    alpha = 2. * std::asin(half > 1. ? 1. : half);
+    sin_alpha = std::sin(alpha);
+  }
+
+  Quat at(double t) const {
+    if (sin_alpha == 0.) return q0;
+    const double s0 = std::sin((1. - t) * alpha) / sin_alpha;
+    const double s1 = std::sin(t * alpha) / sin_alpha;
+    return {{s0 * q0[0] + s1 * q1[0], s0 * q0[1] + s1 * q1[1],
+             s0 * q0[2] + s1 * q1[2], s0 * q0[3] + s1 * q1[3]}};
+  }
+};
+
 static_assert(std::is_trivially_copyable_v<Quat>);
 static_assert(std::is_standard_layout_v<Quat>);
 static_assert(sizeof(Quat) == 4 * sizeof(double));

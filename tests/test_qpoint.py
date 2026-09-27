@@ -15,6 +15,20 @@ EL = 32.0 * np.ones(N)
 CTIMES = CTIME + np.arange(N, dtype=float)
 
 
+qpoint2 = pytest.importorskip("qpoint2")
+
+# The two packages implement the same API over different cores, so every
+# behavioural test here runs against both. Where they are meant to differ
+# the test says so; tests/test_parity.py is what pins them to the same
+# numbers, and this is what pins each to the documented behaviour.
+IMPLS = [qpoint, qpoint2]
+
+
+@pytest.fixture(params=IMPLS, ids=lambda m: m.__name__)
+def mod(request):
+    return request.param
+
+
 @pytest.fixture
 def qp():
     return qpoint.QPoint(mean_aber=True, accuracy="low")
@@ -26,18 +40,18 @@ def qp():
 
 
 class TestInit:
-    def test_default_init(self):
-        q = qpoint.QPoint()
+    def test_default_init(self, mod):
+        q = mod.QPoint()
         assert q is not None
 
-    def test_kwargs_in_init(self):
-        q = qpoint.QPoint(accuracy="low", fast_math=True, mean_aber=True)
+    def test_kwargs_in_init(self, mod):
+        q = mod.QPoint(accuracy="low", fast_math=True, mean_aber=True)
         assert q.get("accuracy") == "low"
         assert q.get("fast_math") is True
         assert q.get("mean_aber") is True
 
-    def test_del(self):
-        q = qpoint.QPoint()
+    def test_del(self, mod):
+        q = mod.QPoint()
         del q  # should not raise
 
 
@@ -201,8 +215,8 @@ class TestBulletinA:
         np.savetxt(path, np.column_stack([col[c] for c in order]), fmt="%.6f")
         return str(path)
 
-    def test_round_trip(self, tmp_path):
-        q = qpoint.QPoint()
+    def test_round_trip(self, mod, tmp_path):
+        q = mod.QPoint()
         path = self._write(tmp_path, self.COLUMNS)
         mjd, dut1, x, y = q.load_bulletin_a(path)
         assert mjd[0] == self.MJD0
@@ -210,26 +224,26 @@ class TestBulletinA:
         assert np.allclose(x, self.VALUES["x"])
         assert np.allclose(y, self.VALUES["y"])
 
-    def test_stored_values_are_not_rotated(self, tmp_path):
-        q = qpoint.QPoint()
+    def test_stored_values_are_not_rotated(self, mod, tmp_path):
+        q = mod.QPoint()
         q.load_bulletin_a(self._write(tmp_path, self.COLUMNS))
         got = q.get_bulletin_a(self.MJD0 + 10)
         assert np.allclose(
             got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
         )
 
-    def test_a_reordered_file(self, tmp_path):
+    def test_a_reordered_file(self, mod, tmp_path):
         """What the columns argument is for."""
         order = ["x", "mjd", "y", "dut1"]
-        q = qpoint.QPoint()
+        q = mod.QPoint()
         q.load_bulletin_a(self._write(tmp_path, order), columns=order)
         got = q.get_bulletin_a(self.MJD0 + 10)
         assert np.allclose(
             got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
         )
 
-    def test_missing_columns_raise(self, tmp_path):
-        q = qpoint.QPoint()
+    def test_missing_columns_raise(self, mod, tmp_path):
+        q = mod.QPoint()
         path = self._write(tmp_path, self.COLUMNS)
         with pytest.raises(KeyError):
             q.load_bulletin_a(path, columns=["mjd", "dut1", "x"])
@@ -1370,7 +1384,7 @@ class TestAzel2RadecBroadcast:
         assert np.allclose(dec1, dec2, atol=1e-12)
 
     def test_single_sample_output_shape(self, qp):
-        # azel2radec always returns arrays (no scalar squeeze for n=1).
+        """A length-one input keeps its axis; it is an array, not a scalar."""
         ra, dec, s, c = qp.azel2radec(
             0, 0, 0, AZ[:1], EL[:1], None, None, LON, LAT, CTIMES[:1]
         )
@@ -1495,18 +1509,18 @@ class TestMeanAberIsRestored:
     the call. Whatever the caller set has to survive it.
     """
 
-    def test_azel2radec_puts_it_back(self):
-        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+    def test_azel2radec_puts_it_back(self, mod):
+        q = mod.QPoint(mean_aber=False, accuracy="low")
         q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
         assert q.get("mean_aber") is False
 
-    def test_azelpsi2radec_puts_it_back(self):
-        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+    def test_azelpsi2radec_puts_it_back(self, mod):
+        q = mod.QPoint(mean_aber=False, accuracy="low")
         q.azelpsi2radec(1.0, 2.0, 3.0, 45.0, 45.0, 10.0, None, None, LON, LAT, CTIME)
         assert q.get("mean_aber") is False
 
-    def test_it_is_still_on_where_the_caller_asked_for_it(self):
-        q = qpoint.QPoint(mean_aber=True, accuracy="low")
+    def test_it_is_still_on_where_the_caller_asked_for_it(self, mod):
+        q = mod.QPoint(mean_aber=True, accuracy="low")
         q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
         assert q.get("mean_aber") is True
 
@@ -1520,24 +1534,28 @@ class TestRateCaching:
     # two samples 200 days apart, so a frozen correction is visible
     TIMES = CTIME + np.array([0.0, 200.0 * 86400.0])
 
-    def radec(self, **kwargs):
-        q = qpoint.QPoint(mean_aber=True, **kwargs)
+    def radec(self, mod, **kwargs):
+        q = mod.QPoint(mean_aber=True, **kwargs)
         az, el = np.array([10.0, 10.0]), np.array([45.0, 45.0])
         q_bore = q.azel2bore(az, el, None, None, LON, LAT, self.TIMES)
         ra, dec, _, _ = q.bore2radec(q.det_offset(0.0, 0.0, 0.0), self.TIMES, q_bore)
         return np.asarray(ra).copy()
 
-    def test_never_differs_from_always(self):
+    def test_never_differs_from_always(self, mod):
         assert not np.allclose(
-            self.radec(rate_npb="never"), self.radec(rate_npb="always")
+            self.radec(mod, rate_npb="never"), self.radec(mod, rate_npb="always")
         )
 
-    def test_once_is_computed_at_the_first_sample(self):
-        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+    def test_once_is_computed_at_the_first_sample(self, mod):
+        once, always = self.radec(mod, rate_npb="once"), self.radec(
+            mod, rate_npb="always"
+        )
         assert np.isclose(once[0], always[0])
 
-    def test_once_is_then_frozen(self):
-        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+    def test_once_is_then_frozen(self, mod):
+        once, always = self.radec(mod, rate_npb="once"), self.radec(
+            mod, rate_npb="always"
+        )
         assert not np.isclose(once[1], always[1])
 
 
@@ -1545,7 +1563,7 @@ class TestFastPix:
     """
     fast_pix skips the angle round trip and takes the pixel from the
     pointing vector. Away from the poles the two agree exactly, and the
-    polarization angle agrees everywhere: both paths form cos^2(b) from
+    polarization angle agrees everywhere: both packages form cos^2(b) from
     the quaternion and hand it to one shared body, so there is nothing
     left to differ.
     """
@@ -1755,32 +1773,34 @@ class TestFastPixAgainstTheAnglePath:
 
 
 class TestBulletinARange:
-    def test_a_lookup_outside_the_table_returns_zeros(self):
+    def test_a_lookup_outside_the_table_returns_zeros(self, mod):
         """
         Every caller in the C ignores the error return and uses the
         values, so an out-of-range date has to leave them at zero rather
         than raise.
         """
-        dut1, x, y = qpoint.QPoint().get_bulletin_a(20000.0)
+        dut1, x, y = mod.QPoint().get_bulletin_a(20000.0)
         assert (dut1, x, y) == (0.0, 0.0, 0.0)
 
 
 class TestPrintMemory:
-    def test_it_prints_the_state(self, capfd):
+    def test_it_prints_the_state(self, mod, capfd):
         """
         print_memory writes from the C, so the file descriptor has to be
         captured rather than sys.stdout. It flushes itself, which is what
         makes the output readable here rather than after the test.
         """
-        qpoint.QPoint(accuracy="low").print_memory()
+        mod.QPoint(accuracy="low").print_memory()
         out = capfd.readouterr().out
-        assert "QPOINT MEMORY" in out
+        # the two head their dumps differently
+        assert "QPOINT MEMORY" in out or "qpoint2 Pointing" in out
         assert "accuracy" in out
 
 
 class TestInverseRatesAreIndependent:
     """
-    The inverse transform has its own update rates, and they work.
+    The inverse transform has its own update rates, and they work, in both
+    packages.
 
     The two aberrations took an inv flag and ignored it when checking the
     rate, so rate_daber_inv and rate_aaber_inv did nothing and a pass in one
@@ -1790,11 +1810,11 @@ class TestInverseRatesAreIndependent:
 
     N = 200
 
-    def bore(self):
+    def bore(self, mod):
         ct = CTIME + np.arange(self.N) / 10.0
         lon = np.full(self.N, LON)
         lat = np.full(self.N, LAT)
-        q = qpoint.QPoint()
+        q = mod.QPoint()
         q_bore = np.asarray(
             q.azel2bore(
                 np.linspace(0, 90, self.N),
@@ -1808,9 +1828,9 @@ class TestInverseRatesAreIndependent:
         )
         return q_bore, lon, lat, ct
 
-    def inverse_el(self, **kwargs):
-        q_bore, lon, lat, ct = self.bore()
-        _, el, _ = qpoint.QPoint(**kwargs).bore2azel(q_bore, lon, lat, ct)
+    def inverse_el(self, mod, **kwargs):
+        q_bore, lon, lat, ct = self.bore(mod)
+        _, el, _ = mod.QPoint(**kwargs).bore2azel(q_bore, lon, lat, ct)
         return np.asarray(el)
 
     @pytest.mark.parametrize(
@@ -1821,51 +1841,53 @@ class TestInverseRatesAreIndependent:
             ("rate_daber", "rate_daber_inv", 0.01),
         ],
     )
-    def test_the_inverse_rate_controls_the_inverse(self, rate, inv_rate, floor_arcsec):
+    def test_the_inverse_rate_controls_the_inverse(
+        self, mod, rate, inv_rate, floor_arcsec
+    ):
         """
         With the forward rate off, only the inverse one can act -- so if it
         is being read at all, turning it on has to move the answer.
         """
-        on = self.inverse_el(**{rate: "never", inv_rate: "always"})
-        off = self.inverse_el(**{rate: "never", inv_rate: "never"})
+        on = self.inverse_el(mod, **{rate: "never", inv_rate: "always"})
+        off = self.inverse_el(mod, **{rate: "never", inv_rate: "never"})
         assert np.abs(on - off).max() * 3600.0 > floor_arcsec
 
     @pytest.mark.parametrize(
         "rate, inv_rate",
         [("rate_aaber", "rate_aaber_inv"), ("rate_daber", "rate_daber_inv")],
     )
-    def test_the_forward_rate_no_longer_decides_it(self, rate, inv_rate):
+    def test_the_forward_rate_no_longer_decides_it(self, mod, rate, inv_rate):
         """
         The other half: with the inverse rate off, the forward one must not
         be able to switch the correction on behind its back.
         """
-        a = self.inverse_el(**{rate: "always", inv_rate: "never"})
-        b = self.inverse_el(**{rate: "never", inv_rate: "never"})
+        a = self.inverse_el(mod, **{rate: "always", inv_rate: "never"})
+        b = self.inverse_el(mod, **{rate: "never", inv_rate: "never"})
         assert np.array_equal(a, b)
 
-    def test_neither_direction_moves_the_other_s_clock(self):
+    def test_neither_direction_moves_the_other_s_clock(self, mod):
         """
         qp_check_update writes ctime_last, so sharing a state let a run in
         one direction leave the other due for an update at a time it had
         already covered. Independent states mean an inverse pass cannot
         change what a forward pass then produces.
         """
-        q_bore, lon, lat, ct = self.bore()
+        q_bore, lon, lat, ct = self.bore(mod)
         az = np.linspace(0, 90, self.N)
         el = np.full(self.N, 45.0)
 
-        clean = qpoint.QPoint()
+        clean = mod.QPoint()
         want = np.asarray(clean.azel2bore(az, el, None, None, lon, lat, ct))
 
-        used = qpoint.QPoint()
+        used = mod.QPoint()
         used.bore2azel(q_bore, lon, lat, ct)  # run the inverse first
         got = np.asarray(used.azel2bore(az, el, None, None, lon, lat, ct))
         assert np.array_equal(want, got)
 
-    def test_the_round_trip_still_closes(self):
-        q_bore, lon, lat, ct = self.bore()
+    def test_the_round_trip_still_closes(self, mod):
+        q_bore, lon, lat, ct = self.bore(mod)
         az = np.linspace(0, 90, self.N)
-        q = qpoint.QPoint()
+        q = mod.QPoint()
         got_az, got_el, _ = q.bore2azel(q_bore, lon, lat, ct)
         assert np.abs(np.asarray(got_az) % 360 - az % 360).max() < 1e-5
         assert np.abs(np.asarray(got_el) - 45.0).max() < 1e-5
@@ -2306,3 +2328,88 @@ class TestLowAccuracyKeepsDut1:
         """
         plain = np.asarray(qpoint.QPoint(accuracy="high").gmst(self.CTIME))
         assert self.arcsec(self.gmst("high"), plain).min() > 0.9 * self.DUT1 * 15.0
+
+
+# ---------------------------------------------------------------------------
+# qpoint2 only: qp_settings has no counterpart in qpoint, and the
+# zero-copy contract is a qpoint2 guarantee. Neither compares the two
+# packages, so neither belongs in test_parity.py.
+# ---------------------------------------------------------------------------
+
+
+class TestQpSettingsIsPublic:
+    """
+    The per-call parameter decorator is exported, so a subclass adding a
+    method gets the same keyword handling as the built-in ones.
+    """
+
+    def subclass(self):
+        class MyPoint(qpoint2.QPoint):
+            @qpoint2.qp_settings
+            def scan(self, ctime, offset=0.0):
+                return self.gmst(ctime) + offset
+
+        return MyPoint()
+
+    def test_importable_from_the_package(self):
+        assert qpoint2.qp_settings is not None
+        assert "qp_settings" in qpoint2.__all__
+
+    def test_parameters_are_applied_and_restored(self):
+        q = self.subclass()
+        before = q.get("accuracy")
+        assert q.scan(CTIME, accuracy="low") != q.scan(CTIME)
+        assert q.get("accuracy") == before
+
+    def test_the_methods_own_arguments_still_reach_it(self):
+        q = self.subclass()
+        assert q.scan(CTIME, offset=1.0) == q.scan(CTIME) + 1.0
+        assert q.scan(CTIME, offset=1.0, accuracy="low") == (
+            q.scan(CTIME, accuracy="low") + 1.0
+        )
+
+    def test_an_unknown_keyword_is_reported(self):
+        with pytest.raises(TypeError):
+            self.subclass().scan(CTIME, nonsense=1)
+
+    def test_defaults_apply_under_the_caller(self):
+        class Defaulted(qpoint2.QPoint):
+            @qpoint2.qp_settings(accuracy="low")
+            def which(self):
+                return self.get_param("accuracy")
+
+        q = Defaulted()
+        assert q.which() == "low"
+        assert q.which(accuracy="high") == "high"
+        assert q.get("accuracy") == qpoint2.QPoint().get("accuracy")
+
+
+class TestZeroCopyContract:
+    """
+    qpoint2 never copies sample data. Arguments go straight from Python to
+    the binding layer, which validates and rejects rather than converting.
+    qpoint is not held to this: its ctypes layer copies freely.
+    """
+
+    @pytest.mark.parametrize(
+        "bad, exc",
+        [
+            pytest.param(np.ones(3, dtype=np.float32), TypeError, id="wrong-dtype"),
+            pytest.param(np.ones(3, dtype=np.int64), TypeError, id="int-dtype"),
+            pytest.param(np.ones((3, 2))[:, 0], ValueError, id="non-contiguous"),
+            pytest.param(np.ones((2, 3)), ValueError, id="wrong-rank"),
+        ],
+    )
+    def test_rejects_rather_than_converts(self, bad, exc):
+        """An existing array is never copied behind the caller's back."""
+        ok = np.ones(3)
+        with pytest.raises(exc):
+            qpoint2.QPoint().det_offset(bad, ok, ok)
+
+    def test_error_names_the_argument(self):
+        with pytest.raises(TypeError, match="delta_el"):
+            qpoint2.QPoint().det_offset(np.ones(3), np.ones(3, dtype=np.float32), 0.0)
+
+    def test_length_mismatch_is_rejected(self):
+        with pytest.raises(ValueError, match="length"):
+            qpoint2.QPoint().det_offset(np.ones(3), np.ones(5), 0.0)
