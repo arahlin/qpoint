@@ -46,11 +46,26 @@ class TestInit:
 
 
 class TestSetGet:
-    def test_get_all_returns_nested_dict(self, qp):
+    def test_get_all_is_grouped(self, qp):
+        """
+        The parameters come back under 'rates', 'options', 'weather' and
+        'params' rather than as one flat dict, so a caller can hand a
+        whole group to set().
+        """
         state = qp.get()
-        assert isinstance(state, dict)
-        for key in ("rates", "options", "weather", "params"):
-            assert key in state
+        assert list(state) == ["rates", "options", "weather", "params"]
+        assert all(isinstance(group, dict) for group in state.values())
+        assert "rate_npb" in state["rates"]
+        assert "accuracy" in state["options"]
+        # the parameters live in the groups, not beside them
+        assert "accuracy" not in state
+
+    def test_get_all_round_trips_through_set(self, qp):
+        """Each group is accepted back by set(), which is the point of it."""
+        state = qp.get()
+        for group in state.values():
+            qp.set(**group)
+        assert qp.get() == state
 
     def test_get_group_rates(self, qp):
         rates = qp.get("rates")
@@ -160,6 +175,63 @@ class TestSetGet:
 # ---------------------------------------------------------------------------
 # reset_rates / reset_inv_rates
 # ---------------------------------------------------------------------------
+
+
+class TestBulletinA:
+    """
+    IERS Bulletin A loading. The file path had two faults that concealed
+    each other: the columns came out rotated, and numpy's unpack=True
+    returns strided rows that ctypes would not take -- so the rotation was
+    never reached.
+    """
+
+    COLUMNS = ["mjd", "dut1", "x", "y"]
+    # distinct constants, so a rotation is visible rather than plausible
+    VALUES = {"dut1": 0.11, "x": 0.22, "y": 0.33}
+    MJD0 = 57000
+    NDAY = 40
+
+    def _write(self, tmp_path, order):
+        col = {
+            "mjd": np.arange(self.MJD0, self.MJD0 + self.NDAY, dtype=float),
+            **{k: np.full(self.NDAY, v) for k, v in self.VALUES.items()},
+        }
+        path = tmp_path / "bulletin.txt"
+        np.savetxt(path, np.column_stack([col[c] for c in order]), fmt="%.6f")
+        return str(path)
+
+    def test_round_trip(self, tmp_path):
+        q = qpoint.QPoint()
+        path = self._write(tmp_path, self.COLUMNS)
+        mjd, dut1, x, y = q.load_bulletin_a(path)
+        assert mjd[0] == self.MJD0
+        assert np.allclose(dut1, self.VALUES["dut1"])
+        assert np.allclose(x, self.VALUES["x"])
+        assert np.allclose(y, self.VALUES["y"])
+
+    def test_stored_values_are_not_rotated(self, tmp_path):
+        q = qpoint.QPoint()
+        q.load_bulletin_a(self._write(tmp_path, self.COLUMNS))
+        got = q.get_bulletin_a(self.MJD0 + 10)
+        assert np.allclose(
+            got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
+        )
+
+    def test_a_reordered_file(self, tmp_path):
+        """What the columns argument is for."""
+        order = ["x", "mjd", "y", "dut1"]
+        q = qpoint.QPoint()
+        q.load_bulletin_a(self._write(tmp_path, order), columns=order)
+        got = q.get_bulletin_a(self.MJD0 + 10)
+        assert np.allclose(
+            got, [self.VALUES["dut1"], self.VALUES["x"], self.VALUES["y"]]
+        )
+
+    def test_missing_columns_raise(self, tmp_path):
+        q = qpoint.QPoint()
+        path = self._write(tmp_path, self.COLUMNS)
+        with pytest.raises(KeyError):
+            q.load_bulletin_a(path, columns=["mjd", "dut1", "x"])
 
 
 class TestResetRates:
@@ -309,6 +381,20 @@ class TestBore2Radec:
     def _make_qoff(self, qp):
         return qp.det_offset(0.0, 0.0, 0.0)
 
+    def test_sindec_with_return_pa_raises(self, qp):
+        """The C has no entry point taking both, so the combination is refused."""
+        q_bore = self._make_bore(qp)
+        q_off = self._make_qoff(qp)
+        with pytest.raises(ValueError):
+            qp.bore2radec(q_off, CTIMES, q_bore, sindec=True, return_pa=True)
+
+    def test_true_scalars_give_scalars(self, qp):
+        """Scalar in, scalar out -- nothing supplied an axis to keep."""
+        q_bore = qp.azel2bore(AZ[0], EL[0], None, None, LON, LAT, CTIMES[0])
+        q_off = qp.det_offset(0.0, 0.0, 0.0)
+        ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, CTIMES[0], q_bore[0])
+        assert np.isscalar(ra) or np.asarray(ra).ndim == 0
+
     def test_shape_default(self, qp):
         q_bore = self._make_bore(qp)
         q_off = self._make_qoff(qp)
@@ -351,12 +437,6 @@ class TestBore2Radec:
         q_off = self._make_qoff(qp)
         _, sindec, _, _ = qp.bore2radec(q_off, CTIMES, q_bore, sindec=True)
         assert np.all(np.abs(sindec) <= 1.0 + 1e-10)
-
-    def test_sindec_with_return_pa_raises(self, qp):
-        q_bore = self._make_bore(qp)
-        q_off = self._make_qoff(qp)
-        with pytest.raises(ValueError):
-            qp.bore2radec(q_off, CTIMES, q_bore, sindec=True, return_pa=True)
 
     def test_pa_consistent_with_sincos(self, qp):
         q_bore = self._make_bore(qp)
@@ -733,6 +813,37 @@ class TestQuat2Pix:
         assert np.all(pix_q == pix_rd)
 
 
+class TestQuat2PixPa:
+    """quat2pixpa previously dropped nside from its ctypes call."""
+
+    def _quats(self, qp):
+        self.ra = np.array([0.0, 90.0, 180.0, 270.0])
+        self.dec = np.array([10.0, -10.0, 30.0, -30.0])
+        return qp.radecpa2quat(self.ra, self.dec, np.zeros(4))
+
+    def test_shape(self, qp):
+        pix, pa = qp.quat2pixpa(self._quats(qp), nside=64)
+        assert pix.shape == (4,)
+        assert pa.shape == (4,)
+
+    def test_consistent_with_radec2pix(self, qp):
+        q = self._quats(qp)
+        pix, _ = qp.quat2pixpa(q, nside=64)
+        assert np.all(pix == qp.radec2pix(self.ra, self.dec, nside=64))
+
+    def test_nside_is_honored(self, qp):
+        q = self._quats(qp)
+        assert not np.array_equal(
+            qp.quat2pixpa(q, nside=64)[0], qp.quat2pixpa(q, nside=256)[0]
+        )
+
+    def test_pa_matches_quat2radecpa(self, qp):
+        q = self._quats(qp)
+        _, pa = qp.quat2pixpa(q, nside=64)
+        _, _, pa_ref = qp.quat2radecpa(q)
+        assert np.allclose(pa, pa_ref)
+
+
 # ---------------------------------------------------------------------------
 # bore2pix
 # ---------------------------------------------------------------------------
@@ -911,6 +1022,52 @@ class TestRefractionMethod:
 # ---------------------------------------------------------------------------
 
 
+class TestRotateMap:
+    """rotate_map previously raised on every call, so none of this was covered."""
+
+    NSIDE = 8
+    NPIX = 12 * 8 * 8
+
+    def test_runs_and_keeps_shape(self, qp):
+        m = np.zeros((3, self.NPIX))
+        m[0] = 1.0
+        out = qp.rotate_map(m, coord=("C", "G"))
+        assert out.shape == (3, self.NPIX)
+
+    @pytest.mark.parametrize("coord", [("C", "G"), ("G", "C")])
+    def test_constant_temperature_is_preserved(self, qp, coord):
+        """Resampling a constant map must give the same constant back."""
+        m = np.zeros((3, self.NPIX))
+        m[0] = 2.5
+        out = qp.rotate_map(m, coord=coord)
+        assert np.allclose(out[0], 2.5)
+        assert np.allclose(out[1], 0.0)
+        assert np.allclose(out[2], 0.0)
+
+    def test_polarized_intensity_is_preserved(self, qp):
+        """
+        Rotation mixes Q into U, but the polarized intensity at a pixel is
+        invariant.
+        """
+        m = np.zeros((3, self.NPIX))
+        m[1] = 0.6
+        m[2] = 0.8
+        out = qp.rotate_map(m, coord=("C", "G"), interp_pix=False)
+        assert np.allclose(np.hypot(out[1], out[2]), 1.0)
+
+    def test_rotation_actually_mixes_q_and_u(self, qp):
+        m = np.zeros((3, self.NPIX))
+        m[1] = 1.0
+        out = qp.rotate_map(m, coord=("C", "G"), interp_pix=False)
+        assert not np.allclose(out[2], 0.0)
+
+    @pytest.mark.parametrize("nrow", [1, 2, 4])
+    def test_wrong_row_count_raises(self, qp, nrow):
+        """Fewer than three rows used to read off the end and segfault."""
+        with pytest.raises(ValueError, match="3 rows"):
+            qp.rotate_map(np.ones((nrow, self.NPIX)), coord=("C", "G"))
+
+
 class TestGetInterpVal:
     def test_constant_map(self, qp):
         nside = 8
@@ -928,6 +1085,35 @@ class TestGetInterpVal:
         val = qp.get_interp_val(m, 0.0, 0.0)
         assert np.isscalar(val) or val.ndim == 0
         assert np.isclose(float(val), 1.0, atol=1e-10)
+
+    def test_single_map_squeezes(self, qp):
+        npix = 12 * 8 * 8
+        ra = np.array([0.0, 90.0, 180.0])
+        dec = np.array([0.0, 30.0, -30.0])
+        assert qp.get_interp_val(np.ones(npix), ra, dec).shape == (3,)
+
+    def test_multi_map_returns_every_map(self, qp):
+        """The return previously collapsed to the last map."""
+        npix = 12 * 8 * 8
+        maps = np.array([np.full(npix, 1.0), np.full(npix, 2.0), np.full(npix, 3.0)])
+        ra = np.array([0.0, 90.0, 180.0])
+        dec = np.array([0.0, 30.0, -30.0])
+
+        val = qp.get_interp_val(maps, ra, dec)
+        assert val.shape == (3, 3)
+        for i, level in enumerate([1.0, 2.0, 3.0]):
+            assert np.allclose(val[i], level, atol=1e-10)
+
+    def test_multi_map_rows_match_individual_calls(self, qp):
+        rng = np.random.default_rng(0)
+        npix = 12 * 8 * 8
+        maps = rng.normal(size=(3, npix))
+        ra = np.array([10.0, 45.0, 200.0])
+        dec = np.array([5.0, -20.0, 60.0])
+
+        val = qp.get_interp_val(maps, ra, dec)
+        for i in range(3):
+            assert np.array_equal(val[i], qp.get_interp_val(maps[i], ra, dec))
 
 
 # ---------------------------------------------------------------------------
@@ -1207,3 +1393,134 @@ class TestRadecpaQuatBroadcast:
     def test_scalar_inputs_squeeze_to_quat(self, qp):
         q = qp.radecpa2quat(0.0, 0.0, 0.0)
         assert q.shape == (4,)
+
+
+# ---------------------------------------------------------------------------
+# Option and rate behaviour, as opposed to the values round-tripping
+# ---------------------------------------------------------------------------
+
+
+class TestMeanAberIsRestored:
+    """
+    The azel*2radec* family forces mean aberration on for the duration of
+    the call. Whatever the caller set has to survive it.
+    """
+
+    def test_azel2radec_puts_it_back(self):
+        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+        q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
+        assert q.get("mean_aber") is False
+
+    def test_azelpsi2radec_puts_it_back(self):
+        q = qpoint.QPoint(mean_aber=False, accuracy="low")
+        q.azelpsi2radec(1.0, 2.0, 3.0, 45.0, 45.0, 10.0, None, None, LON, LAT, CTIME)
+        assert q.get("mean_aber") is False
+
+    def test_it_is_still_on_where_the_caller_asked_for_it(self):
+        q = qpoint.QPoint(mean_aber=True, accuracy="low")
+        q.azel2radec(1.0, 2.0, 3.0, 45.0, 45.0, None, None, LON, LAT, CTIME)
+        assert q.get("mean_aber") is True
+
+
+class TestRateCaching:
+    """
+    A rate says how often a correction is recomputed. Only the values
+    round-tripping is covered elsewhere; this is what the rates do.
+    """
+
+    # two samples 200 days apart, so a frozen correction is visible
+    TIMES = CTIME + np.array([0.0, 200.0 * 86400.0])
+
+    def radec(self, **kwargs):
+        q = qpoint.QPoint(mean_aber=True, **kwargs)
+        az, el = np.array([10.0, 10.0]), np.array([45.0, 45.0])
+        q_bore = q.azel2bore(az, el, None, None, LON, LAT, self.TIMES)
+        ra, dec, _, _ = q.bore2radec(q.det_offset(0.0, 0.0, 0.0), self.TIMES, q_bore)
+        return np.asarray(ra).copy()
+
+    def test_never_differs_from_always(self):
+        assert not np.allclose(
+            self.radec(rate_npb="never"), self.radec(rate_npb="always")
+        )
+
+    def test_once_is_computed_at_the_first_sample(self):
+        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+        assert np.isclose(once[0], always[0])
+
+    def test_once_is_then_frozen(self):
+        once, always = self.radec(rate_npb="once"), self.radec(rate_npb="always")
+        assert not np.isclose(once[1], always[1])
+
+
+class TestFastPix:
+    """
+    fast_pix skips the angle round trip and takes the pixel from the
+    pointing vector. Away from the poles the two agree exactly.
+    """
+
+    @pytest.mark.parametrize("order", ["ring", "nest"])
+    @pytest.mark.parametrize("fast_math", [False, True])
+    def test_quat2pixpa_fast_path(self, order, fast_math):
+        """
+        quat2pixpa has its own copy of the fast path, separate from the
+        one bore2pix takes. Crossed with the pixel ordering and with
+        fast_math, because the fast path picks the ordering itself and
+        computes the angle with whichever trig is configured.
+
+        The exact poles are included to reach the branch where cos^2(b)
+        underflows and the angle has to come from the quaternion instead.
+        There the fast path and the angle path disagree about the *pixel*
+        on purpose -- the angle path's cos(theta) rounds to 1 and throws
+        the azimuth away -- so the pixel is compared outside that cap
+        only, and the angle merely has to be finite.
+        """
+        dec = np.array([90.0, -90.0, 89.99, -89.99, 80.0, 0.0, -45.0, 12.0])
+        ra = np.linspace(0.0, 300.0, len(dec))
+        pa_in = np.linspace(-150.0, 150.0, len(dec))
+        got = {}
+        for fast in (False, True):
+            q = qpoint.QPoint(
+                mean_aber=True,
+                accuracy="low",
+                fast_pix=fast,
+                pix_order=order,
+                fast_math=fast_math,
+            )
+            pix, pa = q.quat2pixpa(q.radecpa2quat(ra, dec, pa_in), nside=64)
+            got[fast] = (np.asarray(pix).copy(), np.asarray(pa).copy())
+        settled = np.abs(dec) <= 89.99
+        assert np.array_equal(got[False][0][settled], got[True][0][settled])
+        assert np.all(np.isfinite(got[True][1]))
+
+    def test_same_pixels_as_the_angle_path(self):
+        pix = {}
+        for fast in (False, True):
+            q = qpoint.QPoint(mean_aber=True, accuracy="low", fast_pix=fast)
+            q_bore = q.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
+            out = q.bore2pix(q.det_offset(1.0, 2.0, 30.0), CTIMES, q_bore, nside=64)
+            pix[fast] = np.asarray(out[0] if isinstance(out, tuple) else out).copy()
+        assert np.array_equal(pix[False], pix[True])
+
+
+class TestBulletinARange:
+    def test_a_lookup_outside_the_table_returns_zeros(self):
+        """
+        Every caller in the C ignores the error return and uses the
+        values, so an out-of-range date has to leave them at zero rather
+        than raise.
+        """
+        dut1, x, y = qpoint.QPoint().get_bulletin_a(20000.0)
+        assert (dut1, x, y) == (0.0, 0.0, 0.0)
+
+
+class TestPrintMemory:
+    def test_it_prints_the_state(self, capfd):
+        """
+        print_memory writes from the C, so the file descriptor has to be
+        captured rather than sys.stdout. It flushes itself, which is what
+        makes the output readable here rather than after the test.
+        """
+        qpoint.QPoint(accuracy="low").print_memory()
+        out = capfd.readouterr().out
+        assert "QPOINT MEMORY" in out
+        assert "accuracy" in out
