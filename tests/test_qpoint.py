@@ -30,8 +30,8 @@ def mod(request):
 
 
 @pytest.fixture
-def qp():
-    return qpoint.QPoint(mean_aber=True, accuracy="low")
+def qp(mod):
+    return mod.QPoint(mean_aber=True, accuracy="low")
 
 
 # ---------------------------------------------------------------------------
@@ -63,9 +63,9 @@ class TestInit:
 class TestSetGet:
     def test_get_all_is_grouped(self, qp):
         """
-        The parameters come back under 'rates', 'options', 'weather' and
-        'params' rather than as one flat dict, so a caller can hand a
-        whole group to set().
+        Both packages group their parameters under 'rates', 'options',
+        'weather' and 'params', rather than returning one flat dict, so a
+        caller can hand a whole group to set().
         """
         state = qp.get()
         assert list(state) == ["rates", "options", "weather", "params"]
@@ -179,8 +179,16 @@ class TestSetGet:
         qp.set(ref_delta=0.05)
         assert qp.get("ref_delta") == pytest.approx(0.05)
 
-    def test_set_unknown_key_ignored(self, qp):
-        qp.set(nonexistent_key=123)  # should not raise
+    def test_unknown_key(self, qp, mod):
+        """
+        qpoint ignores a name it does not recognize; qpoint2 treats the
+        parameter list as closed and raises. test_parity.py explains why.
+        """
+        if mod is qpoint:
+            qp.set(nonexistent_key=123)
+        else:
+            with pytest.raises(KeyError):
+                qp.set(nonexistent_key=123)
 
     def test_get_unknown_key_raises(self, qp):
         with pytest.raises(KeyError):
@@ -260,11 +268,11 @@ class TestResetRates:
     """
     reset_rates has to put back every correction, not most of them.
 
-    qp_reset_rates enumerates them one at a time, so it can be incomplete, and
-    rate_defl was: reset_rates carried the previous chunk's sun position into
-    the next one, where the documented use is to call it at the start of each
-    chunk. The rates are read off the package, so this keeps holding as new
-    ones appear.
+    qpoint enumerates them one at a time and qpoint2 loops over all of them,
+    so only qpoint could be incomplete -- and rate_defl was, carrying the
+    previous chunk's sun position into the next one, where the documented use
+    is to call it at the start of each chunk. The rates are read off the
+    package, so this keeps holding as new ones appear.
     """
 
     N = 5
@@ -276,8 +284,8 @@ class TestResetRates:
     # half a year on: every slowly-varying correction has moved a long way
     T2 = T1 + 180 * 86400.0
 
-    def radec(self, ctime, warm=None, **kwargs):
-        q = qpoint.QPoint(mean_aber=True, **kwargs)
+    def radec(self, mod, ctime, warm=None, **kwargs):
+        q = mod.QPoint(mean_aber=True, **kwargs)
         args = (0.0, 0.0, 0.0, self.AZ, self.EL, None, None, self.LONS, self.LATS)
         if warm is not None:
             q.azel2radec(*args, warm)
@@ -285,27 +293,27 @@ class TestResetRates:
         return np.asarray(q.azel2radec(*args, ctime))
 
     @pytest.mark.parametrize("rate", FORWARD_RATES)
-    def test_reset_leaves_it_as_good_as_new(self, rate):
+    def test_reset_leaves_it_as_good_as_new(self, mod, rate):
         """
         With one rate pinned to 'once' the correction is computed at the
         first sample and frozen, so a stale cache is visible: after
         reset_rates the answer has to match a freshly built QPoint.
         """
-        fresh = self.radec(self.T2, **{rate: "once"})
-        reused = self.radec(self.T2, warm=self.T1, **{rate: "once"})
+        fresh = self.radec(mod, self.T2, **{rate: "once"})
+        reused = self.radec(mod, self.T2, warm=self.T1, **{rate: "once"})
         assert np.array_equal(fresh, reused), rate
 
     @pytest.mark.parametrize("rate", ["rate_npb", "rate_defl"])
-    def test_and_the_comparison_can_fail(self, rate):
+    def test_and_the_comparison_can_fail(self, mod, rate):
         """
         The teeth: without the reset these two really do carry the stale
         correction forward, so the assertion above is not vacuous.
         """
-        q = qpoint.QPoint(mean_aber=True, **{rate: "once"})
+        q = mod.QPoint(mean_aber=True, **{rate: "once"})
         args = (0.0, 0.0, 0.0, self.AZ, self.EL, None, None, self.LONS, self.LATS)
         q.azel2radec(*args, self.T1)
         stale = np.asarray(q.azel2radec(*args, self.T2))
-        assert not np.array_equal(self.radec(self.T2, **{rate: "once"}), stale)
+        assert not np.array_equal(self.radec(mod, self.T2, **{rate: "once"}), stale)
 
     def test_reset_inv_rates_runs(self, qp):
         qp.reset_inv_rates()
@@ -450,20 +458,6 @@ class TestBore2Radec:
     def _make_qoff(self, qp):
         return qp.det_offset(0.0, 0.0, 0.0)
 
-    def test_sindec_with_return_pa_raises(self, qp):
-        """The C has no entry point taking both, so the combination is refused."""
-        q_bore = self._make_bore(qp)
-        q_off = self._make_qoff(qp)
-        with pytest.raises(ValueError):
-            qp.bore2radec(q_off, CTIMES, q_bore, sindec=True, return_pa=True)
-
-    def test_true_scalars_give_scalars(self, qp):
-        """Scalar in, scalar out -- nothing supplied an axis to keep."""
-        q_bore = qp.azel2bore(AZ[0], EL[0], None, None, LON, LAT, CTIMES[0])
-        q_off = qp.det_offset(0.0, 0.0, 0.0)
-        ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, CTIMES[0], q_bore[0])
-        assert np.isscalar(ra) or np.asarray(ra).ndim == 0
-
     def test_shape_default(self, qp):
         q_bore = self._make_bore(qp)
         q_off = self._make_qoff(qp)
@@ -507,6 +501,24 @@ class TestBore2Radec:
         _, sindec, _, _ = qp.bore2radec(q_off, CTIMES, q_bore, sindec=True)
         assert np.all(np.abs(sindec) <= 1.0 + 1e-10)
 
+    def test_sindec_with_return_pa(self, qp, mod):
+        """
+        The C has no entry point taking both, so qpoint refuses the
+        combination. qpoint2's dec and polarization outputs are
+        independent axes, so it answers.
+        """
+        q_bore = self._make_bore(qp)
+        q_off = self._make_qoff(qp)
+        if mod is qpoint:
+            with pytest.raises(ValueError):
+                qp.bore2radec(q_off, CTIMES, q_bore, sindec=True, return_pa=True)
+        else:
+            sindec, pa = qp.bore2radec(
+                q_off, CTIMES, q_bore, sindec=True, return_pa=True
+            )[1:3]
+            assert np.all(np.abs(np.asarray(sindec)) <= 1.0)
+            assert np.asarray(pa).shape == np.asarray(sindec).shape
+
     def test_pa_consistent_with_sincos(self, qp):
         q_bore = self._make_bore(qp)
         q_off = self._make_qoff(qp)
@@ -534,25 +546,26 @@ class TestBore2Radec:
         ra, dec, pa = qp.bore2radec(q_off, CTIMES, q_bore, q_hwp=q_hwp, return_pa=True)
         assert pa.shape == (N,)
 
-    def test_ctime_none_with_mean_aber(self):
-        qp = qpoint.QPoint(mean_aber=True, accuracy="low")
+    def test_ctime_none_with_mean_aber(self, mod):
+        qp = mod.QPoint(mean_aber=True, accuracy="low")
         q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
         q_off = qp.det_offset(0.0, 0.0, 0.0)
         ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, None, q_bore)
         assert ra.shape == (N,)
 
-    def test_ctime_none_without_mean_aber_raises(self):
-        qp = qpoint.QPoint(mean_aber=False, accuracy="low")
+    def test_ctime_none_without_mean_aber_raises(self, mod):
+        qp = mod.QPoint(mean_aber=False, accuracy="low")
         q_bore = qp.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
         q_off = qp.det_offset(0.0, 0.0, 0.0)
         with pytest.raises(ValueError):
             qp.bore2radec(q_off, None, q_bore)
 
-    def test_single_sample_scalar_output(self, qp):
-        q_bore = qp.azel2bore(AZ[:1], EL[:1], None, None, LON, LAT, CTIMES[:1])
+    def test_true_scalars_give_scalars(self, qp):
+        """Scalar in, scalar out -- nothing supplied an axis to keep."""
+        q_bore = qp.azel2bore(AZ[0], EL[0], None, None, LON, LAT, CTIMES[0])
         q_off = qp.det_offset(0.0, 0.0, 0.0)
-        ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, CTIMES[:1], q_bore)
-        assert np.isscalar(ra) or ra.ndim == 0
+        ra, dec, sin2psi, cos2psi = qp.bore2radec(q_off, CTIMES[0], q_bore[0])
+        assert np.isscalar(ra) or np.asarray(ra).ndim == 0
 
 
 # ---------------------------------------------------------------------------
@@ -1627,7 +1640,6 @@ FAST_PIX_ORDERS = [
     pytest.param("ring", id="ring"),
     pytest.param("nest", id="nest"),
 ]
-
 
 FP_NSIDE = 128
 FP_N = 50
