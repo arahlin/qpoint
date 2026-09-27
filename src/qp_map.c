@@ -440,7 +440,13 @@ int qp_reshape_map(qp_map_t *map) {
         free(map->vec[ii]);
       map->vec_init &= ~QP_ARR_MALLOC_2D;
     }
-    if (!(map->vec_init & QP_ARR_MALLOC_1D)) {
+    /* num_vec can grow between calls -- init_source and init_dest with
+       update=True compare only the pixel axis, so a replacement map may
+       have more rows than the one it replaces.  Allocating the row table
+       only on the first call then wrote past the end of it. */
+    if (map->vec_init & QP_ARR_MALLOC_1D) {
+      map->vec = realloc(map->vec, map->num_vec * sizeof(double *));
+    } else {
       map->vec = malloc(map->num_vec * sizeof(double *));
       map->vec_init |= QP_ARR_MALLOC_1D;
     }
@@ -454,7 +460,9 @@ int qp_reshape_map(qp_map_t *map) {
         free(map->proj[ii]);
       map->proj_init &= ~QP_ARR_MALLOC_2D;
     }
-    if (!(map->proj_init & QP_ARR_MALLOC_1D)) {
+    if (map->proj_init & QP_ARR_MALLOC_1D) {
+      map->proj = realloc(map->proj, map->num_proj * sizeof(double *));
+    } else {
       map->proj = malloc(map->num_proj * sizeof(double *));
       map->proj_init |= QP_ARR_MALLOC_1D;
     }
