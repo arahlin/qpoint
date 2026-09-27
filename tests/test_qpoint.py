@@ -1505,3 +1505,100 @@ class TestPrintMemory:
         out = capfd.readouterr().out
         assert "QPOINT MEMORY" in out
         assert "accuracy" in out
+
+
+class TestInverseRatesAreIndependent:
+    """
+    The inverse transform has its own update rates, and they work.
+
+    `qp_apply_diurnal_aberration` and `qp_apply_annual_aberration` took an
+    `inv` flag and ignored it when checking the rate, reading `state_daber`
+    and `state_aaber` whichever direction they were called for --
+    `qp_apply_refraction` beside them had always picked `state_ref_inv`
+    properly. So `rate_daber_inv` and `rate_aaber_inv` did nothing, the
+    forward rate deciding the inverse cadence, and a call in one direction
+    moved the other direction's clock, which is what the separate states
+    exist to prevent.
+    """
+
+    N = 200
+
+    def bore(self):
+        ct = CTIME + np.arange(self.N) / 10.0
+        lon = np.full(self.N, LON)
+        lat = np.full(self.N, LAT)
+        q = qpoint.QPoint()
+        q_bore = np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, self.N),
+                np.full(self.N, 45.0),
+                None,
+                None,
+                lon,
+                lat,
+                ct,
+            )
+        )
+        return q_bore, lon, lat, ct
+
+    def inverse_el(self, **kwargs):
+        q_bore, lon, lat, ct = self.bore()
+        _, el, _ = qpoint.QPoint(**kwargs).bore2azel(q_bore, lon, lat, ct)
+        return np.asarray(el)
+
+    @pytest.mark.parametrize(
+        "rate, inv_rate, floor_arcsec",
+        [
+            # annual aberration is ~20 arcsec, diurnal a fraction of one
+            ("rate_aaber", "rate_aaber_inv", 1.0),
+            ("rate_daber", "rate_daber_inv", 0.01),
+        ],
+    )
+    def test_the_inverse_rate_controls_the_inverse(self, rate, inv_rate, floor_arcsec):
+        """
+        With the forward rate off, only the inverse one can act -- so if it
+        is being read at all, turning it on has to move the answer.
+        """
+        on = self.inverse_el(**{rate: "never", inv_rate: "always"})
+        off = self.inverse_el(**{rate: "never", inv_rate: "never"})
+        assert np.abs(on - off).max() * 3600.0 > floor_arcsec
+
+    @pytest.mark.parametrize(
+        "rate, inv_rate",
+        [("rate_aaber", "rate_aaber_inv"), ("rate_daber", "rate_daber_inv")],
+    )
+    def test_the_forward_rate_no_longer_decides_it(self, rate, inv_rate):
+        """
+        The other half: with the inverse rate off, the forward one must not
+        be able to switch the correction on behind its back.
+        """
+        a = self.inverse_el(**{rate: "always", inv_rate: "never"})
+        b = self.inverse_el(**{rate: "never", inv_rate: "never"})
+        assert np.array_equal(a, b)
+
+    def test_neither_direction_moves_the_other_s_clock(self):
+        """
+        qp_check_update writes ctime_last, so sharing a state let a run in
+        one direction leave the other due for an update at a time it had
+        already covered. Independent states mean an inverse pass cannot
+        change what a forward pass then produces.
+        """
+        q_bore, lon, lat, ct = self.bore()
+        az = np.linspace(0, 90, self.N)
+        el = np.full(self.N, 45.0)
+
+        clean = qpoint.QPoint()
+        want = np.asarray(clean.azel2bore(az, el, None, None, lon, lat, ct))
+
+        used = qpoint.QPoint()
+        used.bore2azel(q_bore, lon, lat, ct)  # run the inverse first
+        got = np.asarray(used.azel2bore(az, el, None, None, lon, lat, ct))
+        assert np.array_equal(want, got)
+
+    def test_the_round_trip_still_closes(self):
+        q_bore, lon, lat, ct = self.bore()
+        az = np.linspace(0, 90, self.N)
+        q = qpoint.QPoint()
+        got_az, got_el, _ = q.bore2azel(q_bore, lon, lat, ct)
+        assert np.abs(np.asarray(got_az) % 360 - az % 360).max() < 1e-5
+        assert np.abs(np.asarray(got_el) - 45.0).max() < 1e-5
