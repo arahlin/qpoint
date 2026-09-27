@@ -93,6 +93,14 @@ class QPoint(object):
         rate_aaber : {'never', 'once', 'always'}, or float
             Rate at which the annual aberration correction
             (due to the earth's orbital velocity) is updated
+        rate_defl : {'never', 'once', 'always'}, or float
+            Rate at which the solar light deflection correction
+            (the sun bending the incoming ray) is updated.  Defaults to
+            'never': the term is worth at most ~20 mas, and computing it
+            costs about 10% of `azel2bore`, so it is opt-in.  Only the
+            sun's position is cached at this rate; the deflection itself
+            depends on where the telescope points, so it is recomputed
+            every sample, exactly as for aberration.
         rate_ref : {'never', 'once', 'always'}, or float
             Rate at which the refaction correction is updated (NB: this
             correction can also be updated manually -- see :meth:`refraction`)

@@ -355,3 +355,123 @@ class TestSiderealTime:
         worst = self.arcsec(qpoint.QPoint().gmst(CTIME), self.astropy_gmst()).max()
         assert worst > TOL_ARCSEC
         assert worst < 0.9 * 15.0  # leap seconds bound |dut1| < 0.9 s
+
+
+class TestLightDeflection:
+    """
+    The sun bends the incoming ray, and qpoint models it now.
+
+    Before the term was added, qpoint disagreed with astropy by 14 mas
+    going out and 43 coming back, and all of it was this -- so switching
+    it off has to reproduce exactly that. Showing the residual is small
+    proves nothing on its own; showing it is small *because* of a term
+    with the right size and the right functional form is the point.
+
+    TOL is local rather than the module's TOL_ARCSEC, which stays at 0.1
+    for now: that constant is shared with the transform comparisons, and
+    those run against whichever package the fixture is handed. It tightens
+    once the C++ core has the term too.
+    """
+
+    # what the term buys, in arcsec
+    TOL = 0.005
+
+    def radec(self, rate):
+        q = make_qpoint(rate_defl=rate, rate_defl_inv=rate, pressure=0)
+        return q.azel2radec(
+            0.0, 0.0, 0.0, AZ, EL, None, None, LON, LAT, CTIME, return_pa=True
+        )[:2]
+
+    def reference(self, location, obstime):
+        return AltAz(
+            az=AZ * u.deg,
+            alt=EL * u.deg,
+            obstime=obstime,
+            location=location,
+            pressure=0 * u.hPa,
+        ).transform_to(ICRS())
+
+    def test_off_by_default(self):
+        """
+        It is opt-in: ~20 mas against about 10% of azel2bore. Callers who
+        want it say so, and both packages agree on that.
+        """
+        assert qpoint.QPoint().get("rate_defl") == "never"
+        assert qpoint.QPoint().get("rate_defl_inv") == "never"
+
+    def test_forward_needs_it_to_agree_with_astropy(self, location, obstime):
+        ref = self.reference(location, obstime)
+        with_it = separation(*self.radec(100), ref).max()
+        without = separation(*self.radec("never"), ref).max()
+        assert with_it < self.TOL
+        assert without > 2 * self.TOL, "turning it off must actually matter"
+        assert 0.010 < without < 0.020, "and by the ~14 mas it is worth here"
+
+    def test_inverse_needs_it_too(self, location, obstime):
+        """
+        The inverse carried the larger error of the two, 43 mas, because
+        there the term is applied rather than removed.
+        """
+        sky = SkyCoord(
+            ra=np.linspace(20, 300, N) * u.deg,
+            dec=np.linspace(-80, -20, N) * u.deg,
+            frame="icrs",
+        )
+        ref = sky.transform_to(
+            AltAz(obstime=obstime, location=location, pressure=0 * u.hPa)
+        )
+        got = []
+        for rate in (100, "never"):
+            q = make_qpoint(rate_defl=rate, rate_defl_inv=rate, pressure=0)
+            az, el = q.radec2azel(
+                sky.ra.deg, sky.dec.deg, np.zeros(N), LON, LAT, CTIME
+            )[:2]
+            here = SkyCoord(
+                az=np.asarray(az) * u.deg,
+                alt=np.asarray(el) * u.deg,
+                frame=AltAz(obstime=obstime, location=location),
+            )
+            got.append(here.separation(ref).to_value(u.arcsec).max())
+        assert got[0] < self.TOL
+        assert 0.035 < got[1] < 0.050
+
+    def test_it_matches_erfa_exactly(self, obstime):
+        """
+        The size and direction of the term, against ERFA's own routine.
+
+        This is the reference rather than the textbook
+        4.07 mas / tan(elongation / 2), because that needs the elongation
+        and `get_sun` hands back a GCRS position *with distance*: compare
+        it to an ICRS coordinate and astropy dutifully applies parallax,
+        which for a body one au away swings the direction by ~80 degrees.
+        eraLdsun takes the sun-to-observer vector directly and sidesteps
+        all of it.
+        """
+        erfa = pytest.importorskip("erfa")
+        on, off = self.radec(100), self.radec("never")
+        jd1, jd2 = obstime.tt.jd1, obstime.tt.jd2
+
+        def unit(ra, dec):
+            ra, dec = np.deg2rad(np.asarray(ra, float)), np.deg2rad(
+                np.asarray(dec, float)
+            )
+            return np.array(
+                [np.cos(dec) * np.cos(ra), np.cos(dec) * np.sin(ra), np.sin(dec)]
+            )
+
+        got = unit(*on)
+        base = unit(*off)
+        for i in range(N):
+            pvh, _ = erfa.epv00(jd1[i], jd2[i])
+            ph = np.asarray(pvh["p"])
+            em = np.linalg.norm(ph)
+            # eraLdsun bends a catalogue direction into the observed one.
+            # `got` is the corrected (catalogue) position and `base` the
+            # uncorrected one, so bending `got` has to reproduce `base`.
+            # That pins the direction and the sign, not merely the size.
+            want = erfa.ldsun(got[:, i], ph / em, em)
+            # 2 asin(|a-b|/2): stable where arccos of a dot product is not
+            sep = (
+                np.rad2deg(2 * np.arcsin(np.linalg.norm(base[:, i] - want) / 2)) * 3.6e6
+            )
+            assert sep < 0.01, "sample {}: {} mas from eraLdsun".format(i, sep)
