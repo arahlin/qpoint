@@ -253,10 +253,10 @@ class TestGalacticRotation:
             l=np.rad2deg(lon) * u.deg, b=np.rad2deg(lat) * u.deg, frame="galactic"
         )
 
-    def test_radec2gal_matches_erfa(self):
+    def test_radec2gal_matches_erfa(self, mod):
         # radec2gal is in-place by default, so these are copies rather
         # than the arrays the class holds.
-        lon, lat = qpoint.QPoint().radec2gal(
+        lon, lat = mod.QPoint().radec2gal(
             self.SKY["ra"].copy(), self.SKY["dec"].copy()
         )[:2]
         got = SkyCoord(
@@ -266,10 +266,10 @@ class TestGalacticRotation:
             got.separation(self.erfa_reference()).to_value(u.uas).max() < self.TOL_UAS
         )
 
-    def test_gal2radec_matches_erfa(self):
+    def test_gal2radec_matches_erfa(self, mod):
         """The inverse, taken back to where it started."""
         gal = self.erfa_reference()
-        ra, dec = qpoint.QPoint().gal2radec(
+        ra, dec = mod.QPoint().gal2radec(
             gal.l.to_value(u.deg).copy(), gal.b.to_value(u.deg).copy()
         )[:2]
         want = SkyCoord(
@@ -280,12 +280,12 @@ class TestGalacticRotation:
         )
         assert got.separation(want).to_value(u.uas).max() < self.TOL_UAS
 
-    def test_astropy_differs_by_the_frame_bias(self):
+    def test_astropy_differs_by_the_frame_bias(self, mod):
         """
         Pinned so the 25 mas is on the record as a convention difference
         rather than found later and mistaken for an error in qpoint.
         """
-        lon, lat = qpoint.QPoint().radec2gal(
+        lon, lat = mod.QPoint().radec2gal(
             self.SKY["ra"].copy(), self.SKY["dec"].copy()
         )[:2]
         got = SkyCoord(

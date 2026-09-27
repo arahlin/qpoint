@@ -1623,6 +1623,12 @@ class TestFastPix:
         assert qpoint.QMap().get("fast_pix") is True
 
 
+FAST_PIX_ORDERS = [
+    pytest.param("ring", id="ring"),
+    pytest.param("nest", id="nest"),
+]
+
+
 FP_NSIDE = 128
 FP_N = 50
 FP_CTIME = CTIME + np.arange(FP_N, dtype=float)
@@ -1635,9 +1641,9 @@ FP_LON = np.full(FP_N, LON)
 FP_LAT = np.full(FP_N, LAT)
 
 
-def fp_bore(**options):
+def fp_bore(mod, **options):
     """A QPoint and a boresight quaternion to go with it."""
-    q = qpoint.QPoint(**options)
+    q = mod.QPoint(**options)
     qb = q.azel2bore(FP_AZ, FP_EL, None, None, FP_LON, FP_LAT, FP_CTIME)
     return q, np.asarray(qb)
 
@@ -1661,34 +1667,34 @@ class TestFastPixAgainstTheAnglePath:
     """
     fast_pix takes the pixel from the pointing vector instead of going
     round through ra/dec, and has to agree with that two-step path
-    exactly. Crossed with pol and the pixel ordering, which the fast path
-    picks itself.
+    exactly. The parity matrix cannot ask this: it compares the packages
+    to each other, not each to its own angle path.
     """
 
-    @pytest.mark.parametrize("order", ["ring", "nest"])
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
     @pytest.mark.parametrize(
         "kwargs",
         [pytest.param({}, id="pol"), pytest.param({"pol": False}, id="no-pol")],
     )
-    def test_quat2pix(self, order, kwargs):
+    def test_quat2pix(self, mod, order, kwargs):
         """fast_pix=False is the two-step path, taken inside quat2pix."""
-        q = qpoint.QPoint(pix_order=order)
+        q = mod.QPoint(pix_order=order)
         quat = q.radecpa2quat(FP_RA, FP_DEC, FP_PA)
         slow = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=False, **kwargs)
         fast = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=True, **kwargs)
         same(tuple(slow), tuple(fast), "quat2pix fast vs two-step")
 
-    @pytest.mark.parametrize("order", ["ring", "nest"])
-    def test_quat2pixpa_against_the_public_two_step(self, order):
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_quat2pixpa_against_the_public_two_step(self, mod, order):
         """Here the two steps are separately reachable, so spell them out."""
-        q = qpoint.QPoint(pix_order=order)
+        q = mod.QPoint(pix_order=order)
         quat = q.radecpa2quat(FP_RA, FP_DEC, FP_PA)
         ra, dec, pa = q.quat2radecpa(quat)
         want = (np.asarray(q.radec2pix(ra, dec, nside=FP_NSIDE)), np.asarray(pa))
         got = tuple(q.quat2pixpa(quat, nside=FP_NSIDE, fast_pix=True))
         same(want, got, "quat2pixpa fast vs quat2radecpa+radec2pix")
 
-    @pytest.mark.parametrize("order", ["ring", "nest"])
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
     @pytest.mark.parametrize(
         "kwargs",
         [
@@ -1697,15 +1703,15 @@ class TestFastPixAgainstTheAnglePath:
             pytest.param({"return_pa": True}, id="pa"),
         ],
     )
-    def test_bore2pix(self, order, kwargs):
-        q, qb = fp_bore(pix_order=order)
+    def test_bore2pix(self, mod, order, kwargs):
+        q, qb = fp_bore(mod, pix_order=order)
         off = q.det_offset(1.0, 2.0, 3.0)
         slow = q.bore2pix(off, FP_CTIME, qb, nside=FP_NSIDE, fast_pix=False, **kwargs)
         fast = q.bore2pix(off, FP_CTIME, qb, nside=FP_NSIDE, fast_pix=True, **kwargs)
         same(tuple(slow), tuple(fast), "bore2pix fast vs two-step")
 
-    @pytest.mark.parametrize("order", ["ring", "nest"])
-    def test_near_the_poles(self, order):
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_near_the_poles(self, mod, order):
         """
         The polarization angle is exact at the poles, where the old form lost
         2e-10 within a degree of one.
@@ -1717,7 +1723,7 @@ class TestFastPixAgainstTheAnglePath:
         dec = np.array([90.0, -90.0, 89.999999, -89.999999, 89.99, -89.99, 89.9, 89.0])
         ra = np.linspace(0.0, 350.0, len(dec))
         pa = np.linspace(-170.0, 170.0, len(dec))
-        q = qpoint.QPoint(pix_order=order)
+        q = mod.QPoint(pix_order=order)
         quat = q.radecpa2quat(ra, dec, pa)
         pix_s, sin_s, cos_s = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=False)
         pix_f, sin_f, cos_f = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=True)
@@ -1729,8 +1735,8 @@ class TestFastPixAgainstTheAnglePath:
             "pixel away from the pole sliver",
         )
 
-    @pytest.mark.parametrize("order", ["ring", "nest"])
-    def test_the_fast_path_is_the_better_one_at_the_pole(self, order):
+    @pytest.mark.parametrize("order", FAST_PIX_ORDERS)
+    def test_the_fast_path_is_the_better_one_at_the_pole(self, mod, order):
         """
         Inside theta < 2.1e-8 rad the two disagree, and the slow path is the wrong
         one: its cos(theta) rounds to 1, throwing the azimuth away and dumping
@@ -1755,7 +1761,7 @@ class TestFastPixAgainstTheAnglePath:
             ]
         )
         pa = np.full(len(ra), 17.0)
-        q = qpoint.QPoint(pix_order=order)
+        q = mod.QPoint(pix_order=order)
 
         def pix(theta, fast):
             dec = np.full(len(ra), 90.0 - np.degrees(theta))
