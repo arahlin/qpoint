@@ -205,24 +205,13 @@ void qp_quat2pix(qp_memory_t *mem, quat_t q, int nside, long *pix,
     else
       vec2pix_ring(nside, vec, pix);
 
-    double cosb2 = (1 - vec[2] * vec[2]) / 4.;
-    double norm, cosg, sing;
-    if (cosb2 < DBL_EPSILON) {
-      if (vec[2] > 0) {
-        cosg = q[3] * q[3] - q[0] * q[0];
-        sing = 2 * q[0] * q[3];
-      } else {
-        cosg = q[1] * q[1] - q[2] * q[2];
-        sing = 2 * q[1] * q[2];
-      }
-      norm = 2 * cosg;
-    } else {
-      cosg = q[1] * q[3] - q[0] * q[2];
-      sing = q[0] * q[1] + q[2] * q[3];
-      norm = 2. * cosg / cosb2;
-    }
-    *sin2psi = norm * sing;
-    *cos2psi = norm * cosg - 1;
+    /* cos^2(b) as qp_quat2radec forms it, rather than as (1 - vec[2]*vec[2])/4
+       from the pointing vector: the same quantity, but that subtraction cancels
+       near a pole and is then divided by, costing 2e-10 in the polarization
+       angle. qp_quat2pol then does the rest, the body the angle path calls. */
+    double q00p33 = q[0] * q[0] + q[3] * q[3];
+    double q11p22 = q[1] * q[1] + q[2] * q[2];
+    qp_quat2pol(q, q00p33 * q11p22, q00p33 - q11p22 > 0, sin2psi, cos2psi);
   } else {
     double ra, dec;
     qp_quat2radec(mem, q, &ra, &dec, sin2psi, cos2psi);
@@ -239,26 +228,10 @@ void qp_quat2pixpa(qp_memory_t *mem, quat_t q, int nside, long *pix, double *pa)
     else
       vec2pix_ring(nside, vec, pix);
 
-    double cosb2 = (1 - vec[2] * vec[2]) / 4.;
-    double cosg, sing;
-    if (cosb2 < DBL_EPSILON) {
-      if (vec[2] > 0) {
-        cosg = q[3] * q[3] - q[0] * q[0];
-        sing = 2 * q[0] * q[3];
-      } else {
-        cosg = q[1] * q[1] - q[2] * q[2];
-        sing = 2 * q[1] * q[2];
-      }
-    } else {
-      cosg = q[1] * q[3] - q[0] * q[2];
-      sing = q[0] * q[1] + q[2] * q[3];
-    }
-
-    if (mem->fast_math) {
-      *pa = rad2deg(poly_atan2(sing, cosg));
-    } else {
-      *pa = rad2deg(atan2(sing, cosg));
-    }
+    /* As in qp_quat2pix above. */
+    double q00p33 = q[0] * q[0] + q[3] * q[3];
+    double q11p22 = q[1] * q[1] + q[2] * q[2];
+    qp_quat2pa(mem, q, q00p33 * q11p22, q00p33 - q11p22 > 0, pa);
   } else {
     double ra, dec;
     qp_quat2radecpa(mem, q, &ra, &dec, pa);
