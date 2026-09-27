@@ -291,10 +291,17 @@ void qp_apply_refraction(qp_memory_t *mem, double ctime, quat_t q, int inv) {
 
 void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
                                  quat_t q, int inv) {
+  /* The inverse transform has its own rate, as qp_apply_refraction does with
+     state_ref_inv. Reading state_daber whatever inv said left rate_daber_inv
+     doing nothing at all, and let a call in one direction move the other
+     direction's clock: the two states exist to keep them independent.
+     beta_rot stays shared, being a function of lat and ctime alone, so
+     whichever direction recomputes it writes the same value. */
+  qp_state_t *state = inv ? &mem->state_daber_inv : &mem->state_daber;
   double clat;
   quat_t q_aber;
 
-  if (qp_check_update(&mem->state_daber, ctime)) {
+  if (qp_check_update(state, ctime)) {
     if (mem->fast_math)
       clat = poly_cos(deg2rad(lat));
     else
@@ -302,7 +309,7 @@ void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
     mem->beta_rot[0] = mem->beta_rot[2] = 0;
     mem->beta_rot[1] = -clat * D_ABER_RAD;
   }
-  if (qp_check_apply(&mem->state_daber)) {
+  if (qp_check_apply(state)) {
     qp_aberration(q, (double *)mem->beta_rot, q_aber, inv, mem->fast_aber);
     Quaternion_mul_left(q_aber, q);
 #ifdef DEBUG
@@ -313,14 +320,17 @@ void qp_apply_diurnal_aberration(qp_memory_t *mem, double ctime, double lat,
 }
 
 void qp_apply_annual_aberration(qp_memory_t *mem, double ctime, quat_t q, int inv) {
+  /* As above: the inverse gets state_aaber_inv, so rate_aaber_inv means
+     what it says and neither direction disturbs the other's clock. */
+  qp_state_t *state = inv ? &mem->state_aaber_inv : &mem->state_aaber;
   quat_t q_aber;
   double jd_tt[2];
 
-  if (qp_check_update(&mem->state_aaber, ctime)) {
+  if (qp_check_update(state, ctime)) {
     ctime2jdtt(ctime, jd_tt);
     qp_earth_orbital_beta(jd_tt, mem->beta_earth);
   }
-  if (qp_check_apply(&mem->state_aaber)) {
+  if (qp_check_apply(state)) {
     qp_aberration(q, mem->beta_earth, q_aber, inv, mem->fast_aber);
     Quaternion_mul_left(q_aber, q);
 #ifdef DEBUG
