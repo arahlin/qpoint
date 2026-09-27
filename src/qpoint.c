@@ -93,28 +93,48 @@ double ctime2gmst(double ctime, double dut1, int accuracy) {
 
   ctime2jd(ctime, jd_utc);
 
+  /* UTC -> UT1 happens in both accuracy modes. The low path used to hand
+     UTC straight to eraGmst00 as UT1, discarding dut1 entirely and
+     silently undoing a bulletin the caller went to the trouble of
+     loading -- 6 arcsec of earth rotation at a typical dut1, and it
+     misreads a leap-second day whatever dut1 is. That was a real trade
+     when the conversion cost 52 ns a sample; cached for the day it is
+     about 2, and the transforms have always applied it in both modes
+     anyway, update_erot reaching the same conversion with no accuracy
+     gate. */
+  jdutc2jdut1(jd_utc, dut1, jd_ut1);
+
   if (!accuracy) {
-    jdutc2jdut1(jd_utc, dut1, jd_ut1);
     ctime2jdtt(ctime, jd_tt);
     return eraGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
-  } else {
-    return eraGmst00(jd_utc[0], jd_utc[1], jd_utc[0], jd_utc[1]);
   }
+  /* Low gives up only the TT conversion, which is the whole of the
+     remaining cost. GMST reads TT through the precession polynomial
+     alone, so the 69 s error that represents is worth 0.1 mas. */
+  return eraGmst00(jd_ut1[0], jd_ut1[1], jd_ut1[0], jd_ut1[1]);
 }
 
 double qp_gmst(qp_memory_t *mem, double ctime) {
-  double jd_utc[2];
+  double jd_utc[2], jd_ut1[2], jd_tt[2];
   ctime2jd(ctime, jd_utc);
   double mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
   double x,y,gmst;
 
+  /* Both accuracy modes, see ctime2gmst. */
+  if (qp_check_update(&mem->state_dut1, ctime)) {
+    qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+  }
+
+  /* The steps are spelled out here rather than deferred to ctime2gmst so
+     that the conversion goes through the day cache, which needs mem.
+     ctime2gmst is the same calculation without it, and agrees exactly. */
+  qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
+
   if (mem->accuracy == 0) {
-    if (qp_check_update(&mem->state_dut1, ctime)) {
-      qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
-    }
-    gmst = ctime2gmst(ctime, mem->dut1, mem->accuracy);
+    ctime2jdtt(ctime, jd_tt);
+    gmst = eraGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
   } else {
-    gmst = ctime2gmst(ctime, 0, mem->accuracy);
+    gmst = eraGmst00(jd_ut1[0], jd_ut1[1], jd_ut1[0], jd_ut1[1]);
   }
   return fmod(rad2deg(gmst) / 15.0, 24.);
 }

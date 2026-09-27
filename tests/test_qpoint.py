@@ -1839,3 +1839,81 @@ class TestUt1Caching:
         q = qpoint.QPoint()
         cache = q._memory.contents.ut1_cache
         assert cache.lo > cache.hi
+
+
+class TestLowAccuracyKeepsDut1:
+    """
+    gmst and lmst apply dut1 in both accuracy modes.
+
+    The low path used to hand UTC straight to eraGmst00 as UT1, which
+    discarded whatever bulletin had been loaded -- 6 arcsec of earth
+    rotation at a typical dut1, and up to 13.5 given the bound leap seconds
+    hold it to. It also misread a leap-second day, whose 86401 seconds it
+    mapped onto 86400, drifting by up to a full second of rotation across
+    the day with no bulletin involved at all.
+
+    That was a real trade when the conversion cost 52 ns a sample. Cached
+    for the day it is about 2, so low accuracy now gives up only the TT
+    conversion, which is worth 0.1 mas: GMST reads TT through the
+    precession polynomial alone.
+    """
+
+    # One leap-second day, sampled through it so any drift is visible.
+    CTIME = np.ascontiguousarray(LEAP_2015 - 86400.0 + np.arange(0.0, 86400.0, 600.0))
+    DUT1 = 0.4
+    MJD0 = 57200
+    NDAY = 40
+
+    def qp(self, accuracy, dut1):
+        q = qpoint.QPoint(accuracy=accuracy, rate_dut1="always")
+        d = np.ascontiguousarray(np.full(self.NDAY, float(dut1)))
+        z = np.ascontiguousarray(np.zeros(self.NDAY))
+        libqp.qp_set_iers_bulletin_a(
+            q._memory, self.MJD0, self.MJD0 + self.NDAY - 1, d, z, z
+        )
+        return q
+
+    @staticmethod
+    def arcsec(a, b):
+        """Separation in arcsec of earth rotation; gmst is in hours."""
+        return np.abs(np.asarray(a) - np.asarray(b)) * 15.0 * 3600.0
+
+    def gmst(self, accuracy, dut1=None):
+        dut1 = self.DUT1 if dut1 is None else dut1
+        return np.asarray(self.qp(accuracy, dut1).gmst(self.CTIME))
+
+    def test_low_tracks_high(self):
+        """Only the TT term is given up: a tenth of a milliarcsecond."""
+        assert self.arcsec(self.gmst("low"), self.gmst("high")).max() < 1e-3
+
+    def test_the_term_is_really_applied(self):
+        """
+        Against a QPoint with no bulletin at all, so the test cannot pass
+        by the low path quietly doing nothing.
+        """
+        plain = np.asarray(qpoint.QPoint(accuracy="low").gmst(self.CTIME))
+        assert self.arcsec(self.gmst("low"), plain).min() > 0.9 * self.DUT1 * 15.0
+
+    def test_the_leap_second_day_needs_no_bulletin(self):
+        """
+        With dut1 == 0 the low path still has to agree, which it did not
+        before: the day's 86401 seconds were mapped onto 86400.
+        """
+        d = self.arcsec(self.gmst("low", dut1=0.0), self.gmst("high", dut1=0.0))
+        assert d.max() < 1e-3
+
+    def test_lmst_follows_gmst(self):
+        """lmst is gmst plus a longitude, so it inherits the whole thing."""
+        out = [
+            np.asarray(self.qp(acc, self.DUT1).lmst(self.CTIME, LON))
+            for acc in ("low", "high")
+        ]
+        assert self.arcsec(*out).max() < 1e-3
+
+    def test_high_accuracy_applies_it_too(self):
+        """
+        It always did -- this is the reference the low path is held to, so
+        it is worth pinning that it is not itself ignoring the bulletin.
+        """
+        plain = np.asarray(qpoint.QPoint(accuracy="high").gmst(self.CTIME))
+        assert self.arcsec(self.gmst("high"), plain).min() > 0.9 * self.DUT1 * 15.0
