@@ -859,6 +859,1172 @@ class TestScalarBroadcasting:
 # it is not reproducible even against itself -- see TestThreadedReduction.
 # ---------------------------------------------------------------------------
 
+NSIDE_MAP = 16
+NPIX_MAP = 12 * NSIDE_MAP * NSIDE_MAP
+NS = 600
+NDET = 4
+
+MAP_CT = 1418662800.0 + np.arange(NS) / 10.0
+MAP_AZ = np.linspace(0.0, 360.0, NS) % 360
+MAP_EL = np.full(NS, 45.0) + 5 * np.sin(np.arange(NS) / 50.0)
+MAP_LON = np.full(NS, 165.7)
+MAP_LAT = np.full(NS, -77.6)
+
+_mrng = np.random.default_rng(0)
+TOD = _mrng.normal(size=(NDET, NS))
+OFF = (
+    _mrng.uniform(-3, 3, NDET),
+    _mrng.uniform(-3, 3, NDET),
+    _mrng.uniform(0, 180, NDET),
+)
+TOD2 = _mrng.normal(size=(2 * NDET, NS))
+OFF2 = (
+    _mrng.uniform(-3, 3, 2 * NDET),
+    _mrng.uniform(-3, 3, 2 * NDET),
+    _mrng.uniform(0, 180, 2 * NDET),
+)
+SOURCE_MAP = _mrng.normal(size=(3, NPIX_MAP))
+SOURCE_MAPS = {n: _mrng.normal(size=(n, NPIX_MAP)) for n in (1, 3, 4)}
+DET_WEIGHTS = np.abs(np.random.default_rng(1).normal(size=(NDET, NS))) + 0.1
+# the differencing kernel pairs the two halves, so it needs both
+DET_WEIGHTS2 = np.abs(np.random.default_rng(2).normal(size=(2 * NDET, NS))) + 0.1
+
+
+def qmap(mod, nthreads=1, **kwargs):
+    """A QMap with pointing already initialized."""
+    qm = mod.QMap(num_threads=nthreads, **kwargs)
+    qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+    qm.init_point(qb, ctime=MAP_CT)
+    return qm, np.asarray(qm.det_offset(*OFF))
+
+
+def hit_pixels():
+    """Every pixel touched by any detector, for the partial-map tests."""
+    qm = qpoint.QMap(nside=NSIDE_MAP)
+    qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+    hits = []
+    for i in range(NDET):
+        q = qpoint.QMap(nside=NSIDE_MAP)
+        off = np.asarray(q.det_offset(OFF[0][i], OFF[1][i], OFF[2][i]))
+        hits.append(np.asarray(q.bore2pix(off, MAP_CT, qb, nside=NSIDE_MAP)[0]))
+    return np.unique(np.concatenate(hits)).astype(np.int64)
+
+
+PARTIAL_PIX = hit_pixels()
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestTod2Map:
+    @pytest.mark.parametrize("pol", [True, False])
+    def test_from_tod(self, mod, pol):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP, pol=pol)
+            out.append(tuple(qm.from_tod(off, tod=TOD.copy())))
+        assert_identical(out[0], out[1], "from_tod")
+
+    def test_vpol(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP, pol=True, vpol=True)
+            out.append(tuple(qm.from_tod(off, tod=TOD.copy())))
+        assert_identical(out[0], out[1], "from_tod vpol")
+
+    def test_vpol_weights(self, mod):
+        """
+        The V term picks up the per-sample weight separately from T, Q
+        and U, so vpol has to be crossed with weights to reach it.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP, pol=True, vpol=True)
+            out.append(tuple(qm.from_tod(off, tod=TOD.copy(), weights=DET_WEIGHTS)))
+        assert_identical(out[0], out[1], "from_tod vpol weighted")
+
+    def test_flags(self, mod):
+        flag = np.zeros((NDET, NS), dtype=np.uint8)
+        flag[:, ::7] = 1
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP)
+            out.append(tuple(qm.from_tod(off, tod=TOD.copy(), flag=flag)))
+        assert_identical(out[0], out[1], "from_tod flagged")
+
+    def test_weights(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP)
+            out.append(tuple(qm.from_tod(off, tod=TOD.copy(), weights=DET_WEIGHTS)))
+        assert_identical(out[0], out[1], "from_tod weighted")
+
+    def test_hwp(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP)
+            qm.init_point(q_hwp=np.asarray(qm.hwp_quat(np.linspace(0, 180, NS))))
+            out.append(tuple(qm.from_tod(off, tod=TOD.copy())))
+        assert_identical(out[0], out[1], "from_tod hwp")
+
+    def test_count_hits_only(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP)
+            out.append(np.asarray(qm.from_tod(off)))
+        assert_identical(out[0], out[1], "from_tod hits only")
+
+    def test_count_hits_false_leaves_the_proj_alone(self, mod):
+        """
+        A second pass with count_hits=False must add nothing to the proj.
+
+        The component is switched off for the duration, which is what
+        qpoint does by zeroing the mode on its dest struct. Computing the
+        flag and using it only to decide what to return leaves the proj
+        being accumulated and then withheld, so the hits double -- and
+        test_count_hits_only above makes a single call, which cannot see
+        that.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP)
+            first = np.array(qm.from_tod(off, tod=TOD.copy())[1], copy=True)
+            again = qm.from_tod(off, tod=2.0 * TOD, count_hits=False)
+            assert not isinstance(again, tuple), "count_hits=False returned a proj"
+            proj = np.asarray(qm.depo["proj"])
+            assert_identical(first, proj.squeeze(), "proj was touched")
+            out.append(np.asarray(proj))
+        assert_identical(out[0], out[1], "count_hits=False proj across packages")
+
+    def test_partial_map(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m)
+            qm.init_dest(nside=NSIDE_MAP, pol=True, pixels=PARTIAL_PIX)
+            res = tuple(qm.from_tod(off, tod=TOD.copy()))
+            assert np.asarray(res[0]).shape == (3, len(PARTIAL_PIX))
+            out.append(res)
+        assert_identical(out[0], out[1], "from_tod partial")
+
+    def test_diff_pairs(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm = m.QMap(nside=NSIDE_MAP, pol=True, num_threads=1)
+            qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+            qm.init_point(qb, ctime=MAP_CT)
+            off = np.asarray(qm.det_offset(*OFF2))
+            out.append(tuple(qm.from_tod(off, tod=TOD2.copy(), do_diff=True)))
+        assert_identical(out[0], out[1], "from_tod do_diff")
+
+    def test_diff_pairs_hwp(self, mod):
+        """
+        A HWP through the differencing kernel, which has its own copy of
+        the per-detector rotation: it calls bore2det_hwp once per
+        detector of the pair, and testing the HWP and the differencing
+        separately reaches neither call.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm = m.QMap(nside=NSIDE_MAP, pol=True, num_threads=1)
+            qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+            qm.init_point(
+                qb, ctime=MAP_CT, q_hwp=np.asarray(qm.hwp_quat(np.linspace(0, 180, NS)))
+            )
+            off = np.asarray(qm.det_offset(*OFF2))
+            out.append(tuple(qm.from_tod(off, tod=TOD2.copy(), do_diff=True)))
+        assert_identical(out[0], out[1], "from_tod do_diff hwp")
+
+    def test_diff_pairs_vpol(self, mod):
+        """
+        Differencing into a T,Q,U,V map. The VPOL arms of both switches
+        in tod2map1_diff -- the V row of vec, and the ten-row proj --
+        are reached only by crossing vpol with the differencing, which
+        the vpol and do_diff tests each miss on their own.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm = m.QMap(nside=NSIDE_MAP, pol=True, vpol=True, num_threads=1)
+            qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+            qm.init_point(qb, ctime=MAP_CT)
+            off = np.asarray(qm.det_offset(*OFF2))
+            out.append(tuple(qm.from_tod(off, tod=TOD2.copy(), do_diff=True)))
+        assert_identical(out[0], out[1], "from_tod do_diff vpol")
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="plain"),
+            pytest.param({"weights": DET_WEIGHTS2}, id="weights"),
+        ],
+    )
+    def test_diff_pairs_partial(self, mod, kwargs):
+        """
+        The differencing kernel on a partial map. It repixelizes both
+        detectors of a pair separately, so there are two lookups and two
+        missing-pixel branches, and neither the full-sky differencing
+        test nor the non-differenced partial test reaches them.
+
+        PARTIAL_PIX covers where OFF points, not OFF2, so the pair falls
+        outside it -- which is the point: error_missing=False takes the
+        skip branch for each detector, and the default raises instead.
+        """
+        out = []
+        for m in (qpoint, mod):
+            # no nside here: that initializes dest, and the partial map
+            # has to be installed by init_dest instead
+            qm = m.QMap(num_threads=1, error_missing=False)
+            qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+            qm.init_point(qb, ctime=MAP_CT)
+            qm.init_dest(nside=NSIDE_MAP, pol=True, pixels=PARTIAL_PIX)
+            off = np.asarray(qm.det_offset(*OFF2))
+            out.append(tuple(qm.from_tod(off, tod=TOD2.copy(), do_diff=True, **kwargs)))
+        assert_identical(out[0], out[1], "from_tod do_diff partial")
+
+    def test_diff_pairs_partial_raises_by_default(self, mod):
+        """The other half of that branch: both packages refuse."""
+        for m in (qpoint, mod):
+            qm = m.QMap(num_threads=1)
+            qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+            qm.init_point(qb, ctime=MAP_CT)
+            qm.init_dest(nside=NSIDE_MAP, pol=True, pixels=PARTIAL_PIX)
+            off = np.asarray(qm.det_offset(*OFF2))
+            with pytest.raises(RuntimeError, match="out of bounds"):
+                qm.from_tod(off, tod=TOD2.copy(), do_diff=True)
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestMap2Tod:
+    @pytest.mark.parametrize(
+        "options",
+        [
+            pytest.param({}, id="defaults"),
+            pytest.param({"interp_pix": True}, id="interp"),
+            pytest.param({"pix_order": "nest"}, id="nest"),
+            pytest.param({"fast_pix": True}, id="fast-pix"),
+        ],
+    )
+    def test_to_tod(self, mod, options):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, **options)
+            qm.init_source(SOURCE_MAP, pol=True)
+            out.append(np.asarray(qm.to_tod(off)))
+        assert_identical(out[0], out[1], "to_tod")
+
+    @pytest.mark.parametrize(
+        "options",
+        [
+            pytest.param({}, id="defaults"),
+            pytest.param({"interp_pix": True}, id="interp"),
+        ],
+    )
+    def test_to_tod_hwp(self, mod, options):
+        """
+        Scanning a map with a HWP. from_tod had a HWP test and to_tod did
+        not, so map2tod1's bore2det_hwp branch never ran.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, **options)
+            qm.init_point(q_hwp=np.asarray(qm.hwp_quat(np.linspace(0, 180, NS))))
+            qm.init_source(SOURCE_MAP, pol=True)
+            out.append(np.asarray(qm.to_tod(off)))
+        assert_identical(out[0], out[1], "to_tod hwp")
+
+    @pytest.mark.parametrize(
+        "options",
+        [
+            pytest.param({}, id="defaults"),
+            pytest.param(
+                {"interp_pix": True, "error_missing": False, "interp_missing": True},
+                id="interp-missing",
+            ),
+            pytest.param(
+                {"interp_pix": True, "error_missing": False, "nan_missing": True},
+                id="nan-missing",
+            ),
+        ],
+    )
+    def test_to_tod_partial(self, mod, options):
+        """
+        Scanning a partial source map. map2tod1 repixelizes through the
+        hash, and with interp_pix it then has to decide what to do about
+        neighbours falling outside the map -- reweight them away under
+        interp_missing, or write NaN under nan_missing. The full-sky
+        tests reach none of it.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, **options)
+            qm.init_source(
+                SOURCE_MAP[:, PARTIAL_PIX],
+                pol=True,
+                pixels=PARTIAL_PIX,
+                nside=NSIDE_MAP,
+            )
+            out.append(np.asarray(qm.to_tod(off)))
+        assert_identical(out[0], out[1], "to_tod partial")
+
+    def test_to_tod_partial_interp_raises_by_default(self, mod):
+        """
+        Without those flags it is an error in both packages: the
+        interpolation wants neighbours the partial map does not have.
+        """
+        for m in (qpoint, mod):
+            qm, off = qmap(m, interp_pix=True)
+            qm.init_source(
+                SOURCE_MAP[:, PARTIAL_PIX],
+                pol=True,
+                pixels=PARTIAL_PIX,
+                nside=NSIDE_MAP,
+            )
+            with pytest.raises(RuntimeError, match="out of bounds"):
+                qm.to_tod(off)
+
+    def test_to_tod_flagged(self, mod):
+        """Flagged samples are skipped on the scanning side too."""
+        flag = np.zeros((NDET, NS), dtype=np.uint8)
+        flag[:, ::7] = 1
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m)
+            qm.init_source(SOURCE_MAP, pol=True)
+            out.append(np.asarray(qm.to_tod(off, flag=flag)))
+        assert_identical(out[0], out[1], "to_tod flagged")
+
+    @pytest.mark.parametrize(
+        "rows,pol,vpol",
+        [
+            pytest.param(1, False, False, id="T"),
+            pytest.param(3, True, False, id="TQU"),
+            pytest.param(4, True, True, id="TQUV"),
+        ],
+    )
+    def test_to_tod_interpolated(self, mod, rows, pol, vpol):
+        """
+        With interp_pix, map2tod1 reads four neighbours per sample and the
+        vec mode decides which rows it reads. The options matrix above only
+        reaches the TQU case, which left the merged reader in map2tod1
+        unpinned for T and TQUV.
+        """
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, interp_pix=True, pol=pol, vpol=vpol)
+            qm.init_source(SOURCE_MAPS[rows], pol=pol, vpol=vpol)
+            out.append(np.asarray(qm.to_tod(off)))
+        assert_identical(out[0], out[1], "to_tod interp")
+
+    def test_roundtrip_recovers_a_constant(self, mod):
+        """A constant T map scanned and rebinned must come back constant."""
+        qm, off = qmap(mod, pol=False)
+        qm.init_source(np.full(NPIX_MAP, 3.0), pol=False)
+        tod = np.asarray(qm.to_tod(off))
+        assert np.allclose(tod, 3.0)
+
+
+def dest_shapes(qm):
+    """
+    (vec, proj) shapes of the maps init_dest installed, None for absent.
+
+    Both packages expose the depo now, so this reads the same way for
+    each; it used to need a branch per package.
+    """
+    return tuple(
+        None if qm.depo[k] is False else np.shape(qm.depo[k]) for k in ("vec", "proj")
+    )
+
+
+@pytest.mark.parametrize("mod", [qpoint, qpoint2])
+class TestProjDeterminesTheMap:
+    """
+    A supplied proj fixes nside and the polarization mode exactly as a
+    supplied vec does: a dest has three modes, and each has one vec shape
+    and one proj shape, 1/3/4 rows against 1/6/10.
+    """
+
+    npix = 12 * 8 * 8
+
+    @pytest.mark.parametrize(
+        "nproj,nvec",
+        [
+            pytest.param(1, 1, id="T"),
+            pytest.param(6, 3, id="TQU"),
+            pytest.param(10, 4, id="TQUV"),
+        ],
+    )
+    def test_proj_fixes_the_mode(self, mod, nproj, nvec):
+        qm = mod.QMap()
+        qm.init_dest(proj=np.zeros((nproj, self.npix)))
+        assert dest_shapes(qm) == ((nvec, self.npix), (nproj, self.npix))
+
+    def test_proj_fixes_nside(self, mod):
+        """nside comes from the proj, not from the 256 default."""
+        npix = 12 * 16 * 16
+        qm = mod.QMap()
+        qm.init_dest(proj=np.zeros((6, npix)))
+        assert dest_shapes(qm) == ((3, npix), (6, npix))
+
+    def test_proj_refuses_a_flag_that_disagrees(self, mod):
+        """
+        Symmetric with a supplied vec: a 10-row proj is a TQUV map, so
+        vpol=False is a contradiction rather than an override. A flag that
+        agrees is accepted, and none at all leaves it to the shapes.
+        """
+        qm = mod.QMap()
+        with pytest.raises(ValueError, match="contradicts the supplied map"):
+            qm.init_dest(proj=np.zeros((10, self.npix)), pol=True, vpol=False)
+
+        qm = mod.QMap()
+        qm.init_dest(proj=np.zeros((10, self.npix)), pol=True, vpol=True)
+        assert dest_shapes(qm) == ((4, self.npix), (10, self.npix))
+
+    @pytest.mark.parametrize(
+        "kwargs, nvec",
+        [
+            ({"pol": False}, 3),
+            ({"pol": True}, 1),
+            ({"vpol": True}, 3),
+            ({"vpol": False}, 4),
+        ],
+    )
+    def test_a_vec_that_disagrees_with_the_flags_is_refused(self, mod, kwargs, nvec):
+        qm = mod.QMap()
+        with pytest.raises(ValueError, match="contradicts the supplied map"):
+            qm.init_dest(vec=np.zeros((nvec, self.npix)), **kwargs)
+
+    @pytest.mark.parametrize("nvec", [1, 3, 4])
+    def test_and_agreeing_or_absent_flags_are_fine(self, mod, nvec):
+        """The complement: the shapes themselves are pinned above."""
+        for kwargs in ({}, {"pol": nvec >= 3}, {"vpol": nvec == 4}, {"pol": None}):
+            mod.QMap().init_dest(vec=np.zeros((nvec, self.npix)), **kwargs)
+
+    @pytest.mark.parametrize(
+        "nvec,nproj",
+        [
+            pytest.param(3, 10, id="TQU-vec-TQUV-proj"),
+            pytest.param(4, 6, id="TQUV-vec-TQU-proj"),
+            pytest.param(1, 6, id="T-vec-TQU-proj"),
+        ],
+    )
+    def test_mismatched_pair_raises(self, mod, nvec, nproj):
+        """Supplying both, describing different numbers of components."""
+        qm = mod.QMap()
+        with pytest.raises(ValueError):
+            qm.init_dest(
+                vec=np.zeros((nvec, self.npix)), proj=np.zeros((nproj, self.npix))
+            )
+
+    def test_invalid_proj_row_count_raises(self, mod):
+        qm = mod.QMap()
+        with pytest.raises(ValueError):
+            qm.init_dest(proj=np.zeros((3, self.npix)))
+
+
+class TestNsideMustMatchTheMap:
+    """
+    A full-sky map's npix fixes its nside, and qpoint2 rejects an nside that
+    disagrees rather than installing it.
+
+    Not parametrized: qpoint discards the argument and derives nside from the
+    map. Taking it on trust would install an nside the rows were not sized
+    for, and the kernels index a row of npix doubles by a pixel drawn from it
+    -- (3, 768) with nside=16 reaches pixel 3071. Both halves are asserted so
+    the divergence cannot go stale.
+    """
+
+    NPIX = 12 * 8 * 8  # nside 8
+
+    def test_qpoint2_rejects_a_contradicting_nside(self):
+        qm = qpoint2.QMap()
+        with pytest.raises(ValueError, match="does not match"):
+            qm.init_dest(nside=16, vec=np.zeros((3, self.NPIX)))
+
+    def test_qpoint_derives_it_and_discards_the_argument(self):
+        qm = qpoint.QMap()
+        qm.init_dest(nside=16, vec=np.zeros((3, self.NPIX)))
+        assert qm.depo["dest_nside"] == 8
+
+    @pytest.mark.parametrize("mod", [qpoint, qpoint2], ids=lambda m: m.__name__)
+    def test_an_agreeing_nside_is_accepted(self, mod):
+        qm = mod.QMap()
+        qm.init_dest(nside=8, vec=np.zeros((3, self.NPIX)))
+        assert qm.dest_is_init()
+
+    @pytest.mark.parametrize("mod", [qpoint, qpoint2], ids=lambda m: m.__name__)
+    def test_nside_is_derived_when_absent(self, mod):
+        qm = mod.QMap()
+        qm.init_dest(vec=np.zeros((3, self.NPIX)))
+        assert qm.dest_is_init()
+
+    @pytest.mark.parametrize("mod", [qpoint, qpoint2], ids=lambda m: m.__name__)
+    def test_a_partial_map_keeps_the_nside_it_was_given(self, mod):
+        """
+        The guard above has to stay off the partial path: a partial map's
+        npix is its pixel count, not 12*nside**2, so its nside cannot be
+        read off the map and the argument is the only source.
+        """
+        pixels = np.arange(500, dtype=np.int64)
+        qm = mod.QMap()
+        qm.init_dest(nside=32, vec=np.zeros((3, 500)), pixels=pixels)
+        assert np.shape(qm.depo["vec"]) == (3, 500)
+
+    @pytest.mark.parametrize("mod", [qpoint, qpoint2], ids=lambda m: m.__name__)
+    def test_an_npix_no_nside_can_produce_still_raises(self, mod):
+        qm = mod.QMap()
+        with pytest.raises(ValueError):
+            qm.init_dest(vec=np.zeros((3, 700)))
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestMapInit:
+    """
+    init_dest and init_source decide map shapes, modes and nside. The
+    shapes are written out rather than compared against qpoint, whose
+    init_dest diverges on its own terms: it re-infers the mode from the
+    replacement and checks only npix, so several of these cases would
+    fail there on their merits rather than because of any port defect.
+    """
+
+    @staticmethod
+    def installed(qm):
+        """Shapes of the maps init_dest actually installed."""
+        return tuple(
+            np.shape(qm.depo[k]) for k in ("vec", "proj") if qm.depo[k] is not False
+        )
+
+    @staticmethod
+    def make(mod, **kwargs):
+        qm = mod.QMap()
+        qm.init_dest(**kwargs)
+        return qm
+
+    @pytest.mark.parametrize(
+        "kwargs, shapes",
+        [
+            pytest.param({"nside": 8}, ((3, 768), (6, 768)), id="pol-default"),
+            pytest.param(
+                {"nside": 8, "pol": False}, ((1, 768), (1, 768)), id="temperature"
+            ),
+            pytest.param(
+                {"nside": 8, "pol": True, "vpol": True},
+                ((4, 768), (10, 768)),
+                id="vpol",
+            ),
+            pytest.param({"nside": 8, "vec": False}, ((6, 768),), id="proj-only"),
+            pytest.param({"nside": 8, "proj": False}, ((3, 768),), id="vec-only"),
+            pytest.param({}, ((3, 786432), (6, 786432)), id="nside-defaults-to-256"),
+        ],
+    )
+    def test_default_allocation(self, mod, kwargs, shapes):
+        assert self.installed(self.make(mod, **kwargs)) == shapes
+
+    def test_nside_and_mode_inferred_from_vec(self, mod):
+        for nrow, want_pol, want_vpol in [
+            (1, False, False),
+            (3, True, False),
+            (4, True, True),
+        ]:
+            vec = np.zeros((nrow, 12 * 8 * 8))
+            qm = mod.QMap()
+            qm.init_dest(vec=vec)
+            assert qm.dest_is_pol() is want_pol, nrow
+            assert qm.dest_is_vpol() is want_vpol, nrow
+
+    def test_both_false_raises(self, mod):
+        with pytest.raises(ValueError, match="vec or proj"):
+            mod.QMap().init_dest(nside=8, vec=False, proj=False)
+
+    def test_second_init_raises(self, mod):
+        qm = mod.QMap(nside=8)
+        with pytest.raises(RuntimeError, match="already initialized"):
+            qm.init_dest(nside=8)
+
+    def test_reset_allows_reinit(self, mod):
+        qm = mod.QMap(nside=8)
+        qm.init_dest(nside=16, reset=True)
+        assert qm.dest_is_init()
+        assert self.installed(qm)[0] == (3, 12 * 16 * 16)
+
+    def test_update_without_maps_zeros_the_dest(self, mod):
+        """
+        init_dest(update=True) with no vec/proj given resets the
+        accumulators in place, which is how a scan chunk starts over.
+        """
+        qm = mod.QMap(nside=8)
+        np.asarray(qm._dest.get_vec())[:] = 1.0
+        np.asarray(qm._dest.get_proj())[:] = 1.0
+        qm.init_dest(nside=8, update=True)
+        assert self.installed(qm) == ((3, 12 * 8 * 8), (6, 12 * 8 * 8))
+        assert np.allclose(np.asarray(qm._dest.get_vec()), 0)
+        assert np.allclose(np.asarray(qm._dest.get_proj()), 0)
+
+    def test_partial_requires_nside(self, mod):
+        pix = np.arange(50, dtype=np.int64)
+        with pytest.raises(ValueError, match="nside"):
+            mod.QMap().init_dest(pixels=pix)
+
+    def test_partial_shapes(self, mod):
+        pix = np.arange(50, dtype=np.int64)
+        assert self.installed(self.make(mod, nside=8, pixels=pix)) == ((3, 50), (6, 50))
+
+    def test_partial_map_with_few_pixels_keeps_orientation(self, mod):
+        """
+        A (3, 2) map covering two pixels is taller than it is wide, so a
+        "transpose if taller than wide" rule would flip it into three bogus
+        pixels.
+        """
+        pix = np.array([0, 1], dtype=np.int64)
+        qm = self.make(mod, nside=8, pol=True, pixels=pix)
+        assert self.installed(qm) == ((3, 2), (6, 2))
+
+    def test_transposed_input_raises(self, mod):
+        """
+        A full-sky map handed over as (npix, nrow) used to be flipped into
+        shape. Nothing in the API produces one, and guessing is what read a
+        small partial map as a pile of bogus pixels, so it is an error --
+        of npix, since 3 columns are not a whole sky.
+        """
+        npix = 12 * 8 * 8
+        with pytest.raises(ValueError):
+            self.make(mod, vec=np.zeros((npix, 3)))
+
+    def test_transposed_partial_input_raises(self, mod):
+        """
+        A partial map cannot be judged by its shape, so the pixel list is
+        what catches it. The two packages word the complaint differently.
+        """
+        pix = np.arange(6, dtype=np.int64)
+        with pytest.raises(ValueError):
+            self.make(mod, nside=8, pixels=pix, vec=np.zeros((6, 3)))
+
+    @pytest.mark.parametrize(
+        "shape",
+        [pytest.param((12 * 8 * 8,), id="1d"), pytest.param((3, 12 * 8 * 8), id="2d")],
+    )
+    def test_source_accepts_1d_and_2d(self, mod, shape):
+        m = np.zeros(shape)
+        qm = mod.QMap()
+        qm.init_source(m, pol=len(shape) > 1)
+        assert qm.source_is_init()
+
+    def test_source_second_init_raises(self, mod):
+        qm = mod.QMap()
+        qm.init_source(np.zeros((3, 12 * 8 * 8)))
+        with pytest.raises(RuntimeError, match="already initialized"):
+            qm.init_source(np.zeros((3, 12 * 8 * 8)))
+
+    def test_source_reset_and_update(self, mod):
+        npix = 12 * 8 * 8
+        qm = mod.QMap()
+        qm.init_source(np.zeros((3, npix)))
+        qm.init_source(np.ones((3, npix)), reset=True)
+        assert qm.source_is_init()
+        qm.init_source(np.full((3, npix), 2.0), update=True)
+        assert qm.source_is_init()
+
+    def test_source_partial_requires_nside(self, mod):
+        with pytest.raises(ValueError, match="nside"):
+            mod.QMap().init_source(
+                np.zeros((3, 50)), pixels=np.arange(50, dtype=np.int64)
+            )
+
+    def test_copy_does_not_alias_the_input(self, mod):
+        npix = 12 * 8 * 8
+        vec = np.zeros((3, npix))
+        qm = self.make(mod, vec=vec, copy=True)
+        assert not np.shares_memory(np.asarray(qm._dest.get_vec()), vec)
+
+    def test_without_copy_the_input_is_aliased(self, mod):
+        """The default keeps the caller's buffer, which is the point."""
+        npix = 12 * 8 * 8
+        vec = np.require(np.zeros((3, npix)), float, ["A", "C"])
+        qm = self.make(mod, vec=vec)
+        assert np.shares_memory(np.asarray(qm._dest.get_vec()), vec)
+
+    def test_dest_mode_queries_need_init(self, mod):
+        qm = mod.QMap()
+        for fn in ("dest_is_pol", "dest_is_vpol"):
+            with pytest.raises(RuntimeError, match="not initialized"):
+                getattr(qm, fn)()
+        for fn in ("source_is_pol", "source_is_vpol"):
+            with pytest.raises(RuntimeError, match="not initialized"):
+                getattr(qm, fn)()
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestPolarizationReporting:
+    """
+    is_pol and is_vpol answer what the map contains, which is not the question
+    the accumulation kernels ask.
+
+    The kernels branch on at_least(vec_mode, Pol), mirroring the C's >= on the
+    same enum, and must keep doing so -- but that enum runs T, Pol, VPol, D1,
+    D1Pol, D2, D2Pol, so read as a predicate it calls a T-plus-derivatives map
+    polarized. Only Pol, VPol, D1Pol and D2Pol carry Q and U. A dest can also
+    be proj-only, so the proj answers when the vec cannot.
+    """
+
+    NPIX = 12 * 8 * 8
+
+    def z(self, nrow):
+        return np.zeros((nrow, self.NPIX))
+
+    @pytest.mark.parametrize(
+        "nrow,kwargs",
+        [
+            (1, {}),
+            (3, {}),
+            (3, {"pol": False}),  # D1: three rows, not polarized
+            (4, {"vpol": True}),
+            (6, {}),  # D2: six rows, not polarized
+            (9, {}),  # D1Pol: polarized
+            (18, {}),  # D2Pol: polarized
+        ],
+    )
+    def test_source(self, mod, nrow, kwargs):
+        got = []
+        for m in (qpoint, mod):
+            qm = m.QMap()
+            qm.init_source(self.z(nrow), **kwargs)
+            got.append((qm.source_is_pol(), qm.source_is_vpol()))
+        assert got[0] == got[1], f"{nrow} rows {kwargs}"
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {},
+            {"pol": False},
+            {"vpol": True},
+            {"vec": 1},
+            {"vec": 3},
+            {"vec": 4},
+            {"vec": False, "proj": 1},
+            {"vec": False, "proj": 6},
+            {"vec": False, "proj": 10},
+        ],
+    )
+    def test_dest(self, mod, kwargs):
+        kwargs = {
+            k: self.z(v) if k in ("vec", "proj") and v is not False else v
+            for k, v in kwargs.items()
+        }
+        got = []
+        for m in (qpoint, mod):
+            qm = m.QMap()
+            qm.init_dest(nside=8, **kwargs)
+            got.append((qm.dest_is_pol(), qm.dest_is_vpol()))
+        assert got[0] == got[1], str(kwargs.keys())
+
+    def test_a_derivative_map_is_not_polarized(self, mod):
+        """
+        The case the ordering got wrong, stated directly so the reason
+        survives even if the parametrized comparisons above are reworked.
+        """
+        qm = mod.QMap()
+        qm.init_source(self.z(3), pol=False)
+        assert qm.source_is_pol() is False
+        qm = mod.QMap()
+        qm.init_source(self.z(6))
+        assert qm.source_is_pol() is False
+
+    def test_a_proj_only_dest_still_reports_its_mode(self, mod):
+        """The vec is switched off, so the proj is the only thing to read."""
+        for nproj, want_pol, want_vpol in [
+            (1, False, False),
+            (6, True, False),
+            (10, True, True),
+        ]:
+            qm = mod.QMap()
+            qm.init_dest(nside=8, vec=False, proj=self.z(nproj))
+            assert qm.dest_is_pol() is want_pol, nproj
+            assert qm.dest_is_vpol() is want_vpol, nproj
+
+
+@pytest.mark.parametrize("mod", [qpoint, qpoint2])
+class TestInitDestReturnValue:
+    """
+    Neither package returns the installed maps: they are read back from
+    the depo, or with get_vec/get_proj, or via from_tod. qpoint used to
+    return them -- a bare array for one component and a tuple for two,
+    which made the arity the only hint that a component was switched off.
+    """
+
+    def test_it_returns_nothing(self, mod):
+        assert mod.QMap().init_dest(nside=8) is None
+
+    def test_update_returns_nothing_either(self, mod):
+        qm = mod.QMap(nside=8, pol=True)
+        assert qm.init_dest(update=True) is None
+
+
+class TestSourceVpolIsChecked:
+    """
+    A row count settles V polarization by itself, so vpol is verified against
+    the map rather than used to read it: it is upstream, a caller using it to
+    decide which fields to read off disk. pol keeps its old job, three rows
+    being the one count that leaves the mode open.
+    """
+
+    npix = 12 * 8 * 8
+
+    @pytest.mark.parametrize("nrow", [1, 3, 4])
+    @pytest.mark.parametrize("vpol", [None, True, False])
+    def test_both_packages_agree(self, nrow, vpol):
+        def outcome(mod):
+            qm = mod.QMap(mean_aber=True)
+            try:
+                qm.init_source(np.zeros((nrow, self.npix)), vpol=vpol)
+            except ValueError:
+                return "refused"
+            return "vpol" if qm.source_is_vpol() else "not vpol"
+
+        got = outcome(qpoint), outcome(qpoint2)
+        assert got[0] == got[1]
+        # And the rule itself, so this cannot pass by agreeing on nonsense.
+        want = (
+            "refused"
+            if (vpol is not None and bool(vpol) != (nrow == 4))
+            else ("vpol" if nrow == 4 else "not vpol")
+        )
+        assert got[0] == want
+
+
+class TestUpdateSourceRows:
+    """
+    A source map may come back carrying a different number of derivative
+    terms, so its row count is free under update where a dest's is not, and
+    the mode follows it. Where a row count leaves the mode open -- 3 rows,
+    T,Q,U or T with its two first derivatives -- the reading comes from the
+    mode already installed, so both packages have to agree about what the
+    structure holds.
+    """
+
+    npix = 12 * 8 * 8
+
+    @classmethod
+    def state(cls, mod, steps):
+        """Install a source, then update it through the later row counts."""
+        qm = mod.QMap(mean_aber=True)
+        qm.init_source(np.ones((steps[0][0], cls.npix)), pol=steps[0][1])
+        for nrow, _ in steps[1:]:
+            qm.init_source(np.full((nrow, cls.npix), 2.0), update=True)
+        # Read through the public predicates: the depo does not exist on
+        # the qpoint2 side until further up this branch.
+        return qm.source_is_pol(), qm.source_is_vpol()
+
+    @pytest.mark.parametrize(
+        "steps",
+        [
+            [(1, False), (3, None)],
+            [(1, False), (6, None)],
+            [(3, True), (9, None)],
+            [(3, False), (6, None)],
+            [(9, True), (3, None)],
+            [(18, True), (1, None)],
+            [(3, False), (3, None)],
+            [(3, True), (3, None)],
+            # Through a polarized derivative count and back: 9 rows is
+            # D1_POL, which carries Q and U, so 3 rows returns as T,Q,U.
+            [(3, False), (9, None), (3, None)],
+            [(1, False), (18, None), (6, None)],
+        ],
+        ids=lambda v: "-".join(str(n) for n, _ in v),
+    )
+    def test_the_mode_follows_the_rows(self, steps):
+        assert self.state(qpoint, steps) == self.state(qpoint2, steps)
+
+    def test_the_timestream_follows_the_new_terms(self):
+        """
+        Exactly, which is the point: the extra rows are read, and the same
+        way. A row change that only moved num_vec would pass the mode
+        checks above and fail here.
+        """
+        tods = []
+        for mod in (qpoint, qpoint2):
+            qm, q_bore, ctime = pointed_map(mod)
+            smap = np.zeros((3, self.npix))
+            smap[0] = 1.0
+            qm.init_source(smap, pol=False)
+            before = np.array(qm.to_tod(np.atleast_2d(qm.det_offset(1.0, 2.0, 0.0))))
+            big = np.zeros((6, self.npix))
+            big[0] = 1.0
+            big[1:] = 0.3
+            qm.init_source(big, update=True)
+            after = qm.to_tod(np.atleast_2d(qm.det_offset(1.0, 2.0, 0.0)))
+            assert not np.allclose(before, after), "the added terms did nothing"
+            tods.append(after)
+        assert_identical(tods[0], tods[1], "to_tod after a row change")
+
+    def test_npix_is_still_fixed(self):
+        """
+        Both refuse it, at different layers and so with different wording:
+        qpoint2's check_map rejects an npix that is no sky at all before
+        update_vec sees it, where qpoint reaches the update path and
+        compares against the installed map.
+        """
+        for mod in (qpoint, qpoint2):
+            qm = mod.QMap(mean_aber=True)
+            qm.init_source(np.ones((3, self.npix)), pol=True)
+            with pytest.raises(ValueError):
+                qm.init_source(np.ones((3, self.npix // 2)), update=True)
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestUpdateComponents:
+    """
+    vec and proj each take three forms, at init and at update alike: a map
+    installs it, None asks for one of zeros, False says there is no such
+    component.
+
+    An update to a dest may not change an installed row count: its vec and
+    proj counts correspond, and re-deciding either mode changes what the
+    kernels read out from under a partly filled accumulator. A source's may,
+    carrying a different number of derivative terms, so only npix is fixed
+    there -- TestUpdateSource covers it.
+    """
+
+    npix = 12 * 8 * 8
+
+    # Same as dest_shapes above; kept here because these cases stay
+    # qpoint2-only, qpoint's update path diverging as the class docstring
+    # says.
+    shapes = staticmethod(dest_shapes)
+
+    @pytest.mark.parametrize("kw", ["vec", "proj"])
+    def test_rejects_a_new_row_count(self, mod, kw):
+        qm = mod.QMap(nside=8)
+        with pytest.raises(ValueError, match="does not match"):
+            qm.init_dest(nside=8, update=True, **{kw: np.ones((1, self.npix))})
+
+    def test_accepts_a_matching_map(self, mod):
+        qm = mod.QMap(nside=8)
+        qm.init_dest(nside=8, update=True, vec=np.ones((3, self.npix)))
+        assert np.allclose(np.asarray(qm._dest.get_vec()), 1.0)
+
+    def test_zeros_by_replacing_the_buffer(self, mod):
+        """
+        A component left out comes back as a fresh map of zeros rather than
+        being zeroed where it sits, so whatever the caller is still holding
+        keeps its data.
+        """
+        qm = mod.QMap(nside=8)
+        vec, proj = qm._dest.get_vec(), qm._dest.get_proj()
+        vec[:] = 1.0
+        proj[:] = 1.0
+        qm.init_dest(nside=8, update=True)
+        for old, new in [(vec, qm._dest.get_vec()), (proj, qm._dest.get_proj())]:
+            assert not np.shares_memory(old, new)
+            assert not np.asarray(new).any()
+            assert old.all()
+
+    @pytest.mark.parametrize("kw", ["vec", "proj"])
+    def test_false_disables_a_component(self, mod, kw):
+        qm = mod.QMap(nside=8)
+        qm.init_dest(nside=8, update=True, **{kw: False})
+        assert self.shapes(qm)[kw == "proj"] is None
+        assert self.shapes(qm)[kw != "proj"] is not None
+
+    @pytest.mark.parametrize("kw", ["vec", "proj"])
+    def test_update_leaves_a_disabled_component_off(self, mod, kw):
+        """
+        init_dest's None means "not supplied", so zeroing the accumulators
+        of a proj-only dest does not grow a vec back.
+        """
+        qm = mod.QMap()
+        qm.init_dest(nside=8, **{kw: False})
+        qm.init_dest(nside=8, update=True)
+        assert self.shapes(qm)[kw == "proj"] is None
+
+    @pytest.mark.parametrize("kw", ["vec", "proj"])
+    def test_none_re_enables_at_the_mode_shape(self, mod, kw):
+        """
+        The binding's own None does ask for a fresh component. pol/vpol are
+        remembered from setup, so one that was switched off comes back at
+        the shape it would have had, zeroed.
+        """
+        want = {"vec": (3, self.npix), "proj": (6, self.npix)}[kw]
+        qm = mod.QMap()
+        qm.init_dest(nside=8, **{kw: False})
+        getattr(qm._dest, "update_" + kw)(None)
+        assert self.shapes(qm)[kw == "proj"] == want
+        assert not np.asarray(getattr(qm._dest, "get_" + kw)()).any()
+
+    def test_disabling_both_is_rejected(self, mod):
+        qm = mod.QMap(nside=8)
+        with pytest.raises(ValueError, match="vec or proj"):
+            qm.init_dest(nside=8, update=True, vec=False, proj=False)
+
+    @pytest.mark.parametrize("kw", ["vec", "proj"])
+    def test_disabling_the_last_component_is_rejected(self, mod, kw):
+        other = {"vec": "proj", "proj": "vec"}[kw]
+        qm = mod.QMap()
+        qm.init_dest(nside=8, **{other: False})
+        with pytest.raises(ValueError, match="vec or proj"):
+            qm.init_dest(nside=8, update=True, **{kw: False})
+
+    def test_a_cycled_component_still_accumulates(self, mod):
+        """
+        In the C a component owns a table of row pointers into its
+        buffer, sized for its row count, so switching it off has to free
+        that table -- qp_reshape_map only builds a new one when the old is
+        gone, and would otherwise leave the extra rows pointing off the
+        end of the buffer.
+        """
+        ref, off = qmap(mod)
+        ref.init_dest(nside=NSIDE_MAP, pol=True)
+        want = [np.asarray(x) for x in ref.from_tod(off, tod=TOD.copy())]
+
+        qm, off = qmap(mod)
+        qm.init_dest(nside=NSIDE_MAP, pol=True)
+        for kw in ("vec", "proj"):
+            getattr(qm._dest, "update_" + kw)(False)
+            getattr(qm._dest, "update_" + kw)(None)
+        got = [np.asarray(x) for x in qm.from_tod(off, tod=TOD.copy())]
+        assert want[0].any()
+        assert all(np.array_equal(a, b) for a, b in zip(want, got))
+
+    def test_a_default_follows_the_supplied_component(self, mod):
+        """
+        A supplied proj sizes the default vec, so the two always describe
+        the same number of map components. Both used to size the default
+        from pol, which for a 1-row proj gave a 3-row vec -- shapes the
+        accumulation kernels cannot use together.
+        """
+        qm = mod.QMap()
+        qm.init_dest(proj=np.zeros((1, self.npix)))
+        assert self.shapes(qm) == ((1, self.npix), (1, self.npix))
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestDerivativeMapModes:
+    """
+    Row count fixes the vec mode, and the mode fixes which rows map2tod
+    reads. Getting the two out of step reads off the end of the map, which
+    is what qp_num_maps did for D2 and D1_POL.
+
+    D2   = T with 1st and 2nd derivatives      -> 6 rows
+    D1POL = (T, Q, U) with 1st derivatives     -> 9 rows
+    """
+
+    def _tod(self, mod, source):
+        qm = mod.QMap(num_threads=1)
+        qb = qm.azel2bore(MAP_AZ, MAP_EL, None, None, MAP_LON, MAP_LAT, MAP_CT)
+        qm.init_point(qb, ctime=MAP_CT)
+        qm.init_source(source, pol=True, vpol=len(source) == 4)
+        return np.asarray(qm.to_tod(np.asarray(qm.det_offset(0.0, 0.0, 0.0))))
+
+    @pytest.mark.parametrize("nrow", [1, 3, 4, 6, 9, 18])
+    def test_every_row_is_read(self, mod, nrow):
+        """
+        Perturbing any row must change the tod. A row that never matters
+        means the mode was inferred too small; the converse -- reading past
+        the end -- shows up as a mismatch against the reference.
+        """
+        rng = np.random.default_rng(1)
+        base = rng.normal(size=(nrow, NPIX_MAP))
+        ref = self._tod(mod, base.copy())
+        for row in range(nrow):
+            bumped = base.copy()
+            bumped[row] += 100.0
+            assert not np.allclose(
+                ref, self._tod(mod, bumped)
+            ), "row {} of a {}-row map is never read".format(row, nrow)
+
+    @pytest.mark.parametrize("nrow", [1, 3, 4, 6, 9, 18])
+    def test_matches_reference(self, mod, nrow):
+        rng = np.random.default_rng(1)
+        m = rng.normal(size=(nrow, NPIX_MAP))
+        assert_identical(self._tod(qpoint, m), self._tod(mod, m), "to_tod")
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestMapSolve:
+    def test_solve_map(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP)
+            qm.from_tod(off, tod=TOD.copy())
+            out.append(np.asarray(qm.solve_map()))
+        assert_identical(out[0], out[1], "solve_map")
+
+    def test_proj_cond(self, mod):
+        out = []
+        for m in (qpoint, mod):
+            qm, off = qmap(m, nside=NSIDE_MAP)
+            qm.from_tod(off, tod=TOD.copy())
+            out.append(np.asarray(qm.proj_cond()))
+        assert_identical(out[0], out[1], "proj_cond")
+
+
+@pytest.mark.parametrize("mod", IMPLS)
+class TestMapErrors:
+    def test_missing_pixel_raises(self, mod):
+        """A partial map that does not cover the scan is an error by default."""
+        qm, off = qmap(mod)
+        qm.init_dest(nside=NSIDE_MAP, pol=True, pixels=np.array([0, 1], dtype=np.int64))
+        with pytest.raises(RuntimeError, match="out of bounds"):
+            qm.from_tod(off, tod=TOD.copy())
+
+    def test_missing_pixel_skipped_when_allowed(self, mod):
+        qm, off = qmap(mod, error_missing=False)
+        qm.init_dest(nside=NSIDE_MAP, pol=True, pixels=np.array([0, 1], dtype=np.int64))
+        vec, proj = qm.from_tod(off, tod=TOD.copy())
+        assert np.asarray(proj)[0].sum() == 0
+
+    def test_missing_pixel_raises_when_threaded(self, mod):
+        """An exception raised inside the OpenMP region must still surface."""
+        qm, off = qmap(mod, nthreads=8)
+        qm.init_dest(nside=NSIDE_MAP, pol=True, pixels=np.array([0, 1], dtype=np.int64))
+        with pytest.raises(RuntimeError, match="out of bounds"):
+            qm.from_tod(off, tod=TOD.copy())
+
+
+HAS_OPENMP = qpoint2._libqpoint2.HAS_OPENMP
+
+
+class TestThreadedReduction:
+    """
+    With OpenMP, tod2map merges thread-local maps in arrival order, so the
+    result is not bit-reproducible -- in qpoint either. Hits are integer
+    counts and stay exact regardless.
+
+    OpenMP is off on macOS: linking a runtime collides with the one healpy
+    bundles and segfaults whichever loads second. These tests still run
+    there, they just compare a serial result against itself.
+    """
+
+    def _run(self, mod, nthreads):
+        qm, off = qmap(mod, nthreads=nthreads, nside=NSIDE_MAP)
+        return [np.asarray(x) for x in qm.from_tod(off, tod=TOD.copy())]
+
+    def test_serial_is_bit_identical_to_qpoint(self):
+        a, b = self._run(qpoint, 1), self._run(qpoint2, 1)
+        assert all(identical(x, y) for x, y in zip(a, b))
+
+    def test_threaded_matches_serial_to_rounding(self):
+        serial, threaded = self._run(qpoint2, 1), self._run(qpoint2, 8)
+        for x, y in zip(serial, threaded):
+            assert np.allclose(x, y, rtol=0, atol=1e-9)
+
+    def test_hits_are_exact_under_threading(self):
+        serial, threaded = self._run(qpoint2, 1), self._run(qpoint2, 8)
+        assert identical(serial[1][0], threaded[1][0])
+
+    def test_threading_is_a_noop_without_openmp(self):
+        if HAS_OPENMP:
+            pytest.skip("OpenMP is enabled; the reduction is not reproducible")
+        serial, threaded = self._run(qpoint2, 1), self._run(qpoint2, 8)
+        assert all(identical(x, y) for x, y in zip(serial, threaded))
+
+    def test_qpoint_is_equally_nonreproducible(self):
+        """Any divergence is inherited, not introduced by the C++ port."""
+        if not HAS_OPENMP:
+            pytest.skip("OpenMP disabled; nothing to diverge")
+        s1, t1 = self._run(qpoint, 1), self._run(qpoint, 8)
+        s3, t3 = self._run(qpoint2, 1), self._run(qpoint2, 8)
+        d1 = max(np.max(np.abs(x - y)) for x, y in zip(s1, t1))
+        d3 = max(np.max(np.abs(x - y)) for x, y in zip(s3, t3))
+        assert d1 > 0 and d3 > 0
+        assert np.isclose(d1, d3, rtol=10)
+
 
 GROUPS = ("rates", "options", "weather", "params")
 
@@ -925,6 +2091,10 @@ class TestStandaloneRefraction:
         assert_identical(ref, got, "refraction default freq")
 
 
+MAP_RNG = np.random.default_rng(0)
+INTERP_DEC = np.linspace(-85.0, 85.0, N)
+
+
 @pytest.mark.parametrize("mod", IMPLS)
 class TestParameterAPI:
     def test_same_parameter_set(self, mod):
@@ -954,6 +2124,7 @@ class TestParameterAPI:
         assert ref == got
 
     def test_same_defaults(self, mod):
+        """Every default, not just every name -- there are no exceptions."""
         assert qpoint_defaults() == flat_params(mod)
 
     def test_same_default_types(self, mod):
@@ -1029,3 +2200,303 @@ class TestParameterAPI:
         with q.settings(accuracy="high"):
             assert q.get("accuracy") == "high"
         assert q.get("accuracy") == "low"
+
+
+NS_BORE = 20
+
+
+def pointed_map(mod, n=NS_BORE, hwp=False):
+    """
+    A QMap with a boresight and ctime installed, and a waveplate if asked
+    for. Hands back the arrays too, so a test can swap one of them.
+    """
+    ctime = 1418662800.0 + np.arange(n) / 10.0
+    qm = mod.QMap(nside=NSIDE_MAP, pol=True)
+    q_bore = np.asarray(
+        qm.azel2bore(
+            np.linspace(0, 90, n),
+            np.full(n, 45.0),
+            None,
+            None,
+            np.full(n, 165.7),
+            np.full(n, -77.6),
+            ctime,
+        )
+    )
+    kwargs = {"ctime": ctime}
+    if hwp:
+        kwargs["q_hwp"] = np.asarray(qm.hwp_quat(np.linspace(0, 180, n)))
+    qm.init_point(q_bore, **kwargs)
+    return qm, q_bore, ctime
+
+
+class TestBoreCanBeSwappedAlone:
+    """
+    init_point(q_bore=...) replaces the boresight and leaves ctime and the
+    waveplate where they are, which is what rotating a scan into another frame
+    needs. qpoint resets instead, dropping the time with it.
+
+    The lengths are the one thing that cannot be left to the caller: n() counts
+    the boresight and time(i) reads ctime[i] for each of those samples, so a
+    longer boresight would read past an installed ctime or q_hwp.
+    """
+
+    def test_the_swapped_boresight_is_the_one_that_gets_used(self):
+        """
+        Not merely installed: pointing somewhere else has to change where
+        the samples land, or the swap is cosmetic.
+        """
+        out = []
+        for el in (45.0, 55.0):
+            qm, q_bore, ctime = pointed_map(qpoint2)
+            if el != 45.0:
+                # a different boresight of the same length, so only the
+                # swap can account for the change
+                qm.init_point(
+                    np.asarray(
+                        qm.azel2bore(
+                            np.linspace(0, 90, NS_BORE),
+                            np.full(NS_BORE, el),
+                            None,
+                            None,
+                            np.full(NS_BORE, 165.7),
+                            np.full(NS_BORE, -77.6),
+                            ctime,
+                        )
+                    )
+                )
+            off = np.atleast_2d(qm.det_offset(0.0, 0.0, 0.0))
+            out.append(np.asarray(qm.from_tod(off, tod=np.ones((1, NS_BORE)))[1]))
+        assert not np.array_equal(out[0], out[1])
+
+    @pytest.mark.parametrize("hwp", [False, True], ids=["ctime", "ctime+hwp"])
+    def test_a_longer_boresight_against_a_stale_column_raises(self, hwp):
+        qm, q_bore, _ = pointed_map(qpoint2, hwp=hwp)
+        with pytest.raises(ValueError, match="samples against"):
+            qm.init_point(np.repeat(q_bore, 2, axis=0))
+
+    def test_a_longer_chunk_supplied_together_is_accepted(self):
+        """
+        The guard must not block the legitimate call: init_point drops
+        whatever this call is about to reinstall before set_bore measures
+        anything.
+        """
+        qm, q_bore, ctime = pointed_map(qpoint2, hwp=True)
+        n = 2 * NS_BORE
+        qm.init_point(
+            np.repeat(q_bore, 2, axis=0),
+            ctime=np.repeat(ctime, 2),
+            q_hwp=np.asarray(qm.hwp_quat(np.linspace(0, 180, n))),
+        )
+        assert qm._point.n_samples() == n
+
+    def test_a_shorter_boresight_is_accepted(self):
+        """The unused tail of ctime is never read, so this one is safe."""
+        qm, q_bore, _ = pointed_map(qpoint2)
+        half = NS_BORE // 2
+        qm.init_point(q_bore[:half])
+        assert qm._point.n_samples() == half
+        off = np.atleast_2d(qm.det_offset(0.0, 0.0, 0.0))
+        assert np.asarray(qm.from_tod(off, tod=np.ones((1, half)))[1]).sum() > 0
+
+
+class TestDepoKeys:
+    """
+    The two packages' depos have to carry the same keys at every point in a
+    mapmaking run.
+
+    qpoint writes each array into a dict as it initializes a structure and
+    pops it on reset; qpoint2 reads the same keys through the wrappers that
+    hold those arrays. Nothing forces the two to agree, so this walks a run
+    through both and compares the key sets state by state.
+    """
+
+    NS_SMALL = 20
+    CT = 1418662800.0 + np.arange(NS_SMALL) / 10.0
+
+    def states(self, mod):
+        """label -> sorted depo keys, over a whole run."""
+        out = {}
+        npix = NPIX_MAP
+
+        def point(**kwargs):
+            qm = mod.QMap(nside=NSIDE_MAP, pol=True)
+            q_bore = qm.azel2bore(
+                np.linspace(0, 90, self.NS_SMALL),
+                np.full(self.NS_SMALL, 45.0),
+                None,
+                None,
+                np.full(self.NS_SMALL, 165.7),
+                np.full(self.NS_SMALL, -77.6),
+                self.CT,
+            )
+            qm.init_point(q_bore, **kwargs)
+            return qm
+
+        out["fresh"] = mod.QMap()
+        out["dest-full"] = mod.QMap(nside=NSIDE_MAP, pol=True)
+
+        qm = mod.QMap()
+        qm.init_dest(nside=NSIDE_MAP, vec=False, proj=np.zeros((1, npix)))
+        out["dest-projonly"] = qm
+
+        qm = mod.QMap()
+        qm.init_dest(nside=NSIDE_MAP, pixels=PARTIAL_PIX, pol=True)
+        out["dest-partial"] = qm
+
+        qm = mod.QMap()
+        qm.init_source(np.ones((3, npix)), pol=True)
+        out["source"] = qm
+
+        qm = mod.QMap()
+        qm.init_source(
+            np.ones((3, len(PARTIAL_PIX))),
+            pixels=PARTIAL_PIX,
+            nside=NSIDE_MAP,
+            pol=True,
+        )
+        out["source-partial"] = qm
+
+        out["point-bore"] = point()
+        out["point-ctime"] = point(ctime=self.CT)
+        out["point-hwp"] = point(
+            ctime=self.CT,
+            q_hwp=np.asarray(mod.QMap().hwp_quat(np.linspace(0, 180, self.NS_SMALL))),
+        )
+
+        qm = point(ctime=self.CT)
+        off = np.atleast_2d(qm.det_offset(0.0, 0.0, 0.0))
+        tod = np.ones((1, self.NS_SMALL))
+        qm.init_detarr(off, tod=tod)
+        out["detarr-tod"] = qm
+
+        qm = point(ctime=self.CT)
+        qm.init_detarr(
+            off,
+            tod=tod.copy(),
+            flag=np.zeros((1, self.NS_SMALL), dtype=np.uint8),
+            weights=np.ones((1, self.NS_SMALL)),
+        )
+        out["detarr-all"] = qm
+        qm2 = point(ctime=self.CT)
+        qm2.init_detarr(off, tod=tod.copy())
+        qm2.reset_detarr()
+        out["detarr-reset"] = qm2
+
+        qm = point(ctime=self.CT)
+        qm.from_tod(off, tod=tod.copy())
+        out["post-from_tod"] = qm
+
+        qm = point(ctime=self.CT)
+        qm.init_source(np.ones((3, npix)), pol=True)
+        qm.to_tod(off)
+        out["post-to_tod"] = qm
+
+        for name in ("reset_dest", "reset_point", "reset"):
+            qm = point(ctime=self.CT)
+            getattr(qm, name)()
+            out[name] = qm
+
+        qm = point(ctime=self.CT)
+        qm.init_source(np.ones((3, npix)), pol=True)
+        qm.reset_source()
+        out["reset_source"] = qm
+
+        return {label: tuple(sorted(qm.depo)) for label, qm in out.items()}
+
+    def test_the_key_sets_agree_at_every_state(self):
+        v1, v2 = self.states(qpoint), self.states(qpoint2)
+        assert set(v1) == set(v2)
+        for label in sorted(v1):
+            assert v1[label] == v2[label], label
+
+    def test_a_full_reset_empties_both(self):
+        assert self.states(qpoint)["reset"] == ()
+        assert self.states(qpoint2)["reset"] == ()
+
+    def test_the_nsides_agree(self):
+        for mod in (qpoint, qpoint2):
+            qm = mod.QMap(nside=NSIDE_MAP, pol=True)
+            qm.init_source(np.ones((3, NPIX_MAP)), pol=True)
+            assert qm.depo["dest_nside"] == NSIDE_MAP
+            assert qm.depo["source_nside"] == NSIDE_MAP
+
+
+class TestClearingTimeDropsTheKey:
+    """
+    init_point(ctime=False) detaches the timestamps, and only qpoint2's depo
+    says so.
+
+    qpoint nulls the pointer C reads but never pops the dict entry, so its
+    depo advertises an array the mapmaker is no longer using. qpoint2 is the
+    correct one here; both halves are asserted so the divergence cannot go
+    stale.
+    """
+
+    NS_SMALL = 20
+    CT = 1418662800.0 + np.arange(NS_SMALL) / 10.0
+
+    def pointed(self, mod, **kwargs):
+        qm = mod.QMap(nside=NSIDE_MAP, pol=True)
+        q_bore = qm.azel2bore(
+            np.linspace(0, 90, self.NS_SMALL),
+            np.full(self.NS_SMALL, 45.0),
+            None,
+            None,
+            np.full(self.NS_SMALL, 165.7),
+            np.full(self.NS_SMALL, -77.6),
+            self.CT,
+        )
+        qm.init_point(q_bore, ctime=self.CT, **kwargs)
+        return qm
+
+    def test_qpoint2_drops_it(self):
+        qm = self.pointed(qpoint2)
+        assert "ctime" in qm.depo
+        qm.init_point(ctime=False)
+        assert "ctime" not in qm.depo
+
+    def test_qpoint_keeps_it(self):
+        qm = self.pointed(qpoint)
+        qm.init_point(ctime=False)
+        assert "ctime" in qm.depo
+
+    def test_the_same_holds_for_the_waveplate(self):
+        hwp = np.asarray(qpoint2.QMap().hwp_quat(np.linspace(0, 180, self.NS_SMALL)))
+        qm = self.pointed(qpoint2, q_hwp=hwp)
+        assert "q_hwp" in qm.depo
+        qm.init_point(q_hwp=False)
+        assert "q_hwp" not in qm.depo
+
+
+class TestBoreSwapKeepsTheOtherColumns:
+    """
+    The half of TestBoreCanBeSwappedAlone the depo makes visible: a boresight
+    swap leaves ctime and the waveplate installed, where qpoint's drops both.
+
+    It also makes the swap an ordinary assignment -- depo["q_bore"] = ...
+    writes through to set_bore.
+    """
+
+    def test_qpoint2_keeps_the_time_and_the_waveplate(self):
+        qm, q_bore, _ = pointed_map(qpoint2, hwp=True)
+        rotated = q_bore.copy()
+        qm.init_point(rotated)
+        assert qm.depo["q_bore"] is rotated
+        assert "ctime" in qm.depo
+        assert "q_hwp" in qm.depo
+
+    def test_qpoint_drops_both(self):
+        """The other side, so the divergence cannot go stale."""
+        qm, q_bore, _ = pointed_map(qpoint, hwp=True)
+        qm.init_point(q_bore.copy())
+        assert "ctime" not in qm.depo
+        assert "q_hwp" not in qm.depo
+
+    def test_the_depo_assignment_does_the_same(self):
+        qm, q_bore, _ = pointed_map(qpoint2, hwp=True)
+        rotated = q_bore.copy()
+        qm.depo["q_bore"] = rotated
+        assert qm.depo["q_bore"] is rotated
+        assert "ctime" in qm.depo
+        assert "q_hwp" in qm.depo
