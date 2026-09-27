@@ -1,15 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "qpoint.h"
 
 const int QP_DO_ALWAYS = 0;
 const int QP_DO_ONCE = -1;
 const int QP_DO_NEVER = -999;
 
+/* NAN, not a negative number, means "not updated yet".
+
+   A sentinel that is also a legitimate ctime cannot be told apart from
+   one. ctime_last <= 0 used to stand for "never updated", so a ctime of
+   zero or less -- 1970 or earlier, odd but not illegal -- disabled every
+   rate cache instead of filling it: each sample looked uninitialised and
+   re-fired every correction, the high-accuracy nutation series included.
+   NAN is not a time, so it cannot collide, and comparisons against it are
+   false, which is why qp_check_update tests for it first. */
 void qp_init_state(qp_state_t *state, double rate) {
   state->update_rate = rate;
-  state->ctime_last = -1;
+  state->ctime_last = NAN;
 }
 
 qp_memory_t * qp_init_memory(void) {
@@ -91,11 +101,11 @@ void qp_free_memory(qp_memory_t *mem) {
   void qp_set_rate_##state(qp_memory_t *mem, double rate) { \
     if (rate != mem->state_##state.update_rate) {	    \
       mem->state_##state.update_rate = rate;		    \
-      mem->state_##state.ctime_last = -1;		    \
+      mem->state_##state.ctime_last = NAN;		    \
     }							    \
   }							    \
   void qp_reset_rate_##state(qp_memory_t *mem) {	    \
-    mem->state_##state.ctime_last = -1;			    \
+    mem->state_##state.ctime_last = NAN;			    \
   }							    \
   double qp_get_rate_##state(qp_memory_t *mem) {	    \
     return mem->state_##state.update_rate;		    \
@@ -264,9 +274,9 @@ int qp_check_update(qp_state_t *state, double ctime) {
   if (state->update_rate == QP_DO_NEVER) return 0;
   // don't update if set to once and already done
   if ( (state->update_rate == QP_DO_ONCE) &&
-       (state->ctime_last > 0) ) return 0;
-  // update if hasn't been checked yet (likely first time)
-  if (state->ctime_last <= 0) {
+       !isnan(state->ctime_last) ) return 0;
+  // update if hasn't been checked yet, which NAN is what marks
+  if (isnan(state->ctime_last)) {
     state->ctime_last = ctime;
     return 1;
   }
