@@ -1455,51 +1455,214 @@ class TestRateCaching:
 class TestFastPix:
     """
     fast_pix skips the angle round trip and takes the pixel from the
-    pointing vector. Away from the poles the two agree exactly.
+    pointing vector. Away from the poles the two agree exactly, and the
+    polarization angle agrees everywhere: both paths form cos^2(b) from
+    the quaternion and hand it to one shared body, so there is nothing
+    left to differ.
     """
 
     @pytest.mark.parametrize("order", ["ring", "nest"])
+    @pytest.mark.parametrize(
+        "lo, hi, label",
+        [
+            (-90.0, 90.0, "whole sky"),
+            (89.0, 90.0, "north cap"),
+            (-90.0, -89.0, "south cap"),
+            (89.9999, 90.0, "inside the degenerate branch"),
+        ],
+    )
+    def test_the_polarization_angle_is_exact(self, order, lo, hi, label):
+        """
+        Bit-identical, not close: cos^2(b) used to come from the pointing vector
+        as (1 - vec[2]**2) / 4, which cancels as vec[2] tends to +/-1 and is then
+        divided by. The caps are the point -- the old error was 2e-10 within a
+        degree of a pole, so a whole-sky sample alone would barely see it.
+        """
+        rng = np.random.default_rng(4)
+        n = 4000
+        ra = rng.uniform(0.0, 360.0, n)
+        dec = rng.uniform(lo, hi, n)
+        pa = rng.uniform(-180.0, 180.0, n)
+        q = qpoint.QPoint(mean_aber=True, pix_order=order)
+        quat = np.asarray(q.radecpa2quat(ra, dec, pa), dtype=float)
+        _, sin_f, cos_f = q.quat2pix(quat, nside=256, fast_pix=True)
+        _, sin_s, cos_s = q.quat2pix(quat, nside=256, fast_pix=False)
+        assert np.array_equal(np.asarray(sin_f), np.asarray(sin_s)), label
+        assert np.array_equal(np.asarray(cos_f), np.asarray(cos_s)), label
+
     @pytest.mark.parametrize("fast_math", [False, True])
-    def test_quat2pixpa_fast_path(self, order, fast_math):
-        """
-        quat2pixpa has its own copy of the fast path, separate from the
-        one bore2pix takes. Crossed with the pixel ordering and with
-        fast_math, because the fast path picks the ordering itself and
-        computes the angle with whichever trig is configured.
+    def test_the_position_angle_is_exact(self, fast_math):
+        """The same for quat2pixpa, which has its own copy of the path."""
+        rng = np.random.default_rng(5)
+        n = 4000
+        ra = rng.uniform(0.0, 360.0, n)
+        dec = np.concatenate(
+            [rng.uniform(-90.0, 90.0, n // 2), rng.uniform(89.9, 90.0, n - n // 2)]
+        )
+        pa = rng.uniform(-180.0, 180.0, n)
+        q = qpoint.QPoint(mean_aber=True, fast_math=fast_math)
+        quat = np.asarray(q.radecpa2quat(ra, dec, pa), dtype=float)
+        _, pa_fast = q.quat2pixpa(quat, nside=256, fast_pix=True)
+        _, _, pa_slow = q.quat2radecpa(quat)
+        assert np.array_equal(np.asarray(pa_fast), np.asarray(pa_slow))
 
-        The exact poles are included to reach the branch where cos^2(b)
-        underflows and the angle has to come from the quaternion instead.
-        There the fast path and the angle path disagree about the *pixel*
-        on purpose -- the angle path's cos(theta) rounds to 1 and throws
-        the azimuth away -- so the pixel is compared outside that cap
-        only, and the angle merely has to be finite.
+    def test_it_is_on_by_default(self):
         """
-        dec = np.array([90.0, -90.0, 89.99, -89.99, 80.0, 0.0, -45.0, 12.0])
-        ra = np.linspace(0.0, 300.0, len(dec))
-        pa_in = np.linspace(-150.0, 150.0, len(dec))
-        got = {}
-        for fast in (False, True):
-            q = qpoint.QPoint(
-                mean_aber=True,
-                accuracy="low",
-                fast_pix=fast,
-                pix_order=order,
-                fast_math=fast_math,
-            )
-            pix, pa = q.quat2pixpa(q.radecpa2quat(ra, dec, pa_in), nside=64)
-            got[fast] = (np.asarray(pix).copy(), np.asarray(pa).copy())
+        It costs nothing in accuracy now, and is worth 26-34% of tod2map.
+        The pixel differs from the angle path only inside 2.1e-8 rad of a
+        pole, where the fast path is the correct one.
+        """
+        assert qpoint.QPoint().get("fast_pix") is True
+        assert qpoint.QMap().get("fast_pix") is True
+
+
+FP_NSIDE = 128
+FP_N = 50
+FP_CTIME = CTIME + np.arange(FP_N, dtype=float)
+FP_RA = np.linspace(0.0, 350.0, FP_N)
+FP_DEC = np.linspace(-80.0, 80.0, FP_N)
+FP_PA = np.linspace(-170.0, 170.0, FP_N)
+FP_AZ = np.linspace(0.0, 360.0, FP_N)
+FP_EL = np.linspace(30.0, 70.0, FP_N)
+FP_LON = np.full(FP_N, LON)
+FP_LAT = np.full(FP_N, LAT)
+
+
+def fp_bore(**options):
+    """A QPoint and a boresight quaternion to go with it."""
+    q = qpoint.QPoint(**options)
+    qb = q.azel2bore(FP_AZ, FP_EL, None, None, FP_LON, FP_LAT, FP_CTIME)
+    return q, np.asarray(qb)
+
+
+def same(expected, actual, label):
+    """
+    Exact equality, NaNs in matching slots included: a tolerance would
+    defeat the point of holding a fast path to a slow one.
+    """
+    if not isinstance(expected, tuple):
+        expected, actual = (expected,), (actual,)
+    assert len(expected) == len(actual), "{}: arity differs".format(label)
+    for i, (e, a) in enumerate(zip(expected, actual)):
+        e, a = np.asarray(e), np.asarray(a)
+        assert e.shape == a.shape, "{}[{}] shape differs".format(label, i)
+        eq = np.array_equal(e, a, equal_nan=np.issubdtype(e.dtype, np.floating))
+        assert eq, "{}[{}] differs".format(label, i)
+
+
+class TestFastPixAgainstTheAnglePath:
+    """
+    fast_pix takes the pixel from the pointing vector instead of going
+    round through ra/dec, and has to agree with that two-step path
+    exactly. Crossed with pol and the pixel ordering, which the fast path
+    picks itself.
+    """
+
+    @pytest.mark.parametrize("order", ["ring", "nest"])
+    @pytest.mark.parametrize(
+        "kwargs",
+        [pytest.param({}, id="pol"), pytest.param({"pol": False}, id="no-pol")],
+    )
+    def test_quat2pix(self, order, kwargs):
+        """fast_pix=False is the two-step path, taken inside quat2pix."""
+        q = qpoint.QPoint(pix_order=order)
+        quat = q.radecpa2quat(FP_RA, FP_DEC, FP_PA)
+        slow = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=False, **kwargs)
+        fast = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=True, **kwargs)
+        same(tuple(slow), tuple(fast), "quat2pix fast vs two-step")
+
+    @pytest.mark.parametrize("order", ["ring", "nest"])
+    def test_quat2pixpa_against_the_public_two_step(self, order):
+        """Here the two steps are separately reachable, so spell them out."""
+        q = qpoint.QPoint(pix_order=order)
+        quat = q.radecpa2quat(FP_RA, FP_DEC, FP_PA)
+        ra, dec, pa = q.quat2radecpa(quat)
+        want = (np.asarray(q.radec2pix(ra, dec, nside=FP_NSIDE)), np.asarray(pa))
+        got = tuple(q.quat2pixpa(quat, nside=FP_NSIDE, fast_pix=True))
+        same(want, got, "quat2pixpa fast vs quat2radecpa+radec2pix")
+
+    @pytest.mark.parametrize("order", ["ring", "nest"])
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="pol"),
+            pytest.param({"pol": False}, id="no-pol"),
+            pytest.param({"return_pa": True}, id="pa"),
+        ],
+    )
+    def test_bore2pix(self, order, kwargs):
+        q, qb = fp_bore(pix_order=order)
+        off = q.det_offset(1.0, 2.0, 3.0)
+        slow = q.bore2pix(off, FP_CTIME, qb, nside=FP_NSIDE, fast_pix=False, **kwargs)
+        fast = q.bore2pix(off, FP_CTIME, qb, nside=FP_NSIDE, fast_pix=True, **kwargs)
+        same(tuple(slow), tuple(fast), "bore2pix fast vs two-step")
+
+    @pytest.mark.parametrize("order", ["ring", "nest"])
+    def test_near_the_poles(self, order):
+        """
+        The polarization angle is exact at the poles, where the old form lost
+        2e-10 within a degree of one.
+
+        The pixel is a separate matter: within about a microdegree of a pole the
+        two routes land on adjacent pixels, which no choice of cos^2(b) changes,
+        so the pixel is only required to match outside that sliver.
+        """
+        dec = np.array([90.0, -90.0, 89.999999, -89.999999, 89.99, -89.99, 89.9, 89.0])
+        ra = np.linspace(0.0, 350.0, len(dec))
+        pa = np.linspace(-170.0, 170.0, len(dec))
+        q = qpoint.QPoint(pix_order=order)
+        quat = q.radecpa2quat(ra, dec, pa)
+        pix_s, sin_s, cos_s = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=False)
+        pix_f, sin_f, cos_f = q.quat2pix(quat, nside=FP_NSIDE, fast_pix=True)
+        same((sin_s, cos_s), (sin_f, cos_f), "pol angle at the poles")
         settled = np.abs(dec) <= 89.99
-        assert np.array_equal(got[False][0][settled], got[True][0][settled])
-        assert np.all(np.isfinite(got[True][1]))
+        same(
+            np.asarray(pix_s)[settled],
+            np.asarray(pix_f)[settled],
+            "pixel away from the pole sliver",
+        )
 
-    def test_same_pixels_as_the_angle_path(self):
-        pix = {}
-        for fast in (False, True):
-            q = qpoint.QPoint(mean_aber=True, accuracy="low", fast_pix=fast)
-            q_bore = q.azel2bore(AZ, EL, None, None, LON, LAT, CTIMES)
-            out = q.bore2pix(q.det_offset(1.0, 2.0, 30.0), CTIMES, q_bore, nside=64)
-            pix[fast] = np.asarray(out[0] if isinstance(out, tuple) else out).copy()
-        assert np.array_equal(pix[False], pix[True])
+    @pytest.mark.parametrize("order", ["ring", "nest"])
+    def test_the_fast_path_is_the_better_one_at_the_pole(self, order):
+        """
+        Inside theta < 2.1e-8 rad the two disagree, and the slow path is the wrong
+        one: its cos(theta) rounds to 1, throwing the azimuth away and dumping
+        every direction into pixel 0. So no agreement is forced there. The
+        azimuths sit inside the quadrants rather than on their boundaries, where
+        the assignment is a tie-break.
+        """
+        ra = np.array(
+            [
+                15.0,
+                45.0,
+                75.0,
+                105.0,
+                135.0,
+                165.0,
+                195.0,
+                225.0,
+                255.0,
+                285.0,
+                315.0,
+                345.0,
+            ]
+        )
+        pa = np.full(len(ra), 17.0)
+        q = qpoint.QPoint(pix_order=order)
+
+        def pix(theta, fast):
+            dec = np.full(len(ra), 90.0 - np.degrees(theta))
+            quat = q.radecpa2quat(ra, dec, pa)
+            return np.asarray(q.quat2pix(quat, nside=FP_NSIDE, fast_pix=fast)[0])
+
+        # far enough out that no rounding is in play, so this is the truth
+        want = pix(1e-3, False)
+        assert len(np.unique(want)) == 4, "expected one pixel per quadrant"
+        same(want, pix(1e-3, True), "quadrants away from the pole")
+
+        for theta in (2e-8, 1e-8, 1e-12):
+            same(want, pix(theta, True), "fast_pix in the cap")
+            assert np.all(pix(theta, False) == want[0]), "slow path collapses"
 
 
 class TestBulletinARange:
@@ -1524,3 +1687,173 @@ class TestPrintMemory:
         out = capfd.readouterr().out
         assert "QPOINT MEMORY" in out
         assert "accuracy" in out
+
+
+class TestInverseRatesAreIndependent:
+    """
+    The inverse transform has its own update rates, and they work.
+
+    The two aberrations took an inv flag and ignored it when checking the
+    rate, so rate_daber_inv and rate_aaber_inv did nothing and a pass in one
+    direction moved the other's clock -- which is what the separate states
+    exist to prevent.
+    """
+
+    N = 200
+
+    def bore(self):
+        ct = CTIME + np.arange(self.N) / 10.0
+        lon = np.full(self.N, LON)
+        lat = np.full(self.N, LAT)
+        q = qpoint.QPoint()
+        q_bore = np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, self.N),
+                np.full(self.N, 45.0),
+                None,
+                None,
+                lon,
+                lat,
+                ct,
+            )
+        )
+        return q_bore, lon, lat, ct
+
+    def inverse_el(self, **kwargs):
+        q_bore, lon, lat, ct = self.bore()
+        _, el, _ = qpoint.QPoint(**kwargs).bore2azel(q_bore, lon, lat, ct)
+        return np.asarray(el)
+
+    @pytest.mark.parametrize(
+        "rate, inv_rate, floor_arcsec",
+        [
+            # annual aberration is ~20 arcsec, diurnal a fraction of one
+            ("rate_aaber", "rate_aaber_inv", 1.0),
+            ("rate_daber", "rate_daber_inv", 0.01),
+        ],
+    )
+    def test_the_inverse_rate_controls_the_inverse(self, rate, inv_rate, floor_arcsec):
+        """
+        With the forward rate off, only the inverse one can act -- so if it
+        is being read at all, turning it on has to move the answer.
+        """
+        on = self.inverse_el(**{rate: "never", inv_rate: "always"})
+        off = self.inverse_el(**{rate: "never", inv_rate: "never"})
+        assert np.abs(on - off).max() * 3600.0 > floor_arcsec
+
+    @pytest.mark.parametrize(
+        "rate, inv_rate",
+        [("rate_aaber", "rate_aaber_inv"), ("rate_daber", "rate_daber_inv")],
+    )
+    def test_the_forward_rate_no_longer_decides_it(self, rate, inv_rate):
+        """
+        The other half: with the inverse rate off, the forward one must not
+        be able to switch the correction on behind its back.
+        """
+        a = self.inverse_el(**{rate: "always", inv_rate: "never"})
+        b = self.inverse_el(**{rate: "never", inv_rate: "never"})
+        assert np.array_equal(a, b)
+
+    def test_neither_direction_moves_the_other_s_clock(self):
+        """
+        qp_check_update writes ctime_last, so sharing a state let a run in
+        one direction leave the other due for an update at a time it had
+        already covered. Independent states mean an inverse pass cannot
+        change what a forward pass then produces.
+        """
+        q_bore, lon, lat, ct = self.bore()
+        az = np.linspace(0, 90, self.N)
+        el = np.full(self.N, 45.0)
+
+        clean = qpoint.QPoint()
+        want = np.asarray(clean.azel2bore(az, el, None, None, lon, lat, ct))
+
+        used = qpoint.QPoint()
+        used.bore2azel(q_bore, lon, lat, ct)  # run the inverse first
+        got = np.asarray(used.azel2bore(az, el, None, None, lon, lat, ct))
+        assert np.array_equal(want, got)
+
+    def test_the_round_trip_still_closes(self):
+        q_bore, lon, lat, ct = self.bore()
+        az = np.linspace(0, 90, self.N)
+        q = qpoint.QPoint()
+        got_az, got_el, _ = q.bore2azel(q_bore, lon, lat, ct)
+        assert np.abs(np.asarray(got_az) % 360 - az % 360).max() < 1e-5
+        assert np.abs(np.asarray(got_el) - 45.0).max() < 1e-5
+
+
+class TestRateStateSentinel:
+    """
+    An un-updated rate state is marked with NAN, not with a negative time.
+
+    qp_check_update used to read ctime_last <= 0 as "never updated", which is
+    also a legitimate ctime, so a run at non-positive ctime recomputed every
+    correction on every sample. 'once' was worse: its "already done" guard was
+    ctime_last > 0, which a negative ctime never satisfies, so it recomputed
+    every sample -- the opposite of what was asked for.
+    """
+
+    N = 60
+
+    def bore(self, ctime, **kwargs):
+        n = len(ctime)
+        q = qpoint.QPoint(**kwargs)
+        out = np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, n),
+                np.full(n, 45.0),
+                None,
+                None,
+                np.full(n, LON),
+                np.full(n, LAT),
+                np.ascontiguousarray(ctime),
+            )
+        )
+        # keep q alive until after the read: its __del__ frees the struct
+        return out, q._memory.contents.state_npb.ctime_last
+
+    @pytest.mark.parametrize(
+        "label, ctime",
+        [
+            ("positive", CTIME + np.arange(N) * 5.0),
+            ("negative", -50000.0 + np.arange(N) * 5.0),
+            ("straddling zero", -150.0 + np.arange(N) * 5.0),
+        ],
+        ids=lambda v: v if isinstance(v, str) else "",
+    )
+    def test_once_freezes_whatever_the_epoch(self, label, ctime):
+        """
+        The decisive one: at non-positive ctime `once` used to behave like
+        `always`, because its guard could never fire.
+        """
+        once, _ = self.bore(ctime, rate_npb="once")
+        always, _ = self.bore(ctime, rate_npb="always")
+        ten, _ = self.bore(ctime, rate_npb=10)
+        assert not np.array_equal(once, always)
+        assert not np.array_equal(once, ten)
+
+    def test_a_fresh_state_is_nan(self):
+        q = qpoint.QPoint()
+        assert np.isnan(q._memory.contents.state_npb.ctime_last)
+
+    def test_a_reset_returns_it_to_nan(self):
+        q = qpoint.QPoint()
+        ct = CTIME + np.arange(self.N) * 5.0
+        q.azel2bore(
+            np.linspace(0, 90, self.N),
+            np.full(self.N, 45.0),
+            None,
+            None,
+            np.full(self.N, LON),
+            np.full(self.N, LAT),
+            np.ascontiguousarray(ct),
+        )
+        assert not np.isnan(q._memory.contents.state_npb.ctime_last)
+        q.reset_rates()
+        assert np.isnan(q._memory.contents.state_npb.ctime_last)
+
+    def test_the_state_records_the_real_time(self):
+        """Including a negative one, rather than being stuck at a sentinel."""
+        ctime = -50000.0 + np.arange(self.N) * 5.0
+        _, last = self.bore(ctime, rate_npb="once")
+        assert last == ctime[0]

@@ -6,6 +6,13 @@ import sys
 import numpy as np
 import pytest
 import qpoint
+from qpoint._libqpoint import (
+    QP_VEC_D1,
+    QP_VEC_D1_POL,
+    QP_VEC_D2,
+    QP_VEC_POL,
+    QP_VEC_TEMP,
+)
 from qpoint.qmap_class import nside2npix, npix2nside, check_map, check_proj
 
 # Small nside for fast tests
@@ -226,6 +233,424 @@ class TestInitSource:
         assert not qm.source_is_init()
         qm.init_source(source, pol=False)
         assert qm.source_is_init()
+
+
+class TestVpolIsChecked:
+    """
+    A row count settles V polarization on its own -- four rows and nothing
+    else -- so init_source never consulted vpol to read a map. It is not
+    redundant but upstream: a caller uses it to pick which fields to read off
+    disk, so it is verified against the map that arrived.
+    """
+
+    @pytest.mark.parametrize("nrow", [1, 3, 4])
+    @pytest.mark.parametrize("vpol", [None, True, False])
+    def test_vpol_against_the_row_count(self, nrow, vpol):
+        qm = qpoint.QMap(mean_aber=True)
+        smap = np.zeros((nrow, NPIX))
+        if vpol is not None and bool(vpol) != (nrow == 4):
+            with pytest.raises(ValueError, match="vpol="):
+                qm.init_source(smap, vpol=vpol)
+            return
+        qm.init_source(smap, vpol=vpol)
+        assert qm.source_is_vpol() == (nrow == 4)
+
+    def test_pol_still_decides_where_the_rows_do_not(self):
+        """Three rows is the only count it is asked about."""
+        for pol, mode in ((None, QP_VEC_POL), (True, QP_VEC_POL), (False, QP_VEC_D1)):
+            qm = qpoint.QMap(mean_aber=True)
+            qm.init_source(np.zeros((3, NPIX)), pol=pol)
+            assert qm._source.contents.vec_mode == mode
+
+
+class TestPolAndVpolDefaultToNone:
+    """
+    Neither was ever the last word -- a supplied vec or proj settles the
+    mode in init_dest, and the map settles it in init_source -- so a
+    concrete default named something the shapes discard. None says "ask
+    the shapes" and falls back to T,Q,U where nothing else answers.
+    """
+
+    @pytest.mark.parametrize(
+        "kwargs, rows",
+        [
+            ({}, 3),
+            ({"pol": None}, 3),
+            ({"pol": True}, 3),
+            ({"pol": False}, 1),
+            ({"vpol": None}, 3),
+            ({"vpol": True}, 4),
+        ],
+    )
+    def test_init_dest_defaults(self, kwargs, rows):
+        qm = qpoint.QMap(mean_aber=True)
+        qm.init_dest(nside=NSIDE, **kwargs)
+        assert qm.depo["vec"].shape == (rows, NPIX)
+
+    def test_a_supplied_map_settles_it(self):
+        """Which is the whole reason the defaults are None."""
+        qm = qpoint.QMap(mean_aber=True)
+        qm.init_dest(nside=NSIDE, vec=np.zeros((3, NPIX)))
+        assert qm.depo["vec"].shape == (3, NPIX)
+        assert qm._dest.contents.vec_mode == QP_VEC_POL
+
+    # a dest has three modes, and one shape per component for each
+    ROWS = {
+        "vec": {"temp": 1, "pol": 3, "vpol": 4},
+        "proj": {"temp": 1, "pol": 6, "vpol": 10},
+    }
+
+    @pytest.mark.parametrize("component", ["vec", "proj"])
+    @pytest.mark.parametrize(
+        "kwargs, mode",
+        [
+            ({"pol": False}, "pol"),
+            ({"pol": True}, "temp"),
+            ({"vpol": True}, "pol"),
+            ({"vpol": False}, "vpol"),
+        ],
+    )
+    def test_contradicting_it_is_an_error(self, component, kwargs, mode):
+        """
+        Either component settles the mode on its own, so a flag that
+        disagrees is a contradiction rather than an override -- which is
+        what it used to be, silently. None leaves it to the shapes.
+        """
+        rows = self.ROWS[component][mode]
+        qm = qpoint.QMap(mean_aber=True)
+        with pytest.raises(ValueError, match="contradicts the supplied map"):
+            qm.init_dest(nside=NSIDE, **{component: np.zeros((rows, NPIX))}, **kwargs)
+
+    @pytest.mark.parametrize("mode", ["temp", "pol", "vpol"])
+    def test_a_supplied_proj_settles_the_mode(self, mode):
+        """
+        Read the same way as a vec, and enough on its own: a proj-only call
+        sizes the vec from it, with or without a flag that agrees.
+        """
+        rows, vrows = self.ROWS["proj"][mode], self.ROWS["vec"][mode]
+        flags = {"temp": {"pol": False}, "pol": {"pol": True}, "vpol": {"vpol": True}}[
+            mode
+        ]
+        for kwargs in ({}, flags):
+            qm = qpoint.QMap(mean_aber=True)
+            qm.init_dest(nside=NSIDE, proj=np.zeros((rows, NPIX)), **kwargs)
+            assert qm.depo["vec"].shape == (vrows, NPIX)
+
+
+# ---------------------------------------------------------------------------
+# init_dest / init_source with update=True
+# ---------------------------------------------------------------------------
+
+
+def update_mapper(**kwargs):
+    """A pointed, polarized QMap and a one-detector offset array."""
+    qm = qpoint.QMap(nside=NSIDE, pol=True, mean_aber=True, **kwargs)
+    q_bore, ctime = make_bore_and_ctime(qm)
+    qm.init_point(q_bore, ctime=ctime)
+    return qm, np.atleast_2d(qm.det_offset(1.0, 2.0, 0.0))
+
+
+class TestUpdateDest:
+    """
+    init_dest(update=True) replaces the maps in a dest that is already set up,
+    which is what a scan wants between chunks: the pointing, the pixel hash,
+    nside and the modes stay, and only the accumulators are swapped or zeroed.
+
+    Several of its behaviours are surprising, and are pinned as they stand.
+    """
+
+    def test_both_components_are_replaced(self):
+        """The depo is how the installed maps are reached; nothing is
+        returned."""
+        qm, _ = update_mapper()
+        vec = np.full((3, NPIX), 2.0)
+        proj = np.full((6, NPIX), 3.0)
+        assert qm.init_dest(vec=vec, proj=proj, update=True) is None
+        assert qm.depo["vec"] is vec
+        assert qm.depo["proj"] is proj
+
+    def test_the_mapmaker_accumulates_into_the_replacement(self):
+        """The ctypes struct is rewritten, not just the depo entry."""
+        qm, q_off = update_mapper()
+        seed = np.zeros((3, NPIX))
+        seed[0, :] = 3.0
+        qm.init_dest(vec=seed, update=True)
+        vec, _ = qm.from_tod(q_off, tod=np.ones((1, N)))
+        assert vec[0].sum() > 3.0 * NPIX
+        # Nothing was copied, so the accumulation landed in the caller's array.
+        assert np.shares_memory(vec, seed)
+
+    def test_defaults_zero_the_accumulators(self):
+        """
+        Supplying neither component is the per-chunk reset: each is replaced
+        by zeros of its own shape, so the next chunk starts clean without
+        re-deriving nside, the modes or the pixel hash.
+        """
+        qm, q_off = update_mapper()
+        _, proj = qm.from_tod(q_off, tod=np.ones((1, N)))
+        hits = proj[0].sum()
+        assert hits > 0
+
+        qm.init_dest(update=True)
+        assert not qm.depo["vec"].any()
+        assert not qm.depo["proj"].any()
+
+        _, proj = qm.from_tod(q_off, tod=np.ones((1, N)))
+        assert proj[0].sum() == hits
+
+    def test_copy_keeps_the_callers_array_out_of_it(self):
+        qm, _ = update_mapper()
+        caller = np.ones((3, NPIX))
+        qm.init_dest(vec=caller, update=True, copy=True)
+        assert not np.shares_memory(qm.depo["vec"], caller)
+
+        qm, _ = update_mapper()
+        caller = np.ones((3, NPIX))
+        qm.init_dest(vec=caller, update=True)
+        assert np.shares_memory(qm.depo["vec"], caller)
+
+    def test_wrong_npix_raises(self):
+        qm, _ = update_mapper()
+        with pytest.raises(ValueError, match="vec shape does not match"):
+            qm.init_dest(vec=np.ones((3, NPIX // 2)), update=True)
+        with pytest.raises(ValueError, match="proj shape does not match"):
+            qm.init_dest(proj=np.ones((6, NPIX // 2)), update=True)
+
+    def test_a_partial_dest_updates_too(self):
+        """The shape check is against the pixel list, not against nside."""
+        qm = qpoint.QMap(mean_aber=True)
+        pixels = np.arange(50, dtype=np.int64)
+        qm.init_dest(nside=NSIDE, pol=True, pixels=pixels)
+        qm.init_dest(vec=np.full((3, 50), 4.0), proj=np.full((6, 50), 5.0), update=True)
+        assert qm.depo["vec"].shape == (3, 50)
+        assert qm.depo["proj"].shape == (6, 50)
+        with pytest.raises(ValueError, match="vec shape does not match"):
+            qm.init_dest(vec=np.ones((3, NPIX)), update=True)
+
+    def test_update_on_a_fresh_qmap_initializes_instead(self):
+        """
+        update is only consulted once dest_is_init(), so on an uninitialized
+        QMap the flag is ignored and this is an ordinary init_dest.
+        """
+        qm = qpoint.QMap(mean_aber=True)
+        assert not qm.dest_is_init()
+        qm.init_dest(nside=NSIDE, pol=True, update=True)
+        assert qm.dest_is_init()
+        assert qm.depo["vec"].shape == (3, NPIX)
+        assert qm.depo["proj"].shape == (6, NPIX)
+
+    def test_a_switched_off_component_stays_off(self):
+        """
+        And the map supplied for it is dropped without a word. Each branch
+        is guarded by what the dest already has, so there is nowhere for a
+        vec to go on a proj-only dest. Nothing signals it, now that there
+        is no return value whose arity used to hint at it.
+        """
+        qm, _ = update_mapper()
+        qm.reset_dest()
+        qm.init_dest(nside=NSIDE, pol=True, vec=False)
+        assert qm.depo["vec"] is False
+
+        mine = np.full((3, NPIX), 99.0)
+        qm.init_dest(vec=mine, update=True)
+        assert qm.depo["vec"] is False
+        assert (mine == 99.0).all()
+
+    def test_the_row_count_must_match(self):
+        """
+        The whole shape is compared, not just the pixel axis, so the row
+        count cannot change under update. It used to: num_vec followed the
+        replacement while proj kept its own rows, leaving a dest that
+        described a T map and a polarized one at once, which from_tod
+        accumulated into and solve_map then refused.
+        """
+        qm, _ = update_mapper()
+        with pytest.raises(ValueError, match="vec shape does not match"):
+            qm.init_dest(vec=np.ones((1, NPIX)), update=True)
+        assert qm._dest.contents.num_vec == 3
+        assert qm._dest.contents.vec_mode == QP_VEC_POL
+
+    def test_pol_is_ignored_on_update(self):
+        """
+        update swaps arrays; it does not reinterpret them. pol used to be
+        consulted here, which let it write QP_VEC_D1 onto a *destination*
+        map -- a mode nothing in tod2map reads, and one init_dest will not
+        build, since a three-row vec forces pol True there.
+        """
+        qm, _ = update_mapper()
+        assert qm._dest.contents.vec_mode == QP_VEC_POL
+        qm.init_dest(vec=np.ones((3, NPIX)), pol=False, update=True)
+        assert qm._dest.contents.vec_mode == QP_VEC_POL
+        assert qm._dest.contents.vec_mode != QP_VEC_D1
+
+    def test_false_is_not_how_a_component_is_switched_off(self):
+        """
+        It used to reach the shape check as if it were a map and fail on
+        the attribute. Switching one off mid-scan still has no spelling
+        here, but the error now names the argument and what to use
+        instead.
+        """
+        qm, _ = update_mapper()
+        with pytest.raises(ValueError, match="cannot switch vec off"):
+            qm.init_dest(vec=False, update=True)
+
+
+class TestUpdateSource:
+    """
+    The same for init_source, which is simpler: one map rather than two.
+
+    The mode carries more weight here. qp_map2tod1 reads it with an exact
+    switch where qp_tod2map1 only asks whether it is at least POL, so a
+    source's mode decides which rows are read and whether the offset from the
+    pixel centre is computed at all. And a source map may change how many
+    derivative terms it carries, where a dest's vec may not.
+    """
+
+    def test_the_source_map_is_replaced(self):
+        qm, q_off = update_mapper()
+        qm.init_source(np.zeros((3, NPIX)), pol=True)
+        assert qm.to_tod(q_off).sum() == 0.0
+
+        source = np.zeros((3, NPIX))
+        source[0] = 5.0
+        assert qm.init_source(source, update=True) is None
+        assert qm.depo["source_map"] is source
+        assert qm.to_tod(q_off).sum() == pytest.approx(5.0 * N)
+
+    def test_a_partial_source_updates_too(self):
+        qm = qpoint.QMap(mean_aber=True)
+        pixels = np.arange(50, dtype=np.int64)
+        qm.init_source(np.ones((3, 50)), pol=True, pixels=pixels, nside=NSIDE)
+        qm.init_source(np.full((3, 50), 2.0), update=True)
+        assert qm.depo["source_map"][0, 0] == 2.0
+
+    def test_update_on_a_fresh_qmap_initializes_instead(self):
+        qm = qpoint.QMap(mean_aber=True)
+        assert not qm.source_is_init()
+        qm.init_source(np.ones((3, NPIX)), pol=True, update=True)
+        assert qm.source_is_init()
+        assert qm.source_is_pol()
+
+    @pytest.mark.parametrize(
+        "start, pol, replacement, mode",
+        [
+            (1, False, 3, QP_VEC_D1),
+            (1, False, 6, QP_VEC_D2),
+            (3, True, 9, QP_VEC_D1_POL),
+            (3, False, 6, QP_VEC_D2),
+            (9, True, 3, QP_VEC_POL),
+            (18, True, 1, QP_VEC_TEMP),
+        ],
+    )
+    def test_the_number_of_derivative_terms_may_change(
+        self, start, pol, replacement, mode
+    ):
+        """
+        Unlike a dest, whose vec and proj row counts have to correspond, a
+        source map may carry a different number of derivative terms than
+        the one it replaces -- so the row count is free and the mode
+        follows it.
+
+        This is also what reaches qp_reshape_map with the row count grown,
+        which overran the row table until the fix two commits below: it was
+        sized for the map being replaced and never resized.
+        """
+        qm = qpoint.QMap(mean_aber=True)
+        qm.init_source(np.ones((start, NPIX)), pol=pol)
+        qm.init_source(np.full((replacement, NPIX), 2.0), update=True)
+        assert qm._source.contents.num_vec == replacement
+        assert qm._source.contents.vec_mode == mode
+        assert qm.depo["source_map"].shape == (replacement, NPIX)
+        # The row pointers have to follow the new buffer, which is the
+        # part that used to be written past the end of its table.
+        assert (qm.depo["source_map"] == 2.0).all()
+
+    def test_npix_must_still_match(self):
+        """The pixelization is what update exists to hold on to."""
+        qm = qpoint.QMap(mean_aber=True)
+        qm.init_source(np.ones((3, NPIX)), pol=True)
+        with pytest.raises(ValueError, match="source_map npix does not match"):
+            qm.init_source(np.ones((3, NPIX // 2)), update=True)
+        assert qm._source.contents.num_vec == 3
+
+    @pytest.mark.parametrize("pol, mode", [(False, QP_VEC_D1), (True, QP_VEC_POL)])
+    def test_three_rows_keep_their_reading_across_a_same_size_update(self, pol, mode):
+        """
+        Three rows are T,Q,U or T with first derivatives, and pol is what
+        picks at init. An update of the same size leaves the mode alone, so
+        the reading survives without the caller repeating pol -- which is
+        the case that used to flip.
+        """
+        qm = qpoint.QMap(mean_aber=True)
+        qm.init_source(np.ones((3, NPIX)), pol=pol)
+        assert qm._source.contents.vec_mode == mode
+        qm.init_source(np.full((3, NPIX), 2.0), update=True)
+        assert qm._source.contents.vec_mode == mode
+        # Even asking for the other reading does not get it.
+        qm.init_source(np.ones((3, NPIX)), pol=not pol, update=True)
+        assert qm._source.contents.vec_mode == mode
+        # reset is how it changes.
+        qm.init_source(np.ones((3, NPIX)), pol=not pol, reset=True)
+        assert qm._source.contents.vec_mode != mode
+
+    def test_a_round_trip_through_nine_rows_reads_back_polarized(self):
+        """
+        The polarization comes from the installed mode, through
+        source_is_pol, rather than from a remembered copy of the original
+        argument. So a D1 source taken to 9 rows -- D1_POL, which carries Q
+        and U -- and back to 3 returns as T,Q,U rather than as D1. The
+        installed mode is what the structure actually holds; a private copy
+        able to disagree with it would be worse. reset is the way back.
+        """
+        qm = qpoint.QMap(mean_aber=True)
+        qm.init_source(np.ones((3, NPIX)), pol=False)
+        assert qm._source.contents.vec_mode == QP_VEC_D1
+
+        qm.init_source(np.ones((9, NPIX)), update=True)
+        assert qm._source.contents.vec_mode == QP_VEC_D1_POL
+        assert qm.source_is_pol()
+
+        qm.init_source(np.ones((3, NPIX)), update=True)
+        assert qm._source.contents.vec_mode == QP_VEC_POL
+
+    def test_the_map_mode_survives_an_update(self):
+        """
+        The consequential one. D1 is T with its two first derivatives, and
+        map2tod evaluates the map away from the pixel centre with them; POL
+        is T,Q,U and does not. Three rows are either, and pol is what picks
+        at init -- so recomputing the mode from pol here, where it defaults
+        to True, turned a derivative source into a polarized one and
+        changed the timestream with no diagnostic at all.
+        """
+        smap = np.zeros((3, NPIX))
+        smap[0], smap[1], smap[2] = 1.0, 0.5, -0.25
+
+        qm, q_off = update_mapper()
+        qm.init_source(smap, pol=False)
+        assert qm._source.contents.vec_mode == QP_VEC_D1
+        before = qm.to_tod(q_off).copy()
+
+        qm.init_source(smap, update=True)
+        assert qm._source.contents.vec_mode == QP_VEC_D1
+        assert np.array_equal(qm.to_tod(q_off), before)
+
+        # And the polarized reading of the same map really is different,
+        # so the assertion above is not vacuous.
+        qm2, q_off2 = update_mapper()
+        qm2.init_source(smap, pol=True)
+        assert not np.allclose(qm2.to_tod(q_off2), before)
+
+    def test_pol_is_ignored_on_update(self):
+        """Asking for the other reading does not get it; reset does."""
+        qm, _ = update_mapper()
+        qm.init_source(np.zeros((3, NPIX)), pol=False)
+        qm.init_source(np.zeros((3, NPIX)), pol=True, update=True)
+        assert qm._source.contents.vec_mode == QP_VEC_D1
+        assert not qm.source_is_pol()
+
+        qm.init_source(np.zeros((3, NPIX)), pol=True, reset=True)
+        assert qm._source.contents.vec_mode == QP_VEC_POL
+        assert qm.source_is_pol()
 
 
 # ---------------------------------------------------------------------------
@@ -1433,3 +1858,37 @@ class TestDepoDownstreamPatterns:
         x = qm.depo["source_map"].copy()
         assert np.array_equal(x, source)
         assert x is not source
+
+
+# ---------------------------------------------------------------------------
+# fast_pix through the mapmaking kernels
+# ---------------------------------------------------------------------------
+
+
+class TestFastPixInMapmaking:
+    """
+    fast_pix reaches the mapmaking kernels too, and leaves them
+    bit-identical to the two-step path it replaces.
+    """
+
+    def source_map(self):
+        return np.random.default_rng(0).normal(size=(3, NPIX))
+
+    def test_to_tod(self):
+        """Through map2tod's kernel."""
+        out = []
+        for fast in (False, True):
+            qm, q_off = make_mapper(fast_pix=fast)
+            qm.init_source(self.source_map(), pol=True)
+            out.append(np.asarray(qm.to_tod(q_off)))
+        assert np.array_equal(out[0], out[1]), "to_tod fast vs two-step"
+
+    def test_from_tod(self):
+        """And through tod2map's."""
+        tod = np.random.default_rng(1).normal(size=(1, N))
+        out = []
+        for fast in (False, True):
+            qm, q_off = make_mapper(fast_pix=fast)
+            out.append([np.asarray(x) for x in qm.from_tod(q_off, tod=tod.copy())])
+        for a, b, name in zip(out[0], out[1], ("vec", "proj")):
+            assert np.array_equal(a, b), "from_tod {} fast vs two-step".format(name)
