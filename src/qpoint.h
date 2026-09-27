@@ -33,6 +33,19 @@ extern "C" {
     double frequency;   // frequency, ghz
   } qp_weather_t;
 
+  /* UT1 - UTC for the interior of one calendar day.
+
+     The offset only steps at a leap second and those fall at midnight, so it
+     is constant across a day and worth caching: eraUtcut1 costs 52 ns against
+     eraEra00's 9.6, and rate_erot defaults to always because the earth turns
+     0.15 arcsec per sample at 100 Hz. Empty when lo > hi, which is how it
+     starts and how a leap-second day leaves it. */
+  typedef struct {
+    double lo, hi;     // the range of jd_utc[1] this is good for
+    double jd0, dut1;  // the jd_utc[0] and dut1 it was built for
+    double off0, off1; // jd_ut1 - jd_utc, element by element
+  } qp_ut1_cache_t;
+
   /* structures for storing Bulletin A data (for wobble correction) */
   typedef struct {
     float x;
@@ -76,6 +89,7 @@ extern "C" {
     quat_t q_ref;             // refraction quaternion
     quat_t q_ref_inv;         // inverse refraction quaternion
     double dut1;              // UT1 correction
+    qp_ut1_cache_t ut1_cache; // UTC -> UT1 for the day, see qp_jdutc2jdut1
     quat_t q_lonlat;          // lonlat quaternion
     quat_t q_lonlat_inv;      // inverse lonlat quaternion
     quat_t q_wobble;          // wobble quaternion
@@ -244,6 +258,10 @@ extern "C" {
   double jd2ctime(double jd[2]);
   void ctime2jdtt(double ctime, double jd_tt[2]);
   void jdutc2jdut1(double jd_utc[2], double dut1, double jd_ut1[2]);
+  /* As jdutc2jdut1, using mem->dut1 and caching the offset for the day. */
+  void qp_jdutc2jdut1(qp_memory_t *mem, double jd_utc[2], double jd_ut1[2]);
+  /* Empty that cache, so the next call recomputes. */
+  void qp_reset_ut1_cache(qp_memory_t *mem);
   double ctime2gmst(double ctime, double dut1, int accuracy);
   static inline double secs2days( double s ) { return s/86400.; }
   static inline double days2secs( double d ) { return d*86400.; }

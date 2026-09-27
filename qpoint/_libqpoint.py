@@ -43,6 +43,19 @@ class qp_weather_t(ct.Structure):
     ]
 
 
+class qp_ut1_cache_t(ct.Structure):
+    """UT1 - UTC cached for the interior of a calendar day. See qp_jdutc2jdut1."""
+
+    _fields_ = [
+        ("lo", ct.c_double),
+        ("hi", ct.c_double),
+        ("jd0", ct.c_double),
+        ("dut1", ct.c_double),
+        ("off0", ct.c_double),
+        ("off1", ct.c_double),
+    ]
+
+
 class qp_bulletina_entry_t(ct.Structure):
     _fields_ = [
         ("x", ct.c_float),
@@ -83,6 +96,7 @@ class qp_memory_t(ct.Structure):
         ("q_ref", ct.c_double * 4),
         ("q_ref_inv", ct.c_double * 4),
         ("dut1", ct.c_double),
+        ("ut1_cache", qp_ut1_cache_t),
         ("q_lonlat", ct.c_double * 4),
         ("q_lonlat_inv", ct.c_double * 4),
         ("q_wobble", ct.c_double * 4),
