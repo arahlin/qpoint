@@ -1892,3 +1892,194 @@ class TestFastPixInMapmaking:
             out.append([np.asarray(x) for x in qm.from_tod(q_off, tod=tod.copy())])
         for a, b, name in zip(out[0], out[1], ("vec", "proj")):
             assert np.array_equal(a, b), "from_tod {} fast vs two-step".format(name)
+
+
+# Resolutions for the derivative round trip below: a low-resolution map
+# carrying derivatives, reobserved at the pixel centres of a finer one.
+DERIV_NSIDE_LO = 64
+DERIV_NSIDE_HI = 256
+DERIV_LMAX = 128
+
+
+@pytest.fixture(scope="module")
+def deriv_sky():
+    """A smooth band-limited sky at both resolutions, with derivatives."""
+    hp = pytest.importorskip("healpy")
+
+    ell = np.arange(DERIV_LMAX + 1)
+    cl = np.zeros(DERIV_LMAX + 1)
+    cl[2:] = 1.0 / ell[2:] ** 2
+    # smoothed to a couple of low-resolution pixels, so the field is actually
+    # resolved there and the expansion has something to do
+    bl = hp.gauss_beam(2.0 * hp.nside2resol(DERIV_NSIDE_LO), lmax=DERIV_LMAX)
+    np.random.seed(0)
+    alm = hp.almxfl(hp.synalm(cl, lmax=DERIV_LMAX, new=True), bl)
+
+    m, dt, dp = hp.alm2map_der1(alm, nside=DERIV_NSIDE_LO, lmax=DERIV_LMAX)
+    _, dtdt, dtdp = hp.alm2map_der1(
+        hp.map2alm(dt, lmax=DERIV_LMAX), nside=DERIV_NSIDE_LO, lmax=DERIV_LMAX
+    )
+    _, _, dpdp = hp.alm2map_der1(
+        hp.map2alm(dp, lmax=DERIV_LMAX), nside=DERIV_NSIDE_LO, lmax=DERIV_LMAX
+    )
+    source = np.ascontiguousarray([m, dt, dp, dtdt, dtdp, dpdp])
+
+    truth = hp.alm2map(alm, DERIV_NSIDE_HI, lmax=DERIV_LMAX)
+    theta, phi = hp.pix2ang(DERIV_NSIDE_HI, np.arange(len(truth)))
+    # every fourth fine pixel is plenty, and keeps this quick
+    sub = np.arange(0, len(truth), 4)
+    return source, truth[sub], theta[sub], phi[sub]
+
+
+def reobserve_deriv(sky, rows, pol=False, **kwargs):
+    """TOD from the first `rows` columns of `sky`, at the fine pixel centres."""
+    source, _, theta, phi = sky
+    qm = qpoint.QMap(nside=DERIV_NSIDE_LO, pol=False, **kwargs)
+    q_bore = np.ascontiguousarray(
+        np.atleast_2d(
+            qm.radecpa2quat(
+                np.rad2deg(phi), 90.0 - np.rad2deg(theta), np.zeros(len(theta))
+            )
+        )
+    )
+    qm.init_point(q_bore)
+    qm.init_source(np.ascontiguousarray(source[:rows]), pol=pol)
+    return np.asarray(qm.to_tod(qm.det_offset(0.0, 0.0, 0.0)))[0]
+
+
+def rms(x):
+    return float(np.sqrt(np.mean(np.asarray(x) ** 2)))
+
+
+def deriv_series(sky):
+    """The Taylor series map2tod should be evaluating, written out here."""
+    hp = pytest.importorskip("healpy")
+    source, _, theta, phi = sky
+    pix = hp.ang2pix(DERIV_NSIDE_LO, theta, phi)
+    th_pix, ph_pix = hp.pix2ang(DERIV_NSIDE_LO, pix)
+    dth = theta - th_pix
+    dph = (phi - ph_pix + np.pi) % (2.0 * np.pi) - np.pi
+    arc = dph * np.sin(th_pix)
+    return (
+        source[0][pix]
+        + dth * source[1][pix]
+        + arc * source[2][pix]
+        + 0.5 * dth**2 * source[3][pix]
+        + dth * arc * source[4][pix]
+        + 0.5 * arc**2 * source[5][pix]
+    )
+
+
+class TestDerivativeMapsRecoverTheSky:
+    """
+    map2tod evaluates a derivative source map as a Taylor series about the
+    pixel centre, so a low-resolution map carrying its own derivatives should
+    reproduce the same sky sampled at higher resolution.
+
+    The derivative columns are gradient components, as `alm2map_der1`
+    returns them: the phi derivatives are divided by ``sin(theta)``, so the
+    offset that multiplies them is an arc length, and the second derivatives
+    are derivatives rather than series coefficients, so the pure second-order
+    terms carry a half.  Getting either wrong leaves an error the size of the
+    term it belongs to, which shows up here as D2 failing to improve on D1.
+
+    The interpolated modes are measured on the same sky, as the alternative
+    way of evaluating a map away from a pixel centre.
+    """
+
+    def test_each_order_improves_on_the_last(self, deriv_sky):
+        """
+        T, then first derivatives, then second: each order should cut the
+        residual by a factor of a few.  A D2 map that does no better than D1
+        is the signature of a mis-weighted second-order term.
+        """
+        _, truth, _, _ = deriv_sky
+        err = {n: rms(reobserve_deriv(deriv_sky, n) - truth) for n in (1, 3, 6)}
+        sky_rms = rms(truth)
+
+        assert err[1] < 0.2 * sky_rms, "pixel-centre sampling is implausibly good"
+        assert err[3] < err[1] / 2.0, "first derivatives did not help"
+        assert err[6] < err[3] / 2.0, "second derivatives did not help"
+        assert err[6] < 0.02 * sky_rms, "D2 residual larger than expected"
+
+    def test_the_expansion_is_the_documented_one(self, deriv_sky):
+        """
+        Against the series written out here, rather than against the sky, so
+        a wrong coefficient cannot hide behind the band limit.
+        """
+        got = reobserve_deriv(deriv_sky, 6)
+        np.testing.assert_allclose(got, deriv_series(deriv_sky), rtol=0, atol=1e-12)
+
+    def test_the_phi_offset_is_an_arc_length(self, deriv_sky):
+        """
+        Without the sin(theta) the phi terms are wrong by 1/sin(theta), so the
+        residual would grow away from the equator.  Here it must not.
+        """
+        _, truth, theta, _ = deriv_sky
+        resid = reobserve_deriv(deriv_sky, 6) - truth
+        lat = 90.0 - np.rad2deg(theta)
+        near, far = np.abs(lat) < 15.0, np.abs(lat) > 60.0
+        assert rms(resid[far]) < 3.0 * rms(resid[near])
+
+    def test_the_polarized_columns_expand_the_same_way(self, deriv_sky):
+        """
+        An 18-column map with only its temperature columns filled drives the
+        D2_POL branch, which carries its own copy of the expansion.
+        """
+        source = deriv_sky[0]
+        wide = np.zeros((18, source.shape[1]))
+        wide[::3] = source
+        got = reobserve_deriv((wide,) + deriv_sky[1:], 18, pol=True)
+        np.testing.assert_allclose(got, deriv_series(deriv_sky), rtol=0, atol=1e-12)
+        np.testing.assert_allclose(
+            got, reobserve_deriv(deriv_sky, 6), rtol=0, atol=1e-12
+        )
+
+    @pytest.mark.parametrize("rows", [1, 3, 4])
+    def test_interpolation_recovers_the_sky(self, deriv_sky, rows):
+        """
+        The interpolated branches, which take four neighbouring pixels rather
+        than a series about one centre.  Q, U and V are left at zero, so the
+        temperature sky is still the answer, and IDATUM, IPOLDATUM and
+        IVPOLDATUM are each driven in turn.
+        """
+        source, truth, _, _ = deriv_sky
+        src = np.zeros((rows, source.shape[1]))
+        src[0] = source[0]
+        sky = (np.ascontiguousarray(src),) + deriv_sky[1:]
+
+        err = rms(reobserve_deriv(sky, rows, pol=rows > 1, interp_pix=True) - truth)
+        centre = rms(reobserve_deriv(sky, rows, pol=rows > 1) - truth)
+        assert err < 0.6 * centre, "interpolation did not improve on the centre"
+        assert err < 0.1 * rms(truth)
+
+    def test_the_series_beats_interpolation(self, deriv_sky):
+        """
+        Second derivatives are third order in the offset where interpolation
+        is second, so a D2 map should be the better of the two on a sky this
+        smooth.  This is the reason the derivative modes exist.
+        """
+        _, truth, _, _ = deriv_sky
+        interp = rms(reobserve_deriv(deriv_sky, 1, interp_pix=True) - truth)
+        series = rms(reobserve_deriv(deriv_sky, 6) - truth)
+        assert series < 0.5 * interp
+
+    @pytest.mark.parametrize("interp_pix", [False, True])
+    def test_interpolation_does_not_reach_these_modes(self, deriv_sky, interp_pix):
+        """
+        map2tod interpolates for T, POL and VPOL only, so a derivative map
+        takes the series either way.  That exclusivity is what lets the
+        kernel skip the pixel offset when it is interpolating.
+        """
+        got = reobserve_deriv(deriv_sky, 6, interp_pix=interp_pix)
+        np.testing.assert_allclose(got, deriv_series(deriv_sky), rtol=0, atol=1e-12)
+
+    @pytest.mark.parametrize("fast_math", [False, True])
+    def test_fast_math_takes_the_same_path(self, deriv_sky, fast_math):
+        """
+        The arc length uses poly_sin under fast_math, so both settings have to
+        reach the same accuracy.
+        """
+        _, truth, _, _ = deriv_sky
+        err = rms(reobserve_deriv(deriv_sky, 6, fast_math=fast_math) - truth)
+        assert err < 0.02 * rms(truth)

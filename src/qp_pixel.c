@@ -298,16 +298,27 @@ void qp_bore2pixpa_hwp(qp_memory_t *mem, quat_t q_off, double *ctime,
 void qp_pixel_offset(qp_memory_t *mem, int nside, long pix,
                      double ra, double dec, double *dtheta,
                      double *dphi) {
+  double theta_pix, phi_pix;
+
   if (mem->pix_order == QP_ORDER_NEST)
-    pix2ang_nest(nside, pix, dtheta, dphi);
+    pix2ang_nest(nside, pix, &theta_pix, &phi_pix);
   else
-    pix2ang_ring(nside, pix, dtheta, dphi);
-  *dtheta = M_PI_2 - deg2rad(dec) - *dtheta;
+    pix2ang_ring(nside, pix, &theta_pix, &phi_pix);
+
+  *dtheta = M_PI_2 - deg2rad(dec) - theta_pix;
   if (*dtheta < -M_PI_2) *dtheta += M_PI;
   if (*dtheta > M_PI_2) *dtheta -= M_PI;
-  *dphi = deg2rad(ra) - *dphi;
-  if (*dphi < -M_PI) *dphi += M_TWOPI;
-  if (*dphi > M_PI) *dphi -= M_TWOPI;
+
+  double dp = deg2rad(ra) - phi_pix;
+  if (dp < -M_PI) dp += M_TWOPI;
+  if (dp > M_PI) dp -= M_TWOPI;
+
+  /* An arc length, not a coordinate difference: a map's phi derivatives are
+     gradient components, divided by sin(theta) at the pixel centre, so the
+     offset they multiply carries the same factor.  sin(theta) is taken at
+     the centre, where the expansion is made; at the sample it would leave a
+     second-order error. */
+  *dphi = dp * (mem->fast_math ? poly_sin(theta_pix) : sin(theta_pix));
 }
 
 /* copied get_interpol from healpix-cxx, because there is no C equivalent. */
