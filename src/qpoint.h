@@ -39,9 +39,9 @@ extern "C" {
 
      The offset only steps at a leap second and those fall at midnight, so it
      is constant across a day and worth caching: eraUtcut1 costs 52 ns against
-     eraEra00's 9.6, and rate_erot defaults to always because the earth turns
-     0.15 arcsec per sample at 100 Hz. Empty when lo > hi, which is how it
-     starts and how a leap-second day leaves it. */
+     eraEra00's 9.6. gmst and lmst convert per sample, and so does
+     rate_erot=always. Empty when lo > hi, which is how it starts and how a
+     leap-second day leaves it. */
   typedef struct {
     double lo, hi;     // the range of jd_utc[1] this is good for
     double jd0, dut1;  // the jd_utc[0] and dut1 it was built for

@@ -42,26 +42,40 @@ def pointing():
 
 
 class TestPointing:
-    def test_azel2bore(self, bench, pointing):
+    @pytest.mark.parametrize("rate_erot", ["always", 1.0])
+    def test_azel2bore(self, bench, pointing, rate_erot):
+        """
+        Both earth rotation paths, named rather than left to the default: an
+        interval interpolates across a window, 'always' recomputes per sample.
+        """
         q, az, el, ctime = pointing
         out = bench(
-            "azel2bore",
-            lambda: q.azel2bore(az, el, None, None, LON, LAT, ctime),
+            f"azel2bore rate_erot={rate_erot}",
+            lambda: q.azel2bore(
+                az, el, None, None, LON, LAT, ctime, rate_erot=rate_erot
+            ),
             samples=NPOINT,
         )
         assert np.asarray(out).shape == (NPOINT, 4)
 
-    def test_bore2azel(self, bench, pointing):
+    @pytest.mark.parametrize("rate_erot_inv", ["always", 1.0])
+    def test_bore2azel(self, bench, pointing, rate_erot_inv):
         """
-        The inverse of azel2bore, timed as its pair. Closes the round
-        trip first: a wrong argument order re-fires every rate gate and
-        reads as a 180x slowdown.
+        The inverse of azel2bore, timed as its pair and split the same way.
+
+        The option named here is `rate_erot_inv`, not `rate_erot`: the
+        inverse transform keeps its own rate state, so naming the forward
+        one would leave this path on the default and both rows would
+        measure it.
+
+        Closes the round trip first: a wrong argument order re-fires every
+        rate gate and reads as a 180x slowdown.
         """
         q, az, el, ctime = pointing
         q_bore = q.azel2bore(az, el, None, None, LON, LAT, ctime)
         out = bench(
-            "bore2azel",
-            lambda: q.bore2azel(q_bore, LON, LAT, ctime),
+            f"bore2azel rate_erot_inv={rate_erot_inv}",
+            lambda: q.bore2azel(q_bore, LON, LAT, ctime, rate_erot_inv=rate_erot_inv),
             samples=NPOINT,
         )
         assert np.asarray(out[0]).shape == (NPOINT,)

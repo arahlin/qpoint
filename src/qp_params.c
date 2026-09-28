@@ -28,7 +28,7 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_lonlat, QP_DO_ALWAYS);
   qp_init_state(&mem->state_wobble, QP_DO_NEVER);
   qp_init_state(&mem->state_dut1  , QP_DO_NEVER);
-  qp_init_state(&mem->state_erot  , QP_DO_ALWAYS);
+  qp_init_state(&mem->state_erot  , 1.);  // an interval, interpolated
   qp_init_state(&mem->state_npb   , 10);
   qp_init_state(&mem->state_aaber , 100);
   qp_init_state(&mem->state_ref   , QP_DO_NEVER);
@@ -36,7 +36,7 @@ qp_memory_t * qp_init_memory(void) {
   qp_init_state(&mem->state_lonlat_inv, QP_DO_ALWAYS);
   qp_init_state(&mem->state_wobble_inv, QP_DO_NEVER);
   qp_init_state(&mem->state_dut1_inv  , QP_DO_NEVER);
-  qp_init_state(&mem->state_erot_inv  , QP_DO_ALWAYS);
+  qp_init_state(&mem->state_erot_inv  , 1.);  // an interval, interpolated
   qp_init_state(&mem->state_npb_inv   , 10);
   qp_init_state(&mem->state_aaber_inv , 100);
   qp_init_state(&mem->state_ref_inv   , QP_DO_NEVER);
