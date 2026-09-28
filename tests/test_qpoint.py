@@ -2043,6 +2043,146 @@ class TestUt1Caching:
         assert cache.lo > cache.hi
 
 
+class TestErotSlerp:
+    """
+    rate_erot as an interval interpolates the earth rotation quaternion
+    across a window rather than holding it, which is exact for a
+    constant-rate turn about a fixed axis.
+
+    The floor is the two-part JD: one ulp of jd[1] at this epoch moves ERA
+    by 0.0047 mas, and the two paths agree to less than that.
+    """
+
+    # one ulp of jd[1] near 2014, as mas of earth rotation
+    ULP_MAS = 0.0047
+
+    @staticmethod
+    def bore(ctime, **kwargs):
+        q = qpoint.QPoint(**dict(ALL_RATES, **kwargs))
+        n = len(ctime)
+        return np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, n),
+                np.full(n, 45.0),
+                None,
+                None,
+                np.full(n, LON),
+                np.full(n, LAT),
+                np.ascontiguousarray(ctime),
+            )
+        )
+
+    @staticmethod
+    def worst_mas(a, b):
+        """Worst rotation between two runs of boresight quaternions, in mas."""
+        a = np.array(a, copy=True)
+        a[np.sum(a * b, axis=1) < 0] *= -1  # q and -q are the same rotation
+        d = np.linalg.norm(a - b, axis=1)
+        return float(
+            np.max(np.rad2deg(2 * np.arcsin(np.clip(d / 2, 0, 1))) * 3.6e6 * 2)
+        )
+
+    def test_a_sample_on_a_grid_point_is_exact(self):
+        """
+        The window covers floor(ctime/rate)*rate, so an integer ctime with a
+        one-second window lands on an endpoint.
+        """
+        ctime = CTIME + np.arange(20, dtype=float)
+        assert np.array_equal(
+            self.bore(ctime, rate_erot=1.0), self.bore(ctime, rate_erot="always")
+        )
+
+    @pytest.mark.parametrize("rate", [0.01, 1.0, 100.0, 1000.0])
+    def test_within_one_ulp_of_the_per_sample_path(self, rate):
+        """
+        Off the grid the two paths differ by less than the JD can resolve, at
+        every interval.
+        """
+        ctime = CTIME + np.arange(2000) * 0.01
+        got = self.worst_mas(
+            self.bore(ctime, rate_erot=rate), self.bore(ctime, rate_erot="always")
+        )
+        assert got < self.ULP_MAS
+
+    def test_a_window_spanning_a_leap_second_is_refused(self):
+        """
+        ERA is affine in ctime only where ctime -> UT1 is a constant offset.
+        The window is left empty across a leap second and those samples are
+        computed exactly.
+        """
+        q = qpoint.QPoint(**dict(ALL_RATES, rate_erot=1.0))
+        q.azel2bore(0.0, 45.0, None, None, LON, LAT, LEAP_2015 - 0.5)
+        cache = q._memory.contents.erot_cache
+        assert cache.lo > cache.hi
+
+    def test_across_a_leap_second(self):
+        ctime = LEAP_2015 + np.arange(-5, 5, 0.25)
+        assert np.isfinite(self.bore(ctime, rate_erot=1.0)).all()
+        assert (
+            self.worst_mas(
+                self.bore(ctime, rate_erot=1.0), self.bore(ctime, rate_erot="always")
+            )
+            < self.ULP_MAS
+        )
+
+    def test_backwards_time(self):
+        """A miss rebuilds, so time need not arrive in order."""
+        ctime = CTIME + np.arange(200, 0, -1.0)
+        assert (
+            self.worst_mas(
+                self.bore(ctime, rate_erot=1.0), self.bore(ctime, rate_erot="always")
+            )
+            < self.ULP_MAS
+        )
+
+    def test_an_interval_short_enough_to_collapse_the_window(self):
+        """
+        A window this short leaves the endpoints equal to within a double, so
+        alpha is zero and interpolation returns the endpoint.
+        """
+        ctime = CTIME + np.arange(50) * 0.01
+        got = self.bore(ctime, rate_erot=1e-4)
+        assert np.isfinite(got).all()
+        assert self.worst_mas(got, self.bore(ctime, rate_erot="always")) < self.ULP_MAS
+
+    def test_always_does_not_build_a_window(self):
+        """'always' takes the exact path, so nothing reaches the cache."""
+        q = qpoint.QPoint(**dict(ALL_RATES, rate_erot="always"))
+        q.azel2bore(0.0, 45.0, None, None, LON, LAT, CTIME)
+        cache = q._memory.contents.erot_cache
+        assert cache.lo > cache.hi
+
+    def test_the_cache_starts_empty(self):
+        """The QPoint has to outlive the read: its __del__ frees the memory."""
+        q = qpoint.QPoint()
+        cache = q._memory.contents.erot_cache
+        assert cache.lo > cache.hi
+
+    def test_the_ctypes_mirror_agrees_with_the_struct(self):
+        """
+        Reads every field of the window back, nested slerp included, against
+        the compiled layout.
+
+        alpha is the angle between the endpoint quaternions, which for a
+        rotation about a fixed axis is half the angle turned: the earth's
+        7.2921e-5 rad/s over the window.
+        """
+        rate = 4.0
+        q = qpoint.QPoint(**dict(ALL_RATES, rate_erot=rate))
+        q.azel2bore(0.0, 45.0, None, None, LON, LAT, CTIME + 0.5)
+        cache = q._memory.contents.erot_cache
+
+        assert cache.hi - cache.lo == pytest.approx(rate)
+        assert cache.lo <= CTIME + 0.5 < cache.hi
+        assert cache.lo % rate == 0.0  # aligned to an absolute grid
+        assert cache.rate == rate
+        assert cache.dut1 == 0.0
+        assert cache.slerp.alpha == pytest.approx(7.2921159e-5 * rate / 2, rel=1e-6)
+        assert cache.slerp.sin_alpha == pytest.approx(cache.slerp.alpha, rel=1e-9)
+        for end in (cache.slerp.q0, cache.slerp.q1):
+            assert sum(x * x for x in end) == pytest.approx(1.0)
+
+
 class TestLowAccuracyKeepsDut1:
     """
     gmst and lmst apply dut1 in both accuracy modes.

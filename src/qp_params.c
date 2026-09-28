@@ -64,6 +64,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->ref_delta = 0.;
   mem->dut1 = 0.;
   qp_reset_ut1_cache(mem);
+  qp_reset_erot_cache(mem);
   memset(mem->q_lonlat,   0, sizeof(quat_t));
   memset(mem->q_wobble,   0, sizeof(quat_t));
   memset(mem->q_npb,      0, sizeof(quat_t));

@@ -32,7 +32,7 @@ void jdutc2jdut1(double jd_utc[2], double dut1, double jd_ut1[2]) {
 }
 
 void qp_reset_ut1_cache(qp_memory_t *mem) {
-  // lo > hi, so the window covers nothing whatever it is asked
+  // lo > hi: covers nothing, whatever it is asked
   mem->ut1_cache.lo = 1.;
   mem->ut1_cache.hi = 0.;
   mem->ut1_cache.jd0 = 0.;
@@ -303,6 +303,60 @@ void qp_erot_quat(double jd_ut1[2], quat_t q) {
   Quaternion_r3(q, theta);
 }
 
+void qp_reset_erot_cache(qp_memory_t *mem) {
+  // lo > hi, so the window covers nothing whatever it is asked
+  mem->erot_cache.lo = 1.;
+  mem->erot_cache.hi = 0.;
+  mem->erot_cache.rate = 0.;
+  mem->erot_cache.dut1 = 0.;
+}
+
+/* q_erot at ctime, interpolated across a window of length rate.
+
+   Returns 1 if q was filled, 0 where ctime -> UT1 is not a constant offset
+   across the window; the caller then computes the sample exactly.
+
+   The window covers floor(ctime/rate)*rate to that plus rate, an absolute
+   grid rather than the first sample seen, so overlapping runs agree in the
+   overlap, reset_rates does not shift it, and a sample on a grid point
+   interpolates to that endpoint bit for bit. */
+static int qp_erot_interp(qp_memory_t *mem, double ctime, double rate,
+                          quat_t q) {
+  qp_erot_cache_t *c = &mem->erot_cache;
+
+  if (!(ctime >= c->lo && ctime < c->hi && rate == c->rate &&
+        mem->dut1 == c->dut1)) {
+    double lo = floor(ctime / rate) * rate;
+    double hi = lo + rate;
+    double jd_lo[2], jd_hi[2], ut1_lo[2], ut1_hi[2];
+    quat_t q_lo, q_hi;
+
+    ctime2jd(lo, jd_lo);
+    ctime2jd(hi, jd_hi);
+    qp_jdutc2jdut1(mem, jd_lo, ut1_lo);
+    qp_jdutc2jdut1(mem, jd_hi, ut1_hi);
+
+    /* ERA is affine in ctime only where the UT1 offset holds across the
+       window, which a leap second inside it breaks. */
+    if (ut1_lo[0] - jd_lo[0] != ut1_hi[0] - jd_hi[0] ||
+        ut1_lo[1] - jd_lo[1] != ut1_hi[1] - jd_hi[1]) {
+      qp_reset_erot_cache(mem);
+      return 0;
+    }
+
+    qp_erot_quat(ut1_lo, q_lo);
+    qp_erot_quat(ut1_hi, q_hi);
+    QuaternionSlerp_init(&c->slerp, q_lo, q_hi);
+    c->lo = lo;
+    c->hi = hi;
+    c->rate = rate;
+    c->dut1 = mem->dut1;
+  }
+
+  QuaternionSlerp_interpolate(&c->slerp, (ctime - c->lo) / rate, q);
+  return 1;
+}
+
 void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q) {
   double sprime = eraSp00(jd_tt[0], jd_tt[1]);
 
@@ -508,7 +562,17 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
   }
 
   // apply earth rotation
-  if (qp_check_update(&mem->state_erot, ctime)) {
+  // A positive rate interpolates across a window; always, once and never
+  // take the exact path below.
+  if (mem->state_erot.update_rate > 0.) {
+    if (!qp_erot_interp(mem, ctime, mem->state_erot.update_rate, mem->q_erot)) {
+      qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
+      qp_erot_quat(jd_ut1, mem->q_erot);
+    }
+#ifdef DEBUG
+    qp_print_quat("erot", mem->q_erot);
+#endif
+  } else if (qp_check_update(&mem->state_erot, ctime)) {
     // get ut1
     qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
     qp_erot_quat(jd_ut1, mem->q_erot);
@@ -628,7 +692,19 @@ void qp_quat2azel(qp_memory_t *mem, quat_t q_in, double lon, double lat, double 
     qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
 
   // apply earth rotation
-  if (qp_check_update(&mem->state_erot_inv, ctime)) {
+  // One window serves both directions, q_erot being a function of ctime
+  // alone. Only the rate schedules are per-direction.
+  if (mem->state_erot_inv.update_rate > 0.) {
+    if (!qp_erot_interp(mem, ctime, mem->state_erot_inv.update_rate,
+                        mem->q_erot_inv)) {
+      qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
+      qp_erot_quat(jd_ut1, mem->q_erot_inv);
+    }
+    Quaternion_inv(mem->q_erot_inv);
+#ifdef DEBUG
+    qp_print_quat("erot inv", mem->q_erot_inv);
+#endif
+  } else if (qp_check_update(&mem->state_erot_inv, ctime)) {
     // get ut1
     qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
     qp_erot_quat(jd_ut1, mem->q_erot_inv);

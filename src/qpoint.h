@@ -6,6 +6,8 @@ extern "C" {
 
 #include <stdint.h>
 
+#include "quaternion.h" // for QuaternionSlerp, stored in qp_memory_t
+
   /* *************************************************************************
      Types and parameters
      ********************************************************************** */
@@ -45,6 +47,20 @@ extern "C" {
     double jd0, dut1;  // the jd_utc[0] and dut1 it was built for
     double off0, off1; // jd_ut1 - jd_utc, element by element
   } qp_ut1_cache_t;
+
+  /* The earth rotation quaternion across one window of ctime.
+
+     ERA is linear in UT1 and the axis is fixed, so earth rotation is a
+     constant-rate turn about a fixed axis, which slerp between the endpoints
+     reproduces to within the two-part JD. Valid only where ctime -> UT1 is a
+     constant offset, so a window spanning a leap second is refused and those
+     samples are computed exactly. Empty when lo > hi, which is how it
+     starts. */
+  typedef struct {
+    double lo, hi;         // the ctime range this is good for
+    double rate, dut1;     // the rate and dut1 it was built for
+    QuaternionSlerp slerp; // the endpoints, at lo and hi
+  } qp_erot_cache_t;
 
   /* structures for storing Bulletin A data (for wobble correction) */
   typedef struct {
@@ -98,6 +114,7 @@ extern "C" {
     quat_t q_npb_inv;         // inverse nutation etc quaternion
     quat_t q_erot;            // earth's rotation quaternion
     quat_t q_erot_inv;        // inverse earth's rotation quaternion
+    qp_erot_cache_t erot_cache; // q_erot across a window, see qp_erot_interp
     quat_t q_gal;             // galactic coordinates
     quat_t q_gal_inv;         // inverse of q_gal
     int gal_init;             // q_gal* initialized?
@@ -262,6 +279,7 @@ extern "C" {
   void qp_jdutc2jdut1(qp_memory_t *mem, double jd_utc[2], double jd_ut1[2]);
   /* Empty that cache, so the next call recomputes. */
   void qp_reset_ut1_cache(qp_memory_t *mem);
+  void qp_reset_erot_cache(qp_memory_t *mem);
   double ctime2gmst(double ctime, double dut1, int accuracy);
   static inline double secs2days( double s ) { return s/86400.; }
   static inline double days2secs( double d ) { return d*86400.; }
