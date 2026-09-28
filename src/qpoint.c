@@ -255,10 +255,16 @@ double qp_update_ref(qp_memory_t *mem, quat_t q) {
   qp_weather_t *W = &mem->weather;
   double el;
 
+  /* q is unit only to within rounding, so sin(el) can land just outside
+     [-1, 1] at the zenith, where asin is NaN. poly_asin clamps already. */
+  double sin_el = q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3];
+  if (sin_el > 1.) sin_el = 1.;
+  else if (sin_el < -1.) sin_el = -1.;
+
   if (mem->fast_math)
-    el = rad2deg(poly_asin(q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]));
+    el = rad2deg(poly_asin(sin_el));
   else
-    el = rad2deg(asin(q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]));
+    el = rad2deg(asin(sin_el));
 
   double ref = qp_refraction(el, W->temperature, W->pressure, W->humidity,
                              W->frequency);
