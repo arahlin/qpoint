@@ -8,11 +8,19 @@
  * number of the first that fails, with a description in msg.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "qpoint.h"
+#include "quaternion.h"
+
+static int quat_close(const quat_t a, const quat_t b, double tol) {
+  for (int i = 0; i < 4; i++)
+    if (fabs(a[i] - b[i]) > tol) return 0;
+  return 1;
+}
 
 #define CHECK(cond, what)                                               \
   do {                                                                  \
@@ -285,6 +293,49 @@ int qp_selftest(char *msg, size_t msglen) {
     qp_get_iers_bulletin_a(memcpy_, 57001., &d1, &x1, &y1);
     CHECK(d1 == 0.25, "the copied bulletin lost its dut1");
     CHECK(x1 == 0.125 && y1 == 0.25, "the copied bulletin lost its polar motion");
+  }
+
+  /* ---- QuaternionSlerp ----
+     Public API the Python layers do not reach either. Small angles are the
+     cases that matter, alpha being taken from the chord rather than from
+     acos of the dot product. */
+  {
+    quat_t qa, qb, qm, want, qneg;
+    QuaternionSlerp s;
+
+    // halfway along a quarter turn about z is the eighth turn
+    Quaternion_r3(qa, 0.);
+    Quaternion_r3(qb, M_PI_2);
+    Quaternion_r3(want, M_PI_2 / 2.);
+    QuaternionSlerp_init(&s, qa, qb);
+    QuaternionSlerp_interpolate(&s, 0.5, qm);
+    CHECK(quat_close(qm, want, 1e-15), "slerp midpoint is not the half rotation");
+
+    QuaternionSlerp_interpolate(&s, 0., qm);
+    CHECK(quat_close(qm, qa, 1e-15), "slerp at t=0 is not the first endpoint");
+    QuaternionSlerp_interpolate(&s, 1., qm);
+    CHECK(quat_close(qm, qb, 1e-15), "slerp at t=1 is not the second endpoint");
+
+    // negating a quaternion names the same rotation, so the shorter arc wins
+    for (int i = 0; i < 4; i++) qneg[i] = -qb[i];
+    QuaternionSlerp_init(&s, qa, qneg);
+    QuaternionSlerp_interpolate(&s, 0.5, qm);
+    CHECK(quat_close(qm, want, 1e-15), "slerp did not take the shorter arc");
+
+    // 1e-9 rad, where acos of the dot product loses the angle
+    Quaternion_r3(qb, 1e-9);
+    Quaternion_r3(want, 0.5e-9);
+    QuaternionSlerp_init(&s, qa, qb);
+    QuaternionSlerp_interpolate(&s, 0.5, qm);
+    CHECK(isfinite(qm[0]) && isfinite(qm[3]),
+          "slerp at a small angle is not finite");
+    CHECK(quat_close(qm, want, 1e-15), "slerp at a small angle is off");
+
+    // equal to within a double: nothing to interpolate
+    QuaternionSlerp_init(&s, qa, qa);
+    QuaternionSlerp_interpolate(&s, 0.5, qm);
+    CHECK(quat_close(qm, qa, 0.),
+          "slerp with equal endpoints did not return them");
   }
 
 done:
