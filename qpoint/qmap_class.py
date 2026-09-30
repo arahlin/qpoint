@@ -256,6 +256,13 @@ class QMap(QPoint):
         * A map of shape `(18, npix)` contains all the columns of the
           9-column map, followed by `(dT2dt2, dQ2dt2, dU2dt2, dT2dpdt,
           dQ2dpdt, dU2dpdt, dT2dp2, dQ2dp2, dU2dp2)`.
+
+        The derivative columns are gradient components, as returned by
+        `healpy.alm2map_der1`: the `dp` derivatives are divided by
+        `sin(theta)`, and the second derivatives are each derivative map
+        differentiated again the same way.  `map2tod` evaluates the map as a
+        Taylor series about the pixel centre, so `dT2dt2` and `dT2dp2` are
+        second derivatives rather than series coefficients.
         """
 
         if self.source_is_init():

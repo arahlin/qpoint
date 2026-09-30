@@ -280,10 +280,11 @@ void qp_num_maps(qp_vec_mode vec_mode, qp_proj_mode proj_mode,
     case QP_VEC_VPOL:
       nm = 4;
       break;
-    /* D2 is T with 1st and 2nd derivatives: value, dtheta, dphi, dtheta^2,
-       dtheta*dphi, dphi^2.  D1_POL is (T,Q,U) with 1st derivatives, so three
-       POLDATUM triplets.  These two were swapped, leaving a D1_POL map three
-       rows short of what qp_map2tod1 reads. */
+    /* D2 is T with its 1st and 2nd derivatives: value, dT/dtheta, dT/dphi,
+       d2T/dtheta2, d2T/dthetadphi, d2T/dphi2, applied as a Taylor series
+       about the pixel centre.  D1_POL is (T,Q,U) with 1st derivatives, so
+       three POLDATUM triplets.  These two were swapped, leaving a D1_POL map
+       three rows short of what qp_map2tod1 reads. */
     case QP_VEC_D2:
       nm = 6;
       break;
@@ -1041,9 +1042,12 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
     if ((map->vec_mode >= QP_VEC_D1) || do_interp) {
       qp_quat2radec(mem, q, &ra, &dec, &spp, &cpp);
       ipix = qp_radec2pix(mem, ra, dec, map->nside);
-      qp_pixel_offset(mem, map->nside, ipix, ra, dec, &dtheta, &dphi);
+      /* Exclusive: do_interp is set only for the modes that read no offsets,
+         and the derivative modes take no interpolation. */
       if (do_interp)
         qp_get_interpol(mem, map->pixinfo, ra, dec, pix, weight);
+      else
+        qp_pixel_offset(mem, map->nside, ipix, ra, dec, &dtheta, &dphi);
     } else {
       qp_quat2pix(mem, q, map->nside, &ipix, &spp, &cpp);
     }
@@ -1121,9 +1125,9 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
           det->tod[ii] += g * VPOLDATUM(0);
         break;
       case QP_VEC_D2_POL:
-        det->tod[ii] += g * (dphi * dphi * POLDATUM(15)
+        det->tod[ii] += g * (0.5 * dphi * dphi * POLDATUM(15)
                              + dtheta * dphi * POLDATUM(12)
-                             + dtheta * dtheta * POLDATUM(9));
+                             + 0.5 * dtheta * dtheta * POLDATUM(9));
         /* fall through */
       case QP_VEC_D1_POL:
         det->tod[ii] += g * (dphi * POLDATUM(6) + dtheta * POLDATUM(3));
@@ -1135,8 +1139,9 @@ int qp_map2tod1(qp_memory_t *mem, qp_det_t *det, qp_point_t *pnt,
           det->tod[ii] += g * POLDATUM(0);
         break;
       case QP_VEC_D2:
-        det->tod[ii] += g * (dphi * dphi * DATUM(5) + dtheta * dphi * DATUM(4)
-                             + dtheta * dtheta * DATUM(3));
+        det->tod[ii] += g * (0.5 * dphi * dphi * DATUM(5)
+                             + dtheta * dphi * DATUM(4)
+                             + 0.5 * dtheta * dtheta * DATUM(3));
         /* fall through */
       case QP_VEC_D1:
         det->tod[ii] += g * (dphi * DATUM(2) + dtheta * DATUM(1));
