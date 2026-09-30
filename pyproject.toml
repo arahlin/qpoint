@@ -15,7 +15,23 @@ license = "MIT"
 dynamic = ["version"]
 dependencies = ["numpy>1.10.0", "scipy", "astropy"]
 
+[project.optional-dependencies]
+# Both of these back comparisons against an independent implementation,
+# and every test that uses one skips itself where it is absent -- which
+# is what the markers are for, since neither ships wheels for 3.9.
+#
+#   astropy  tests/test_astropy.py, the coordinate transforms
+#   healpy   the rotate_map and interpolation cross-checks
+test = [
+    "pytest",
+    "astropy>=6",
+    "healpy>=1.17; python_version >= '3.10'",
+]
+
 [tool.setuptools_scm]
 write_to = "qpoint/_version.py"
 version_scheme = "only-version"
 local_scheme = "no-local-version"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
