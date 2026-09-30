@@ -182,28 +182,45 @@ Quaternion_unit(Quaternion q)
   Quaternion_scale(q, invnorm);
 }
 
+/* Spherical interpolation between two unit quaternions.
+
+   alpha comes from the chord: |q1 - q0| is 2 sin(alpha/2), so alpha is
+   2 asin(|q1 - q0|/2). That is well conditioned at any angle, where
+   acos(cos_alpha) is not and sqrt(1 - cos*cos) underflows to exactly zero
+   below about 1e-8 rad. Equal endpoints give alpha = 0, and interpolate
+   then returns q0. */
 void
 QuaternionSlerp_init(QuaternionSlerp *slerp, const Quaternion a, const Quaternion b)
 {
   double cos_alpha = a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3];
-  slerp->sin_alpha = sqrt(1. - cos_alpha*cos_alpha);
   Quaternion_copy(slerp->q0, a);
   Quaternion_copy(slerp->q1, b);
 
+  // q and -q are the same rotation; flip for the shorter arc
   if (cos_alpha < 0.) {
-    slerp->alpha = acos(-cos_alpha);
     slerp->q1[0] = -slerp->q1[0];
     slerp->q1[1] = -slerp->q1[1];
     slerp->q1[2] = -slerp->q1[2];
     slerp->q1[3] = -slerp->q1[3];
-  } else {
-    slerp->alpha = acos(cos_alpha);
   }
+
+  double chord2 = 0.;
+  for (int i = 0; i != 4; ++i) {
+    double d = slerp->q1[i] - slerp->q0[i];
+    chord2 += d*d;
+  }
+  double half = sqrt(chord2)/2.;
+  slerp->alpha = 2.*asin(half > 1. ? 1. : half);
+  slerp->sin_alpha = sin(slerp->alpha);
 }
 
 void
 QuaternionSlerp_interpolate(const QuaternionSlerp *slerp, double t, Quaternion q)
 {
+  if (slerp->sin_alpha == 0.) {
+    Quaternion_copy(q, slerp->q0);
+    return;
+  }
   double s0 = sin((1.-t)*slerp->alpha)/slerp->sin_alpha;
   double s1 = sin(t*slerp->alpha)/slerp->sin_alpha;
   for (int i = 0; i != 4; ++i)

@@ -87,7 +87,9 @@ class QPoint(object):
             Rate at which the ut1-utc correction is updated
             (NB: this is not estimated for dates beyond a year from now)
         rate_erot : {'never', 'once', 'always'}, or float
-            Rate at which the earth's rotation angle is updated
+            Rate at which the earth's rotation angle is updated.  Default: 1
+            second.  An interval interpolates across a window, which is exact
+            for the earth's rotation; 'always' recomputes per sample.
         rate_npb : {'never', 'once', 'always'}, or float
             Rate at which the nutation/precession/frame-bias terms are updated
         rate_aaber : {'never', 'once', 'always'}, or float

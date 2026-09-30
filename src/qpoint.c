@@ -31,33 +31,105 @@ void jdutc2jdut1(double jd_utc[2], double dut1, double jd_ut1[2]) {
   eraUtcut1(jd_utc[0], jd_utc[1], dut1, &jd_ut1[0], &jd_ut1[1]);
 }
 
+void qp_reset_ut1_cache(qp_memory_t *mem) {
+  // lo > hi: covers nothing, whatever it is asked
+  mem->ut1_cache.lo = 1.;
+  mem->ut1_cache.hi = 0.;
+  mem->ut1_cache.jd0 = 0.;
+  mem->ut1_cache.dut1 = 0.;
+  mem->ut1_cache.off0 = 0.;
+  mem->ut1_cache.off1 = 0.;
+}
+
+/* Stay this far clear of midnight, in days.
+
+   A leap-second UTC day is 86401 seconds long, so ERFA still calls the instant
+   86400 seconds in "that day, fraction 1.0" while jd = ctime / 86400 has
+   rolled over -- the two disagree about the date for exactly one second. A
+   margin costs 20 seconds of exact calls per day and makes the correctness
+   argument trivial. */
+#define QP_UT1_MARGIN (10. / 86400.)
+
+void qp_jdutc2jdut1(qp_memory_t *mem, double jd_utc[2], double jd_ut1[2]) {
+  qp_ut1_cache_t *c = &mem->ut1_cache;
+
+  if (jd_utc[1] >= c->lo && jd_utc[1] < c->hi &&
+      jd_utc[0] == c->jd0 && mem->dut1 == c->dut1) {
+    jd_ut1[0] = jd_utc[0] + c->off0;
+    jd_ut1[1] = jd_utc[1] + c->off1;
+    return;
+  }
+
+  // Always answer exactly; the cache is only ever an accelerator for the
+  // samples that follow.
+  eraUtcut1(jd_utc[0], jd_utc[1], mem->dut1, &jd_ut1[0], &jd_ut1[1]);
+
+  // Rebuild it for the interior of this day. UT1 - UTC is dut1 minus the
+  // TAI - UTC step, and that step only moves at a leap second, so if the
+  // offset agrees at both ends of the interior it is constant across the
+  // whole of it. When it does not, the day has a leap second in it and gets
+  // no cache at all.
+  double day = floor(jd_utc[0] + jd_utc[1] + 0.5);
+  double lo = day - 0.5 - jd_utc[0] + QP_UT1_MARGIN;
+  double hi = day + 0.5 - jd_utc[0] - QP_UT1_MARGIN;
+  double a[2], b[2];
+  eraUtcut1(jd_utc[0], lo, mem->dut1, &a[0], &a[1]);
+  eraUtcut1(jd_utc[0], hi, mem->dut1, &b[0], &b[1]);
+
+  if (a[0] - jd_utc[0] == b[0] - jd_utc[0] && a[1] - lo == b[1] - hi) {
+    c->off0 = a[0] - jd_utc[0];
+    c->off1 = a[1] - lo;
+    c->lo = lo;
+    c->hi = hi;
+    c->jd0 = jd_utc[0];
+    c->dut1 = mem->dut1;
+  } else {
+    qp_reset_ut1_cache(mem);
+  }
+}
+
 double ctime2gmst(double ctime, double dut1, int accuracy) {
   double jd_utc[2], jd_ut1[2], jd_tt[2];
 
   ctime2jd(ctime, jd_utc);
 
+  /* UTC -> UT1 in both accuracy modes. The low path used to hand UTC to
+     eraGmst00 as UT1, discarding dut1 and misreading a leap-second day. At
+     ~2 ns cached for the day the conversion is no longer a trade, and the
+     transforms applied it in both modes regardless. */
+  jdutc2jdut1(jd_utc, dut1, jd_ut1);
+
   if (!accuracy) {
-    jdutc2jdut1(jd_utc, dut1, jd_ut1);
     ctime2jdtt(ctime, jd_tt);
     return eraGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
-  } else {
-    return eraGmst00(jd_utc[0], jd_utc[1], jd_utc[0], jd_utc[1]);
   }
+  /* Low gives up only the TT conversion, which is the whole of the
+     remaining cost. GMST reads TT through the precession polynomial
+     alone, so the 69 s error that represents is worth 0.1 mas. */
+  return eraGmst00(jd_ut1[0], jd_ut1[1], jd_ut1[0], jd_ut1[1]);
 }
 
 double qp_gmst(qp_memory_t *mem, double ctime) {
-  double jd_utc[2];
+  double jd_utc[2], jd_ut1[2], jd_tt[2];
   ctime2jd(ctime, jd_utc);
   double mjd_utc = jd2mjd(jd_utc[0]) + jd_utc[1];
   double x,y,gmst;
 
+  /* Both accuracy modes, see ctime2gmst. */
+  if (qp_check_update(&mem->state_dut1, ctime)) {
+    qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
+  }
+
+  /* The steps are spelled out here rather than deferred to ctime2gmst so
+     that the conversion goes through the day cache, which needs mem.
+     ctime2gmst is the same calculation without it, and agrees exactly. */
+  qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
+
   if (mem->accuracy == 0) {
-    if (qp_check_update(&mem->state_dut1, ctime)) {
-      qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
-    }
-    gmst = ctime2gmst(ctime, mem->dut1, mem->accuracy);
+    ctime2jdtt(ctime, jd_tt);
+    gmst = eraGmst00(jd_ut1[0], jd_ut1[1], jd_tt[0], jd_tt[1]);
   } else {
-    gmst = ctime2gmst(ctime, 0, mem->accuracy);
+    gmst = eraGmst00(jd_ut1[0], jd_ut1[1], jd_ut1[0], jd_ut1[1]);
   }
   return fmod(rad2deg(gmst) / 15.0, 24.);
 }
@@ -229,6 +301,60 @@ void qp_npb_quat(double jd_tt[2], quat_t q, int accuracy) {
 void qp_erot_quat(double jd_ut1[2], quat_t q) {
   double theta = eraEra00(jd_ut1[0], jd_ut1[1]);
   Quaternion_r3(q, theta);
+}
+
+void qp_reset_erot_cache(qp_memory_t *mem) {
+  // lo > hi, so the window covers nothing whatever it is asked
+  mem->erot_cache.lo = 1.;
+  mem->erot_cache.hi = 0.;
+  mem->erot_cache.rate = 0.;
+  mem->erot_cache.dut1 = 0.;
+}
+
+/* q_erot at ctime, interpolated across a window of length rate.
+
+   Returns 1 if q was filled, 0 where ctime -> UT1 is not a constant offset
+   across the window; the caller then computes the sample exactly.
+
+   The window covers floor(ctime/rate)*rate to that plus rate, an absolute
+   grid rather than the first sample seen, so overlapping runs agree in the
+   overlap, reset_rates does not shift it, and a sample on a grid point
+   interpolates to that endpoint bit for bit. */
+static int qp_erot_interp(qp_memory_t *mem, double ctime, double rate,
+                          quat_t q) {
+  qp_erot_cache_t *c = &mem->erot_cache;
+
+  if (!(ctime >= c->lo && ctime < c->hi && rate == c->rate &&
+        mem->dut1 == c->dut1)) {
+    double lo = floor(ctime / rate) * rate;
+    double hi = lo + rate;
+    double jd_lo[2], jd_hi[2], ut1_lo[2], ut1_hi[2];
+    quat_t q_lo, q_hi;
+
+    ctime2jd(lo, jd_lo);
+    ctime2jd(hi, jd_hi);
+    qp_jdutc2jdut1(mem, jd_lo, ut1_lo);
+    qp_jdutc2jdut1(mem, jd_hi, ut1_hi);
+
+    /* ERA is affine in ctime only where the UT1 offset holds across the
+       window, which a leap second inside it breaks. */
+    if (ut1_lo[0] - jd_lo[0] != ut1_hi[0] - jd_hi[0] ||
+        ut1_lo[1] - jd_lo[1] != ut1_hi[1] - jd_hi[1]) {
+      qp_reset_erot_cache(mem);
+      return 0;
+    }
+
+    qp_erot_quat(ut1_lo, q_lo);
+    qp_erot_quat(ut1_hi, q_hi);
+    QuaternionSlerp_init(&c->slerp, q_lo, q_hi);
+    c->lo = lo;
+    c->hi = hi;
+    c->rate = rate;
+    c->dut1 = mem->dut1;
+  }
+
+  QuaternionSlerp_interpolate(&c->slerp, (ctime - c->lo) / rate, q);
+  return 1;
 }
 
 void qp_wobble_quat(double jd_tt[2], double xp, double yp, quat_t q) {
@@ -436,9 +562,19 @@ void qp_azelpsi2quat(qp_memory_t *mem, double az, double el, double psi, double 
   }
 
   // apply earth rotation
-  if (qp_check_update(&mem->state_erot, ctime)) {
+  // A positive rate interpolates across a window; always, once and never
+  // take the exact path below.
+  if (mem->state_erot.update_rate > 0.) {
+    if (!qp_erot_interp(mem, ctime, mem->state_erot.update_rate, mem->q_erot)) {
+      qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
+      qp_erot_quat(jd_ut1, mem->q_erot);
+    }
+#ifdef DEBUG
+    qp_print_quat("erot", mem->q_erot);
+#endif
+  } else if (qp_check_update(&mem->state_erot, ctime)) {
     // get ut1
-    jdutc2jdut1(jd_utc, mem->dut1, jd_ut1);
+    qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
     qp_erot_quat(jd_ut1, mem->q_erot);
 #ifdef DEBUG
     qp_print_quat("erot", mem->q_erot);
@@ -556,9 +692,21 @@ void qp_quat2azel(qp_memory_t *mem, quat_t q_in, double lon, double lat, double 
     qp_get_iers_bulletin_a(mem, mjd_utc, &mem->dut1, &x, &y);
 
   // apply earth rotation
-  if (qp_check_update(&mem->state_erot_inv, ctime)) {
+  // One window serves both directions, q_erot being a function of ctime
+  // alone. Only the rate schedules are per-direction.
+  if (mem->state_erot_inv.update_rate > 0.) {
+    if (!qp_erot_interp(mem, ctime, mem->state_erot_inv.update_rate,
+                        mem->q_erot_inv)) {
+      qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
+      qp_erot_quat(jd_ut1, mem->q_erot_inv);
+    }
+    Quaternion_inv(mem->q_erot_inv);
+#ifdef DEBUG
+    qp_print_quat("erot inv", mem->q_erot_inv);
+#endif
+  } else if (qp_check_update(&mem->state_erot_inv, ctime)) {
     // get ut1
-    jdutc2jdut1(jd_utc, mem->dut1, jd_ut1);
+    qp_jdutc2jdut1(mem, jd_utc, jd_ut1);
     qp_erot_quat(jd_ut1, mem->q_erot_inv);
     Quaternion_inv(mem->q_erot_inv);
 #ifdef DEBUG

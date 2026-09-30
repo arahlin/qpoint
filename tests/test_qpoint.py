@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 import qpoint
+from qpoint._libqpoint import libqp
 
 # Reference observing parameters
 CTIME = 1418662800.0  # 2014-12-15 12:00 UTC
@@ -1891,3 +1892,363 @@ class TestRateStateSentinel:
         ctime = -50000.0 + np.arange(self.N) * 5.0
         _, last = self.bore(ctime, rate_npb="once")
         assert last == ctime[0]
+
+
+# ---------------------------------------------------------------------------
+# the UTC -> UT1 day cache
+# ---------------------------------------------------------------------------
+
+# 2015-07-01 00:00:00 UTC, the instant after that year's leap second.
+LEAP_2015 = 1435708800.0
+
+# Every correction recomputed per sample, so the day cache is the only thing
+# a run of samples reuses. Without this the rate caches dominate: with
+# rate_npb at its default of 10 s, samples a second apart share one
+# nutation series and a fresh QPoint per sample does not, which looks like
+# a caching bug and is not one.
+ALL_RATES = dict(
+    rate_npb="always",
+    rate_aaber="always",
+    rate_daber="always",
+    rate_lonlat="always",
+    rate_erot="always",
+    rate_wobble="always",
+)
+
+UT1_SPANS = {
+    "ordinary day": CTIME + np.arange(0, 86400, 3600.0),
+    "across midnight": CTIME + np.arange(43000, 44200, 120.0),
+    "leap second day": LEAP_2015 - 86400.0 + np.arange(0, 86401, 3600.0),
+    # the margin itself: the cache stops ten seconds short of midnight
+    "margin edges": LEAP_2015
+    - 86400.0
+    + np.array([0.0, 9.0, 10.0, 11.0, 86389.0, 86390.0, 86400.0]),
+    "leap second crossing": LEAP_2015 + np.arange(-5, 5, 0.5),
+    "one second apart": CTIME + np.arange(0, 20, 1.0),
+    "100 Hz": CTIME + np.arange(0, 2, 0.01),
+    "backwards": CTIME + np.arange(86400, 0, -3600.0),
+}
+
+
+class TestUt1Caching:
+    """
+    UT1 - UTC is cached for the interior of a calendar day, which is exact:
+    the offset steps only at a leap second, and those fall at midnight.
+
+    The awkward part is that a leap-second UTC day is 86401 seconds long, so
+    ERFA and ctime / 86400 disagree about the date for one second. The cache
+    stays ten seconds clear of midnight rather than reason about it, and a day
+    with a leap second in it gets no cache.
+
+    Being exact is the claim, so every test here compares an accumulating run
+    against the same samples computed one at a time on a fresh QPoint.
+    """
+
+    @staticmethod
+    def warm(ctime, **kwargs):
+        q = qpoint.QPoint(**dict(ALL_RATES, **kwargs))
+        n = len(ctime)
+        return np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, n),
+                np.full(n, 45.0),
+                None,
+                None,
+                np.full(n, LON),
+                np.full(n, LAT),
+                np.ascontiguousarray(ctime),
+            )
+        )
+
+    @staticmethod
+    def cold(ctime, **kwargs):
+        n = len(ctime)
+        az = np.linspace(0, 90, n)
+        out = [
+            np.asarray(
+                qpoint.QPoint(**dict(ALL_RATES, **kwargs)).azel2bore(
+                    az[i], 45.0, None, None, LON, LAT, ctime[i]
+                )
+            )
+            for i in range(n)
+        ]
+        return np.asarray(out).reshape(n, 4)
+
+    @pytest.mark.parametrize(
+        "span", sorted(UT1_SPANS), ids=lambda s: s.replace(" ", "-")
+    )
+    def test_the_cache_changes_nothing(self, span):
+        ctime = UT1_SPANS[span]
+        assert np.array_equal(self.warm(ctime), self.cold(ctime))
+
+    @pytest.mark.parametrize("accuracy", ["high", "low"])
+    def test_in_both_accuracy_modes(self, accuracy):
+        ctime = UT1_SPANS["leap second day"]
+        assert np.array_equal(
+            self.warm(ctime, accuracy=accuracy), self.cold(ctime, accuracy=accuracy)
+        )
+
+    def test_a_dut1_that_changes_daily(self):
+        """
+        The cache keys on dut1 as well as the day, so a bulletin that steps
+        from one day to the next has to invalidate it rather than carry an
+        offset across the boundary.
+        """
+        nday = 6
+        mjd0 = 57200
+        dut1 = np.ascontiguousarray(np.linspace(-0.4, 0.4, nday))
+        zeros = np.ascontiguousarray(np.zeros(nday))
+
+        def go(ctime, cold):
+            def build():
+                q = qpoint.QPoint(rate_dut1="always", **ALL_RATES)
+                libqp.qp_set_iers_bulletin_a(
+                    q._memory, mjd0, mjd0 + nday - 1, dut1, zeros, zeros
+                )
+                return q
+
+            n = len(ctime)
+            az = np.linspace(0, 90, n)
+            if not cold:
+                return np.asarray(
+                    build().azel2bore(
+                        az,
+                        np.full(n, 45.0),
+                        None,
+                        None,
+                        np.full(n, LON),
+                        np.full(n, LAT),
+                        np.ascontiguousarray(ctime),
+                    )
+                )
+            return np.asarray(
+                [
+                    np.asarray(
+                        build().azel2bore(az[i], 45.0, None, None, LON, LAT, ctime[i])
+                    )
+                    for i in range(n)
+                ]
+            ).reshape(n, 4)
+
+        ctime = LEAP_2015 + np.arange(0, 5 * 86400.0, 7200.0)
+        assert np.array_equal(go(ctime, False), go(ctime, True))
+
+    def test_the_cache_starts_empty(self):
+        """
+        A fresh QPoint must not answer from an uninitialized window, which
+        is what lo > hi is for.
+        """
+        q = qpoint.QPoint()
+        cache = q._memory.contents.ut1_cache
+        assert cache.lo > cache.hi
+
+
+class TestErotSlerp:
+    """
+    rate_erot as an interval interpolates the earth rotation quaternion
+    across a window rather than holding it, which is exact for a
+    constant-rate turn about a fixed axis.
+
+    The floor is the two-part JD: one ulp of jd[1] at this epoch moves ERA
+    by 0.0047 mas, and the two paths agree to less than that.
+    """
+
+    # one ulp of jd[1] near 2014, as mas of earth rotation
+    ULP_MAS = 0.0047
+
+    @staticmethod
+    def bore(ctime, **kwargs):
+        q = qpoint.QPoint(**dict(ALL_RATES, **kwargs))
+        n = len(ctime)
+        return np.asarray(
+            q.azel2bore(
+                np.linspace(0, 90, n),
+                np.full(n, 45.0),
+                None,
+                None,
+                np.full(n, LON),
+                np.full(n, LAT),
+                np.ascontiguousarray(ctime),
+            )
+        )
+
+    @staticmethod
+    def worst_mas(a, b):
+        """Worst rotation between two runs of boresight quaternions, in mas."""
+        a = np.array(a, copy=True)
+        a[np.sum(a * b, axis=1) < 0] *= -1  # q and -q are the same rotation
+        d = np.linalg.norm(a - b, axis=1)
+        return float(
+            np.max(np.rad2deg(2 * np.arcsin(np.clip(d / 2, 0, 1))) * 3.6e6 * 2)
+        )
+
+    def test_a_sample_on_a_grid_point_is_exact(self):
+        """
+        The window covers floor(ctime/rate)*rate, so an integer ctime with a
+        one-second window lands on an endpoint.
+        """
+        ctime = CTIME + np.arange(20, dtype=float)
+        assert np.array_equal(
+            self.bore(ctime, rate_erot=1.0), self.bore(ctime, rate_erot="always")
+        )
+
+    @pytest.mark.parametrize("rate", [0.01, 1.0, 100.0, 1000.0])
+    def test_within_one_ulp_of_the_per_sample_path(self, rate):
+        """
+        Off the grid the two paths differ by less than the JD can resolve, at
+        every interval.
+        """
+        ctime = CTIME + np.arange(2000) * 0.01
+        got = self.worst_mas(
+            self.bore(ctime, rate_erot=rate), self.bore(ctime, rate_erot="always")
+        )
+        assert got < self.ULP_MAS
+
+    def test_a_window_spanning_a_leap_second_is_refused(self):
+        """
+        ERA is affine in ctime only where ctime -> UT1 is a constant offset.
+        The window is left empty across a leap second and those samples are
+        computed exactly.
+        """
+        q = qpoint.QPoint(**dict(ALL_RATES, rate_erot=1.0))
+        q.azel2bore(0.0, 45.0, None, None, LON, LAT, LEAP_2015 - 0.5)
+        cache = q._memory.contents.erot_cache
+        assert cache.lo > cache.hi
+
+    def test_across_a_leap_second(self):
+        ctime = LEAP_2015 + np.arange(-5, 5, 0.25)
+        assert np.isfinite(self.bore(ctime, rate_erot=1.0)).all()
+        assert (
+            self.worst_mas(
+                self.bore(ctime, rate_erot=1.0), self.bore(ctime, rate_erot="always")
+            )
+            < self.ULP_MAS
+        )
+
+    def test_backwards_time(self):
+        """A miss rebuilds, so time need not arrive in order."""
+        ctime = CTIME + np.arange(200, 0, -1.0)
+        assert (
+            self.worst_mas(
+                self.bore(ctime, rate_erot=1.0), self.bore(ctime, rate_erot="always")
+            )
+            < self.ULP_MAS
+        )
+
+    def test_an_interval_short_enough_to_collapse_the_window(self):
+        """
+        A window this short leaves the endpoints equal to within a double, so
+        alpha is zero and interpolation returns the endpoint.
+        """
+        ctime = CTIME + np.arange(50) * 0.01
+        got = self.bore(ctime, rate_erot=1e-4)
+        assert np.isfinite(got).all()
+        assert self.worst_mas(got, self.bore(ctime, rate_erot="always")) < self.ULP_MAS
+
+    def test_always_does_not_build_a_window(self):
+        """'always' takes the exact path, so nothing reaches the cache."""
+        q = qpoint.QPoint(**dict(ALL_RATES, rate_erot="always"))
+        q.azel2bore(0.0, 45.0, None, None, LON, LAT, CTIME)
+        cache = q._memory.contents.erot_cache
+        assert cache.lo > cache.hi
+
+    def test_the_cache_starts_empty(self):
+        """The QPoint has to outlive the read: its __del__ frees the memory."""
+        q = qpoint.QPoint()
+        cache = q._memory.contents.erot_cache
+        assert cache.lo > cache.hi
+
+    def test_the_ctypes_mirror_agrees_with_the_struct(self):
+        """
+        Reads every field of the window back, nested slerp included, against
+        the compiled layout.
+
+        alpha is the angle between the endpoint quaternions, which for a
+        rotation about a fixed axis is half the angle turned: the earth's
+        7.2921e-5 rad/s over the window.
+        """
+        rate = 4.0
+        q = qpoint.QPoint(**dict(ALL_RATES, rate_erot=rate))
+        q.azel2bore(0.0, 45.0, None, None, LON, LAT, CTIME + 0.5)
+        cache = q._memory.contents.erot_cache
+
+        assert cache.hi - cache.lo == pytest.approx(rate)
+        assert cache.lo <= CTIME + 0.5 < cache.hi
+        assert cache.lo % rate == 0.0  # aligned to an absolute grid
+        assert cache.rate == rate
+        assert cache.dut1 == 0.0
+        assert cache.slerp.alpha == pytest.approx(7.2921159e-5 * rate / 2, rel=1e-6)
+        assert cache.slerp.sin_alpha == pytest.approx(cache.slerp.alpha, rel=1e-9)
+        for end in (cache.slerp.q0, cache.slerp.q1):
+            assert sum(x * x for x in end) == pytest.approx(1.0)
+
+
+class TestLowAccuracyKeepsDut1:
+    """
+    gmst and lmst apply dut1 in both accuracy modes.
+
+    The low path used to hand UTC to eraGmst00 as UT1, discarding a loaded
+    bulletin -- 6 arcsec at a typical dut1 -- and misreading a leap-second
+    day. Cached for the day the conversion costs about 2 ns, so low now gives
+    up only the TT conversion, worth 0.1 mas.
+    """
+
+    # One leap-second day, sampled through it so any drift is visible.
+    CTIME = np.ascontiguousarray(LEAP_2015 - 86400.0 + np.arange(0.0, 86400.0, 600.0))
+    DUT1 = 0.4
+    MJD0 = 57200
+    NDAY = 40
+
+    def qp(self, accuracy, dut1):
+        q = qpoint.QPoint(accuracy=accuracy, rate_dut1="always")
+        d = np.ascontiguousarray(np.full(self.NDAY, float(dut1)))
+        z = np.ascontiguousarray(np.zeros(self.NDAY))
+        libqp.qp_set_iers_bulletin_a(
+            q._memory, self.MJD0, self.MJD0 + self.NDAY - 1, d, z, z
+        )
+        return q
+
+    @staticmethod
+    def arcsec(a, b):
+        """Separation in arcsec of earth rotation; gmst is in hours."""
+        return np.abs(np.asarray(a) - np.asarray(b)) * 15.0 * 3600.0
+
+    def gmst(self, accuracy, dut1=None):
+        dut1 = self.DUT1 if dut1 is None else dut1
+        return np.asarray(self.qp(accuracy, dut1).gmst(self.CTIME))
+
+    def test_low_tracks_high(self):
+        """Only the TT term is given up: a tenth of a milliarcsecond."""
+        assert self.arcsec(self.gmst("low"), self.gmst("high")).max() < 1e-3
+
+    def test_the_term_is_really_applied(self):
+        """
+        Against a QPoint with no bulletin at all, so the test cannot pass
+        by the low path quietly doing nothing.
+        """
+        plain = np.asarray(qpoint.QPoint(accuracy="low").gmst(self.CTIME))
+        assert self.arcsec(self.gmst("low"), plain).min() > 0.9 * self.DUT1 * 15.0
+
+    def test_the_leap_second_day_needs_no_bulletin(self):
+        """
+        With dut1 == 0 the low path still has to agree, which it did not
+        before: the day's 86401 seconds were mapped onto 86400.
+        """
+        d = self.arcsec(self.gmst("low", dut1=0.0), self.gmst("high", dut1=0.0))
+        assert d.max() < 1e-3
+
+    def test_lmst_follows_gmst(self):
+        """lmst is gmst plus a longitude, so it inherits the whole thing."""
+        out = [
+            np.asarray(self.qp(acc, self.DUT1).lmst(self.CTIME, LON))
+            for acc in ("low", "high")
+        ]
+        assert self.arcsec(*out).max() < 1e-3
+
+    def test_high_accuracy_applies_it_too(self):
+        """
+        It always did -- this is the reference the low path is held to, so
+        it is worth pinning that it is not itself ignoring the bulletin.
+        """
+        plain = np.asarray(qpoint.QPoint(accuracy="high").gmst(self.CTIME))
+        assert self.arcsec(self.gmst("high"), plain).min() > 0.9 * self.DUT1 * 15.0
