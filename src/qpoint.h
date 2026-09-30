@@ -101,7 +101,7 @@ extern "C" {
     int polconv;           // polarization convention (0=healpix,1=IAU)
     int pix_order;         // pixel ordering (1=nest, 0=ring)
     int interp_pix;        // interpolate between pixels in map2tod (1=yes, 0=no)
-    int fast_pix;          // use vec2pix instead of ang2pix in binners
+    int fast_pix;          // use vec2pix instead of ang2pix in binners (default on)
     int error_missing;     // raise an error when reading/writing missing pixels
     int nan_missing;       // set missing samples to NaN (used if !error_missing)
     int interp_missing;    // drop missing neighbors when interp_pix=1
@@ -395,6 +395,15 @@ extern "C" {
                         double *pa, int n);
 
   /* Compute ra/dec and sin(2*psi)/cos(2*psi) for a given quaternion */
+  /* Polarization angle from a quaternion, given cos^2(b) and which pole the
+     degenerate branch belongs to. One body, called by both the angle path
+     and the fast_pix path, so the two cannot differ in the last bits. */
+  void qp_quat2pol(quat_t q, double cosb2, int north, double *sin2psi,
+                   double *cos2psi);
+
+  void qp_quat2pa(qp_memory_t *mem, quat_t q, double cosb2, int north,
+                  double *pa);
+
   void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
 		     double *sin2psi, double *cos2psi);
 

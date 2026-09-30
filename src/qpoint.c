@@ -674,6 +674,57 @@ void qp_bore2det_hwp(qp_memory_t *mem, quat_t q_off, double ctime, quat_t q_bore
   Quaternion_mul_right(q_det, q_hwp);
 }
 
+/* Polarization angle from a quaternion, given cos^2(b) and which pole the
+   degenerate branch belongs to.
+
+   One definition for all five callers: the angle paths in qp_quat2radec,
+   qp_quat2rasindec and qp_quat2radecpa, and the fast_pix paths in
+   qp_quat2pix and qp_quat2pixpa. Written out separately they got an FMA in
+   some copies and not others, so the paths disagreed in the last bit. Keep
+   it one body. */
+void qp_quat2pol(quat_t q, double cosb2, int north, double *sin2psi,
+                 double *cos2psi) {
+  double norm, sing, cosg;
+  if (cosb2 < DBL_EPSILON) {
+    if (north) {
+      cosg = q[3] * q[3] - q[0] * q[0];
+      sing = 2 * q[0] * q[3];
+    } else {
+      cosg = q[1] * q[1] - q[2] * q[2];
+      sing = 2 * q[1] * q[2];
+    }
+    norm = 2. * cosg;
+  } else {
+    cosg = q[1] * q[3] - q[0] * q[2];
+    sing = q[0] * q[1] + q[2] * q[3];
+    norm = 2. * cosg / cosb2;
+  }
+  *sin2psi = norm * sing;
+  *cos2psi = norm * cosg - 1.;
+}
+
+/* As above, for the position angle rather than its sine and cosine. */
+void qp_quat2pa(qp_memory_t *mem, quat_t q, double cosb2, int north,
+                double *pa) {
+  double sing, cosg;
+  if (cosb2 < DBL_EPSILON) {
+    if (north) {
+      cosg = q[3] * q[3] - q[0] * q[0];
+      sing = 2 * q[0] * q[3];
+    } else {
+      cosg = q[1] * q[1] - q[2] * q[2];
+      sing = 2 * q[1] * q[2];
+    }
+  } else {
+    cosg = q[1] * q[3] - q[0] * q[2];
+    sing = q[0] * q[1] + q[2] * q[3];
+  }
+  if (mem->fast_math)
+    *pa = rad2deg(poly_atan2(sing, cosg));
+  else
+    *pa = rad2deg(atan2(sing, cosg));
+}
+
 void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
 		      double *sin2psi, double *cos2psi) {
 
@@ -684,19 +735,9 @@ void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
   // NB: factors of two have been redistributed...
   double cosb2 = q00p33*q11p22;
   double sinb = q00p33 - q11p22;
-  double norm, sing, cosg;
 
   if (cosb2 < DBL_EPSILON) {
     *ra = 0;
-
-    if (sinb > 0) {
-      cosg = q[3] * q[3] - q[0] * q[0];
-      sing = 2 * q[0] * q[3];
-    } else {
-      cosg = q[1] * q[1] - q[2] * q[2];
-      sing = 2 * q[1] * q[2];
-    }
-    norm = 2. * cosg;
   } else {
     double q01 = q[0]*q[1];
     double q02 = q[0]*q[2];
@@ -710,15 +751,10 @@ void qp_quat2rasindec(qp_memory_t *mem, quat_t q, double *ra, double *sindec,
     else
       *ra = rad2deg(atan2(sina_2, cosa_2));
 
-    sing = q01 + q23;
-    cosg = q13 - q02;
-    norm = 2. * cosg / cosb2;
   }
 
   *sindec = sinb;
-
-  *sin2psi = norm * sing;
-  *cos2psi = norm * cosg - 1.;
+  qp_quat2pol(q, cosb2, sinb > 0, sin2psi, cos2psi);
 }
 
 void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
@@ -730,20 +766,10 @@ void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
   // NB: factors of 2 have been redistributed...
   double cosb2 = q00p33*q11p22;
   double sinb_2 = 0.5*(q00p33 - q11p22);
-  double sing, cosg;
 
   if (cosb2 < DBL_EPSILON) {
     *ra = 0;
-
-    if (sinb_2 > 0) {
-      *dec = 90;
-      cosg = q[3] * q[3] - q[0] * q[0];
-      sing = 2 * q[0] * q[3];
-    } else {
-      *dec = -90;
-      cosg = q[1] * q[1] - q[2] * q[2];
-      sing = 2 * q[1] * q[2];
-    }
+    *dec = (sinb_2 > 0) ? 90 : -90;
   } else {
     double q01 = q[0]*q[1];
     double q02 = q[0]*q[2];
@@ -761,15 +787,9 @@ void qp_quat2radecpa(qp_memory_t *mem, quat_t q, double *ra, double *dec,
       *dec = rad2deg(atan2(sinb_2, cosb_2));
     }
 
-    sing = q01 + q23;
-    cosg = q13 - q02;
   }
 
-  if (mem->fast_math) {
-    *pa = rad2deg(poly_atan2(sing, cosg));
-  } else {
-    *pa = rad2deg(atan2(sing, cosg));
-  }
+  qp_quat2pa(mem, q, cosb2, sinb_2 > 0, pa);
 }
 
 void qp_quat2radecpan(qp_memory_t *mem, quat_t *q, double *ra, double *dec,
@@ -789,21 +809,10 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
   // NB: factors of 2 have been redistributed...
   double cosb2 = q00p33*q11p22;
   double sinb_2 = 0.5*(q00p33 - q11p22);
-  double norm, sing, cosg;
 
   if (cosb2 < DBL_EPSILON) {
     *ra = 0;
-
-    if (sinb_2 > 0) {
-      *dec = 90;
-      cosg = q[3] * q[3] - q[0] * q[0];
-      sing = 2 * q[0] * q[3];
-    } else {
-      *dec = -90;
-      cosg = q[1] * q[1] - q[2] * q[2];
-      sing = 2 * q[1] * q[2];
-    }
-    norm = 2. * cosg;
+    *dec = (sinb_2 > 0) ? 90 : -90;
   } else {
     double q01 = q[0]*q[1];
     double q02 = q[0]*q[2];
@@ -821,13 +830,9 @@ void qp_quat2radec(qp_memory_t *mem, quat_t q, double *ra, double *dec,
       *dec = rad2deg(atan2(sinb_2, cosb_2));
     }
 
-    sing = q01 + q23;
-    cosg = q13 - q02;
-    norm = 2. * cosg / cosb2;
   }
 
-  *sin2psi = norm * sing;
-  *cos2psi = norm * cosg - 1.;
+  qp_quat2pol(q, cosb2, sinb_2 > 0, sin2psi, cos2psi);
 }
 
 void qp_radec2quat(qp_memory_t *mem, double ra, double dec, double sin2psi,

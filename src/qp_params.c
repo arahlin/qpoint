@@ -47,7 +47,7 @@ qp_memory_t * qp_init_memory(void) {
   mem->polconv = 0;
   mem->pix_order = 0;
   mem->interp_pix = 0;
-  mem->fast_pix = 0;
+  mem->fast_pix = 1;
   mem->error_missing = 1;
   mem->nan_missing = 0;
   mem->interp_missing = 0;
