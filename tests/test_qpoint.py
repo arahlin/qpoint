@@ -1017,6 +1017,40 @@ class TestRefractionMethod:
         assert delta == pytest.approx(0.02)
 
 
+class TestRefractionAtTheZenith:
+    """
+    The refraction correction reads sin(el) off the quaternion as
+    q0^2 - q1^2 - q2^2 + q3^2, and q is unit only to within rounding, so at
+    el = 90 that can land a hair above 1. asin of it is NaN, which went into
+    ref_delta and from there into the boresight: 11664 of 172824 samples
+    over a day of azimuth sweeps, before the clamp.
+
+    Only the forward transform is pinned. The inverse reads the elevation
+    back after undoing the aberration, never lands on exactly 1, and did not
+    reproduce it in bore2azel or radec2azel. poly_asin clamps on its own, so
+    fast_math never failed; it is checked for staying finite, not as a
+    regression.
+    """
+
+    AZ = np.linspace(0, 360, 721)
+    CT = np.full(AZ.size, CTIME)
+
+    @pytest.mark.parametrize("fast_math", [False, True])
+    def test_forward(self, qp, fast_math):
+        q = qp.azel2bore(
+            self.AZ,
+            90.0,
+            None,
+            None,
+            LON,
+            LAT,
+            self.CT,
+            rate_ref="always",
+            fast_math=fast_math,
+        )
+        assert np.isfinite(q).all()
+
+
 # ---------------------------------------------------------------------------
 # get_interp_val
 # ---------------------------------------------------------------------------
