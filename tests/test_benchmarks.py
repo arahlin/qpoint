@@ -15,7 +15,20 @@ import numpy as np
 import pytest
 import qpoint
 
+qpoint2 = pytest.importorskip("qpoint2")
+
 pytestmark = pytest.mark.benchmark
+
+# Both packages, so every row is a comparison. They implement the same
+# API over different cores -- C through ctypes, and C++ through pybind11
+# -- which is the whole reason for timing them side by side.
+IMPLS = [qpoint, qpoint2]
+
+
+@pytest.fixture(params=IMPLS, ids=lambda m: m.__name__)
+def mod(request):
+    return request.param
+
 
 # ~17 minutes at 100 Hz, which is the order of a scan chunk
 NPOINT = 100_000
@@ -35,8 +48,8 @@ def scan(n):
 
 
 @pytest.fixture
-def pointing():
-    q = qpoint.QPoint(mean_aber=True, accuracy="low", fast_math=True)
+def pointing(mod):
+    q = mod.QPoint(mean_aber=True, accuracy="low", fast_math=True)
     az, el, ctime = scan(NPOINT)
     return q, az, el, ctime
 
@@ -132,7 +145,7 @@ class TestPointing:
         assert np.asarray(out[0]).shape == (NPOINT,)
 
     @pytest.mark.parametrize("fast_math", [False, True])
-    def test_fast_math(self, bench, fast_math):
+    def test_fast_math(self, bench, mod, fast_math):
         """
         What the polynomial trig is worth, measured where it dominates.
 
@@ -141,7 +154,7 @@ class TestPointing:
         moves, its cost being the correction chain rather than the trig,
         which is worth knowing before reaching for the option.
         """
-        q = qpoint.QPoint(mean_aber=True, accuracy="low", fast_math=fast_math)
+        q = mod.QPoint(mean_aber=True, accuracy="low", fast_math=fast_math)
         az, el, ctime = scan(NPOINT)
         q_bore = q.azel2bore(az, el, None, None, LON, LAT, ctime)
         q_off = q.det_offset(1.0, 2.0, 30.0)
@@ -153,8 +166,8 @@ class TestPointing:
         assert np.asarray(out[0]).shape == (NPOINT,)
 
 
-def mapper(**kwargs):
-    qm = qpoint.QMap(nside=NSIDE, pol=True, mean_aber=True, fast_math=True, **kwargs)
+def mapper(mod, **kwargs):
+    qm = mod.QMap(nside=NSIDE, pol=True, mean_aber=True, fast_math=True, **kwargs)
     az, el, ctime = scan(NMAP)
     qm.init_point(qm.azel2bore(az, el, None, None, LON, LAT, ctime), ctime=ctime)
     pol = np.arange(NDET) * 180.0 / NDET
@@ -163,8 +176,8 @@ def mapper(**kwargs):
 
 
 class TestMapmaking:
-    def test_from_tod(self, bench):
-        qm, q_off = mapper()
+    def test_from_tod(self, bench, mod):
+        qm, q_off = mapper(mod)
         tod = np.random.default_rng(0).normal(size=(NDET, NMAP))
         out = bench(
             "from_tod (tod2map)",
@@ -173,8 +186,8 @@ class TestMapmaking:
         )
         assert np.any(np.asarray(out[1]))
 
-    def test_to_tod(self, bench):
-        qm, q_off = mapper()
+    def test_to_tod(self, bench, mod):
+        qm, q_off = mapper(mod)
         source = np.random.default_rng(0).normal(size=(3, 12 * NSIDE * NSIDE))
         qm.init_source(source, pol=True)
         out = bench(
@@ -184,7 +197,7 @@ class TestMapmaking:
         )
         assert np.asarray(out).shape == (NDET, NMAP)
 
-    def test_solve_and_condition(self, bench):
+    def test_solve_and_condition(self, bench, mod):
         """
         The post-processing, which is where a full-sky destination map costs far
         more than the scan that filled it.
@@ -193,7 +206,7 @@ class TestMapmaking:
         restrict the work to the hit pixels and copy the projection matrix only
         where they hand it back.
         """
-        qm, q_off = mapper()
+        qm, q_off = mapper(mod)
         vec, proj = qm.from_tod(
             q_off, tod=np.random.default_rng(0).normal(size=(NDET, NMAP))
         )
@@ -218,8 +231,8 @@ class TestMapmaking:
 
 
 class TestInterpolation:
-    def test_get_interp_val(self, bench):
-        q = qpoint.QPoint(mean_aber=True)
+    def test_get_interp_val(self, bench, mod):
+        q = mod.QPoint(mean_aber=True)
         rng = np.random.default_rng(0)
         nside = 128
         m = rng.normal(size=12 * nside * nside)
