@@ -188,10 +188,10 @@ class QMap(QPoint):
     def init_source(
         self,
         source_map,
-        pol=True,
+        pol=None,
         pixels=None,
         nside=None,
-        vpol=False,
+        vpol=None,
         reset=False,
         update=False,
     ):
@@ -206,7 +206,9 @@ class QMap(QPoint):
             1, 3, 6, 9, or 18.
         pol : bool, optional
             If `True`, and the map shape is `(3, npix)`, then input is a
-            polarized map (and not T + first derivatives).
+            polarized map (and not T + first derivatives).  Three rows is
+            the only count that leaves this open; `None` takes the
+            documented default of `(T,Q,U)`.
         pixels : 1D array_like, optional
             Array of pixel numbers for each map index, if `source_map` is
             a partial map.
@@ -215,7 +217,11 @@ class QMap(QPoint):
             Otherwise, the nside is determined from the input map.
         vpol : bool, optional
             If `True`, and the input map shape is `(4, npix)`, then input is
-            a polarized map that includes V polarization.
+            a polarized map that includes V polarization.  A row count
+            settles V polarization by itself -- four rows and nothing else
+            -- so this is **checked** against the map rather than used to
+            read it: `True` requires four rows and `False` refuses them.
+            `None`, the default, asks no question.
         reset : bool, optional
             If `True`, and if the structure has already been initialized,
             it is reset and re-initialized with the new map.  If `False`,
@@ -224,7 +230,13 @@ class QMap(QPoint):
         update : bool, optional
             If `True`, and if the structure has already been initialized,
             the supplied `source_map` is replaced in the existing source
-            structure rather than reinitializing from scratch.
+            structure rather than reinitializing from scratch.  It must
+            cover the same pixels, but it may carry a different number of
+            derivative terms, and the map mode follows its row count.
+            `pol` and `vpol` are ignored: where a row count leaves the mode
+            open, which is 3 rows, the polarization this structure was
+            initialized with is used.  Use `reset` to change that, or the
+            pixelization.
 
         Notes
         -----
@@ -251,15 +263,28 @@ class QMap(QPoint):
                 self.reset_source()
 
             elif update:
+                # npix has to match -- the pixel hash is what update exists
+                # to keep -- but the row count is free to change, since a
+                # source map may carry a different number of derivative
+                # terms than the one it replaces.
+                #
+                # So the mode follows the new row count, under the
+                # polarization the installed mode already carries --
+                # source_is_pol() -- rather than under the pol argument. A
+                # row count settles the mode by itself except at 3 rows,
+                # and taking pol from the argument there is what silently
+                # turned a D1 source into a polarized one: it defaults to
+                # True, and map2tod reads the mode with an exact switch, so
+                # the timestream moved with no diagnostic. Use reset=True
+                # to change the polarization.
                 source = self._source.contents
-                if (
-                    source_map.squeeze().shape[-1]
-                    != self.depo["source_map"].squeeze().shape[-1]
-                ):
-                    raise ValueError("source_map shape mismatch")
                 source_map, _ = check_map(source_map, partial=True)
-                source.num_vec = len(source_map)
-                source.vec_mode = lib.get_vec_mode(source_map, pol, vpol)
+                installed = self.depo["source_map"]
+                if np.shape(source_map)[-1] != np.shape(installed)[-1]:
+                    raise ValueError("source_map npix does not match the existing map")
+                if len(source_map) != len(installed):
+                    source.num_vec = len(source_map)
+                    source.vec_mode = lib.get_vec_mode(source_map, self.source_is_pol())
                 source.vec1d = source_map.ravel()
                 self.depo["source_map"] = source_map
                 if qp.qp_reshape_map(self._source):
@@ -298,6 +323,16 @@ class QMap(QPoint):
         source.pixinfo = None
         source.pixhash = None
         source.num_vec = len(source_map)
+        # vpol says what the caller read off disk, so it is checked against
+        # what arrived rather than used to interpret it: a row count settles
+        # V polarization by itself, 4 rows and nothing else. pol is the one
+        # thing the rows leave open, at 3, so it still decides there.
+        if vpol is not None and bool(vpol) != (len(smap) == 4):
+            raise ValueError(
+                "vpol={} wants a {}(4, npix) map, got {} rows".format(
+                    bool(vpol), "" if vpol else "non-", len(smap)
+                )
+            )
         source.vec_mode = lib.get_vec_mode(smap, pol, vpol)
         source.vec1d = smap.ravel()
         source.vec = None
@@ -362,11 +397,11 @@ class QMap(QPoint):
     def init_dest(
         self,
         nside=None,
-        pol=True,
+        pol=None,
         vec=None,
         proj=None,
         pixels=None,
-        vpol=False,
+        vpol=None,
         copy=False,
         reset=False,
         update=False,
@@ -381,7 +416,10 @@ class QMap(QPoint):
             map dimension.  If `pixels` is supplied, this argument is required.
             Otherwise, the default is 256.
         pol : bool, optional
-            If True, a polarized map will be created.
+            If True, a polarized map will be created.  A supplied `vec` or
+            `proj` settles this, and a value that disagrees with it is an
+            error rather than an override; None asks the shapes, and falls
+            back to True where neither is supplied.
         vec : array_like or bool, optional, shape (N, npix)
             If supplied, nside and pol are determined from this map, and
             the vector (binned signal) map is initialized from this.
@@ -395,7 +433,9 @@ class QMap(QPoint):
             Array of pixel numbers for each map index, if `vec` and `proj` are
             partial maps.
         vpol : bool, optional
-            If True, a polarized map including V polarization will be created.
+            If True, a polarized map including V polarization will be
+            created.  Read the same way as `pol`; None is False where
+            nothing else settles it.
         copy : bool, optional
             If True and vec/proj are supplied, make copies of these inputs
             to avoid in-place operations.
@@ -407,7 +447,10 @@ class QMap(QPoint):
         update : bool, optional
             If True, and if the structure has already been initialized,
             the supplied vec and proj are replaced in the existing dest
-            structure rather than reinitializing from scratch.
+            structure rather than reinitializing from scratch.  Each must
+            have the shape it is replacing, and `pol` and `vpol` are
+            ignored: the map modes are the ones this structure was
+            initialized with.  Use `reset` to change a shape or a mode.
         """
 
         if vec is False and proj is False:
@@ -418,47 +461,47 @@ class QMap(QPoint):
                 self.reset_dest()
 
             elif update:
-                # update map data with same shape
-
+                # Swap the map data, leaving the structure as it is. update
+                # replaces arrays; it does not reinterpret them, so the
+                # replacement has to have the shape the structure already
+                # holds, and pol and vpol are not consulted -- the mode is
+                # whatever init established. Use reset=True to change either.
                 dest = self._dest.contents
-                ret = ()
 
-                if self.depo["vec"] is not False:
-                    if vec is None:
-                        vec = np.zeros_like(self.depo["vec"])
-                    if vec.squeeze().shape[-1] != self.depo["vec"].squeeze().shape[-1]:
-                        raise ValueError("vec shape mismatch")
-                    vec, _ = check_map(vec, copy=copy, partial=True)
-                    dest.num_vec = len(vec)
-                    dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
-                    dest.vec1d = vec.ravel()
-                    self.depo["vec"] = vec
-                    ret += (vec.squeeze(),)
-
-                if self.depo["proj"] is not False:
-                    if proj is None:
-                        proj = np.zeros_like(self.depo["proj"])
-                    if (
-                        proj.squeeze().shape[-1]
-                        != self.depo["proj"].squeeze().shape[-1]
-                    ):
-                        raise ValueError("proj shape mismatch")
-                    proj, _ = check_map(proj, copy=copy, partial=True)
-                    dest.num_proj = len(proj)
-                    dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
-                    dest.proj1d = proj.ravel()
-                    self.depo["proj"] = proj
-                    ret += (proj.squeeze(),)
+                for name, arr in (("vec", vec), ("proj", proj)):
+                    if self.depo[name] is False:
+                        continue
+                    if arr is None:
+                        arr = np.zeros_like(self.depo[name])
+                    elif arr is False:
+                        raise ValueError(
+                            "cannot switch {} off with update; "
+                            "use reset=True".format(name)
+                        )
+                    arr, _ = check_map(arr, copy=copy, partial=True)
+                    if np.shape(arr) != np.shape(self.depo[name]):
+                        raise ValueError(
+                            "{} shape does not match the existing map".format(name)
+                        )
+                    setattr(dest, name + "1d", arr.ravel())
+                    self.depo[name] = arr
 
                 if qp.qp_reshape_map(self._dest):
                     raise RuntimeError("Error reshaping dest map")
 
-                if len(ret) == 1:
-                    return ret[0]
-                return ret
+                return
 
             else:
                 raise RuntimeError("dest already initialized")
+
+        # None asks the shapes, which a supplied vec or proj answers below.
+        # Where neither is supplied these are the only word, so None falls
+        # back to the documented default of T,Q,U. Resolved here because the
+        # cross-checks below index with them; the values as given are kept
+        # for the check after those blocks have had their say.
+        want_pol, want_vpol = pol, vpol
+        pol = True if pol is None else bool(pol)
+        vpol = False if vpol is None else bool(vpol)
 
         if pixels is None:
             if nside is None:
@@ -476,6 +519,23 @@ class QMap(QPoint):
         # for the other one has to match it. Only a supplied vec used to do
         # that, so a defaulted vec was built at the default nside and mode
         # and the caller's proj then failed the cross-check against it.
+        # A dest has three modes and each has one shape per component --
+        # 1, 3 or 4 vec rows, and the 1, 6 or 10 proj rows that correspond
+        # -- so either map settles the mode by itself, and a flag saying
+        # otherwise is a contradiction rather than an override. vec and
+        # proj are read the same way here; pass None to leave the question
+        # to the shapes.
+        def check_flags():
+            for name, given, want in (
+                ("pol", want_pol, pol),
+                ("vpol", want_vpol, vpol),
+            ):
+                if given is not None and bool(given) != want:
+                    raise ValueError(
+                        "{}={} contradicts the supplied map, which is"
+                        " {}={}".format(name, bool(given), name, want)
+                    )
+
         if vec is not None and vec is not False:
             vec, vdim2 = check_map(vec, copy=copy, partial=partial)
             if not partial:
@@ -494,6 +554,7 @@ class QMap(QPoint):
                 vpol = True
             else:
                 raise ValueError("vec has incompatible shape")
+            check_flags()
 
         if proj is not None and proj is not False:
             proj, pdim2, pnmap = check_proj(proj, copy=copy, partial=partial)
@@ -517,6 +578,7 @@ class QMap(QPoint):
                     vpol = True
                 else:
                     raise ValueError("proj has incompatible shape")
+                check_flags()
                 if not partial:
                     nside = pdim2
                     npix = nside2npix(nside)
@@ -550,7 +612,6 @@ class QMap(QPoint):
             self.depo["dest_pixels"] = pixels
 
         # initialize
-        ret = ()
         dest = self._dest.contents
         dest.nside = nside
         dest.npix = npix
@@ -561,12 +622,10 @@ class QMap(QPoint):
             dest.num_vec = len(vec)
             dest.vec_mode = lib.get_vec_mode(vec, pol, vpol)
             dest.vec1d = vec.ravel()
-            ret += (vec.squeeze(),)
         if proj is not False:
             dest.num_proj = len(proj)
             dest.proj_mode = lib.get_proj_mode(proj, pol, vpol)
             dest.proj1d = proj.ravel()
-            ret += (proj.squeeze(),)
         dest.vec = None
         dest.proj = None
         dest.init = True
@@ -577,11 +636,6 @@ class QMap(QPoint):
 
         if qp.qp_reshape_map(self._dest):
             raise RuntimeError("Error reshaping dest map")
-
-        # return
-        if len(ret) == 1:
-            return ret[0]
-        return ret
 
     def reset_dest(self):
         """
